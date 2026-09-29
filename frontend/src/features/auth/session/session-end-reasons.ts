@@ -1,4 +1,4 @@
-export type SessionEndReason = "signed_out" | "session_expired";
+export type SessionEndReason = "signed_out" | "session_expired" | "password_reset";
 
 export const sessionEndReasonParameter = "reason";
 
@@ -11,5 +11,7 @@ export function loginPathAfterSessionEnd(reason: SessionEndReason, returnPath?: 
 }
 
 export function parseSessionEndReason(rawReason: string | null): SessionEndReason | null {
-  return rawReason === "signed_out" || rawReason === "session_expired" ? rawReason : null;
+  return rawReason === "signed_out" || rawReason === "session_expired" || rawReason === "password_reset"
+    ? rawReason
+    : null;
 }

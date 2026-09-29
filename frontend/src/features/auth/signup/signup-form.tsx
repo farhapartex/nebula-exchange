@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import type { SignedUpAccount } from "@/features/auth/api/auth-types";
 import { signUp } from "@/features/auth/api/sign-up";
-import { PasswordStrengthMeter } from "@/features/auth/signup/password-strength-meter";
+import { PasswordStrengthMeter } from "@/features/auth/shared/password-strength-meter";
 import { signupFieldNames, signupSchema, type SignupFormValues } from "@/features/auth/signup/signup-schema";
 import { SignupSuccess } from "@/features/auth/signup/signup-success";
 import { isApiError } from "@/lib/api/api-error";

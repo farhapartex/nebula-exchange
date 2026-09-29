@@ -1,4 +1,4 @@
-import { Clock, LogOut, type LucideIcon } from "lucide-react";
+import { Clock, KeyRound, LogOut, type LucideIcon } from "lucide-react";
 
 import type { SessionEndReason } from "@/features/auth/session/session-end-reasons";
 
@@ -7,6 +7,11 @@ const noticeByReason: Record<SessionEndReason, { icon: LucideIcon; title: string
     icon: LogOut,
     title: "You're logged out",
     message: "See you back in the nebula soon.",
+  },
+  password_reset: {
+    icon: KeyRound,
+    title: "Password updated",
+    message: "You were logged out everywhere. Log in with your new password.",
   },
   session_expired: {
     icon: Clock,

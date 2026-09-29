@@ -50,6 +50,17 @@ export const authPages: AuthPage[] = [
     label: "Forgot password",
     description: "Get a single-use reset link by email.",
     icon: KeyRound,
-    plannedTask: "T-017",
+  },
+  {
+    href: "/reset?token=demo-valid-password-reset-token",
+    label: "Reset password (mock)",
+    description: "A valid reset link: choose a new password, then log in again.",
+    icon: KeyRound,
+  },
+  {
+    href: "/reset?token=demo-expired-reset-token",
+    label: "Reset: expired link (mock)",
+    description: "An invalid or used reset link and how it's explained.",
+    icon: KeyRound,
   },
 ];
