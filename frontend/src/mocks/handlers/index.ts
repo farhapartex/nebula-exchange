@@ -1,5 +1,6 @@
 import { activationHandlers } from "@/mocks/handlers/activation-handlers";
 import { authHandlers } from "@/mocks/handlers/auth-handlers";
+import { catalogHandlers } from "@/mocks/handlers/catalog-handlers";
 import { devShowcaseHandlers } from "@/mocks/handlers/dev-showcase-handlers";
 import { healthHandlers } from "@/mocks/handlers/health-handlers";
 import { passwordResetHandlers } from "@/mocks/handlers/password-reset-handlers";
@@ -13,5 +14,6 @@ export const mockRequestHandlers = [
   ...passwordResetHandlers,
   ...sessionHandlers,
   ...settingsHandlers,
+  ...catalogHandlers,
   ...devShowcaseHandlers,
 ];

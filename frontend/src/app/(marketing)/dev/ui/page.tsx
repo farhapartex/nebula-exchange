@@ -7,6 +7,7 @@ import { ButtonShowcase } from "@/features/ui-showcase/button-showcase";
 import { CardShowcase } from "@/features/ui-showcase/card-showcase";
 import { FeedbackShowcase } from "@/features/ui-showcase/feedback-showcase";
 import { FormShowcase } from "@/features/ui-showcase/form-showcase";
+import { ItemShowcase } from "@/features/ui-showcase/item-showcase";
 import { MoneyShowcase } from "@/features/ui-showcase/money-showcase";
 import { OverlayShowcase } from "@/features/ui-showcase/overlay-showcase";
 import { SessionShowcase } from "@/features/ui-showcase/session-showcase";
@@ -38,6 +39,9 @@ export default function UiShowcasePage() {
         <CardShowcase />
         <div className="lg:col-span-2">
           <FeedbackShowcase />
+        </div>
+        <div className="lg:col-span-2">
+          <ItemShowcase />
         </div>
         <MoneyShowcase />
         <ApiShowcase />
