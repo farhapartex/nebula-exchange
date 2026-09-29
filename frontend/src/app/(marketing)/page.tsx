@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react";
 import { primaryNavigationLinks, profileNavigationLinks } from "@/components/app-shell/navigation-links";
 import { PageContainer } from "@/components/layout/page-container";
 import { Button } from "@/components/ui/button";
+import { authPages } from "@/features/build-preview/auth-pages";
 import { developerPages } from "@/features/build-preview/developer-pages";
 import { PreviewLinkCard } from "@/features/build-preview/preview-link-card";
 import { PreviewLinkGrid } from "@/features/build-preview/preview-link-grid";
@@ -28,6 +29,12 @@ export default function BuildPreviewPage() {
           </Link>
         </Button>
       </div>
+
+      <PreviewLinkGrid title="Auth" description="Sign up, verification and login screens.">
+        {authPages.map((authPage) => (
+          <PreviewLinkCard key={authPage.href} {...authPage} />
+        ))}
+      </PreviewLinkGrid>
 
       <PreviewLinkGrid title="Game" description="The main sections from the top navigation.">
         {primaryNavigationLinks.map((navigationLink) => (
