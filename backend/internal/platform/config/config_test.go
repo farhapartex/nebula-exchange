@@ -6,11 +6,18 @@ import (
 	"time"
 )
 
+const testDatabaseURL = "postgres://nebula:nebula@localhost:5432/nebula_exchange?sslmode=disable"
+
+func clearOptionalEnvironment(t *testing.T) {
+	t.Helper()
+	for _, key := range []string{"APP_ENV", "HTTP_PORT", "LOG_LEVEL", "SHUTDOWN_TIMEOUT", "DATABASE_MAX_CONNECTIONS"} {
+		t.Setenv(key, "")
+	}
+	t.Setenv("DATABASE_URL", testDatabaseURL)
+}
+
 func TestLoadUsesDefaultsWhenEnvironmentIsEmpty(t *testing.T) {
-	t.Setenv("APP_ENV", "")
-	t.Setenv("HTTP_PORT", "")
-	t.Setenv("LOG_LEVEL", "")
-	t.Setenv("SHUTDOWN_TIMEOUT", "")
+	clearOptionalEnvironment(t)
 
 	loadedConfig, err := Load()
 	if err != nil {
@@ -22,6 +29,7 @@ func TestLoadUsesDefaultsWhenEnvironmentIsEmpty(t *testing.T) {
 		HTTPPort:        8080,
 		LogLevel:        slog.LevelInfo,
 		ShutdownTimeout: 15 * time.Second,
+		Database:        DatabaseConfig{URL: testDatabaseURL, MaxConnections: 20},
 	}
 	if loadedConfig != expectedConfig {
 		t.Fatalf("got %+v, want %+v", loadedConfig, expectedConfig)
@@ -29,10 +37,12 @@ func TestLoadUsesDefaultsWhenEnvironmentIsEmpty(t *testing.T) {
 }
 
 func TestLoadReadsValuesFromEnvironment(t *testing.T) {
+	clearOptionalEnvironment(t)
 	t.Setenv("APP_ENV", "production")
 	t.Setenv("HTTP_PORT", "9000")
 	t.Setenv("LOG_LEVEL", "debug")
 	t.Setenv("SHUTDOWN_TIMEOUT", "5s")
+	t.Setenv("DATABASE_MAX_CONNECTIONS", "7")
 
 	loadedConfig, err := Load()
 	if err != nil {
@@ -51,18 +61,24 @@ func TestLoadReadsValuesFromEnvironment(t *testing.T) {
 	if loadedConfig.ShutdownTimeout != 5*time.Second {
 		t.Fatalf("got shutdown timeout %v, want 5s", loadedConfig.ShutdownTimeout)
 	}
+	if loadedConfig.Database.MaxConnections != 7 {
+		t.Fatalf("got max connections %d, want 7", loadedConfig.Database.MaxConnections)
+	}
 }
 
 func TestLoadRejectsInvalidValues(t *testing.T) {
 	invalidEnvironments := map[string]map[string]string{
-		"unknown environment": {"APP_ENV": "staging"},
-		"non numeric port":    {"HTTP_PORT": "eighty"},
-		"unknown log level":   {"LOG_LEVEL": "verbose"},
-		"malformed timeout":   {"SHUTDOWN_TIMEOUT": "fifteen"},
+		"unknown environment":      {"APP_ENV": "staging"},
+		"non numeric port":         {"HTTP_PORT": "eighty"},
+		"unknown log level":        {"LOG_LEVEL": "verbose"},
+		"malformed timeout":        {"SHUTDOWN_TIMEOUT": "fifteen"},
+		"missing database url":     {"DATABASE_URL": ""},
+		"zero database connection": {"DATABASE_MAX_CONNECTIONS": "0"},
 	}
 
 	for caseName, environmentValues := range invalidEnvironments {
 		t.Run(caseName, func(t *testing.T) {
+			clearOptionalEnvironment(t)
 			for key, value := range environmentValues {
 				t.Setenv(key, value)
 			}

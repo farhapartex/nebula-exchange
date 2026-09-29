@@ -9,6 +9,7 @@ import (
 
 	"nebula-exchange/backend/internal/health"
 	"nebula-exchange/backend/internal/platform/config"
+	"nebula-exchange/backend/internal/platform/database"
 	"nebula-exchange/backend/internal/platform/httpserver"
 	"nebula-exchange/backend/internal/platform/logger"
 )
@@ -30,6 +31,12 @@ func run() error {
 
 	shutdownSignal, stopListening := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stopListening()
+
+	databasePool, err := database.NewPool(shutdownSignal, appConfig.Database)
+	if err != nil {
+		return fmt.Errorf("connect database: %w", err)
+	}
+	defer databasePool.Close()
 
 	router := httpserver.NewRouter(appLogger, appConfig.IsProduction(),
 		health.NewHandler(),
