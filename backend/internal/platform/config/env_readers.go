@@ -52,3 +52,17 @@ func readLogLevel(key string, fallback slog.Level) (slog.Level, error) {
 	}
 	return parsedLevel, nil
 }
+
+func readList(key string, fallback []string) []string {
+	rawValue := readString(key, "")
+	if rawValue == "" {
+		return fallback
+	}
+	var listValues []string
+	for _, listValue := range strings.Split(rawValue, ",") {
+		if trimmedValue := strings.TrimSpace(listValue); trimmedValue != "" {
+			listValues = append(listValues, trimmedValue)
+		}
+	}
+	return listValues
+}

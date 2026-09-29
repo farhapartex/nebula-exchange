@@ -2,6 +2,7 @@ package config
 
 import (
 	"log/slog"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -10,7 +11,7 @@ const testDatabaseURL = "postgres://nebula:nebula@localhost:5432/nebula_exchange
 
 func clearOptionalEnvironment(t *testing.T) {
 	t.Helper()
-	for _, key := range []string{"APP_ENV", "HTTP_PORT", "LOG_LEVEL", "SHUTDOWN_TIMEOUT", "DATABASE_MAX_CONNECTIONS"} {
+	for _, key := range []string{"APP_ENV", "HTTP_PORT", "LOG_LEVEL", "SHUTDOWN_TIMEOUT", "DATABASE_MAX_CONNECTIONS", "FRONTEND_ORIGINS"} {
 		t.Setenv(key, "")
 	}
 	t.Setenv("DATABASE_URL", testDatabaseURL)
@@ -29,9 +30,10 @@ func TestLoadUsesDefaultsWhenEnvironmentIsEmpty(t *testing.T) {
 		HTTPPort:        8080,
 		LogLevel:        slog.LevelInfo,
 		ShutdownTimeout: 15 * time.Second,
+		AllowedOrigins:  []string{"http://localhost:3000"},
 		Database:        DatabaseConfig{URL: testDatabaseURL, MaxConnections: 20},
 	}
-	if loadedConfig != expectedConfig {
+	if !reflect.DeepEqual(loadedConfig, expectedConfig) {
 		t.Fatalf("got %+v, want %+v", loadedConfig, expectedConfig)
 	}
 }
@@ -43,6 +45,7 @@ func TestLoadReadsValuesFromEnvironment(t *testing.T) {
 	t.Setenv("LOG_LEVEL", "debug")
 	t.Setenv("SHUTDOWN_TIMEOUT", "5s")
 	t.Setenv("DATABASE_MAX_CONNECTIONS", "7")
+	t.Setenv("FRONTEND_ORIGINS", "https://play.nebula.test, https://admin.nebula.test")
 
 	loadedConfig, err := Load()
 	if err != nil {
@@ -60,6 +63,9 @@ func TestLoadReadsValuesFromEnvironment(t *testing.T) {
 	}
 	if loadedConfig.ShutdownTimeout != 5*time.Second {
 		t.Fatalf("got shutdown timeout %v, want 5s", loadedConfig.ShutdownTimeout)
+	}
+	if !reflect.DeepEqual(loadedConfig.AllowedOrigins, []string{"https://play.nebula.test", "https://admin.nebula.test"}) {
+		t.Fatalf("got origins %v", loadedConfig.AllowedOrigins)
 	}
 	if loadedConfig.Database.MaxConnections != 7 {
 		t.Fatalf("got max connections %d, want 7", loadedConfig.Database.MaxConnections)

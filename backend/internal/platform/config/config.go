@@ -23,6 +23,7 @@ type Config struct {
 	HTTPPort        int
 	LogLevel        slog.Level
 	ShutdownTimeout time.Duration
+	AllowedOrigins  []string
 	Database        DatabaseConfig
 }
 
@@ -47,6 +48,8 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	allowedOrigins := readList("FRONTEND_ORIGINS", []string{"http://localhost:3000"})
+
 	databaseConfig, err := loadDatabaseConfig()
 	if err != nil {
 		return Config{}, err
@@ -57,6 +60,7 @@ func Load() (Config, error) {
 		HTTPPort:        httpPort,
 		LogLevel:        logLevel,
 		ShutdownTimeout: shutdownTimeout,
+		AllowedOrigins:  allowedOrigins,
 		Database:        databaseConfig,
 	}, nil
 }

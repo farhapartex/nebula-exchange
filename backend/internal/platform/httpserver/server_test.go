@@ -27,7 +27,7 @@ func (panickingRoutes) RegisterRoutes(router gin.IRouter) {
 func TestHealthEndpointReturnsDataEnvelopeAndLogsRequestID(t *testing.T) {
 	var logOutput bytes.Buffer
 	testLogger := logger.NewWithWriter(&logOutput, slog.LevelInfo, true)
-	router := NewRouter(testLogger, false, health.NewHandler())
+	router := NewRouter(RouterOptions{Logger: testLogger}, health.NewHandler())
 
 	recorder := httptest.NewRecorder()
 	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/api/v1/health", nil))
@@ -54,7 +54,7 @@ func TestHealthEndpointReturnsDataEnvelopeAndLogsRequestID(t *testing.T) {
 
 func TestPanicReturnsErrorEnvelope(t *testing.T) {
 	testLogger := logger.NewWithWriter(&bytes.Buffer{}, slog.LevelInfo, true)
-	router := NewRouter(testLogger, false, panickingRoutes{})
+	router := NewRouter(RouterOptions{Logger: testLogger}, panickingRoutes{})
 
 	recorder := httptest.NewRecorder()
 	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/api/v1/explode", nil))
@@ -84,7 +84,7 @@ func TestRunStopsGracefullyWhenShutdownIsSignalled(t *testing.T) {
 	listener.Close()
 
 	testLogger := logger.NewWithWriter(&bytes.Buffer{}, slog.LevelInfo, true)
-	server := New(freeAddress, NewRouter(testLogger, false, health.NewHandler()), testLogger)
+	server := New(freeAddress, NewRouter(RouterOptions{Logger: testLogger}, health.NewHandler()), testLogger)
 
 	shutdownSignal, triggerShutdown := context.WithCancel(context.Background())
 	runResult := make(chan error, 1)
@@ -119,7 +119,7 @@ func waitForServer(t *testing.T, healthURL string) {
 
 func TestUnknownRoutesAndMethodsReturnErrorEnvelope(t *testing.T) {
 	testLogger := logger.NewWithWriter(&bytes.Buffer{}, slog.LevelInfo, true)
-	router := NewRouter(testLogger, false, health.NewHandler())
+	router := NewRouter(RouterOptions{Logger: testLogger}, health.NewHandler())
 
 	expectations := map[string]struct {
 		method         string
@@ -134,7 +134,9 @@ func TestUnknownRoutesAndMethodsReturnErrorEnvelope(t *testing.T) {
 	for caseName, expectation := range expectations {
 		t.Run(caseName, func(t *testing.T) {
 			recorder := httptest.NewRecorder()
-			router.ServeHTTP(recorder, httptest.NewRequest(expectation.method, expectation.path, nil))
+			testRequest := httptest.NewRequest(expectation.method, expectation.path, nil)
+			testRequest.Header.Set("X-Nebula-Client", "web")
+			router.ServeHTTP(recorder, testRequest)
 
 			var responseBody struct {
 				Error struct {

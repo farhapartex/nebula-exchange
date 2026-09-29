@@ -6,51 +6,11 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
-
-	"github.com/gin-gonic/gin"
-
-	"nebula-exchange/backend/internal/platform/apierror"
-	"nebula-exchange/backend/internal/platform/httpserver/middleware"
-	"nebula-exchange/backend/internal/platform/httpserver/request"
-	"nebula-exchange/backend/internal/platform/httpserver/response"
 )
-
-const apiBasePath = "/api/v1"
-
-type RouteRegistrar interface {
-	RegisterRoutes(router gin.IRouter)
-}
 
 type Server struct {
 	httpServer *http.Server
 	logger     *slog.Logger
-}
-
-func NewRouter(logger *slog.Logger, isProduction bool, registrars ...RouteRegistrar) *gin.Engine {
-	if isProduction {
-		gin.SetMode(gin.ReleaseMode)
-	}
-	request.RegisterJSONFieldNames()
-
-	router := gin.New()
-	router.HandleMethodNotAllowed = true
-	router.NoRoute(func(context *gin.Context) {
-		response.WriteError(context, apierror.NotFound("Route not found"))
-	})
-	router.NoMethod(func(context *gin.Context) {
-		response.WriteError(context, apierror.New(http.StatusMethodNotAllowed, apierror.CodeMethodNotAllowed, "Method not allowed"))
-	})
-	router.Use(
-		middleware.RequestID(),
-		middleware.RequestLogger(logger),
-		middleware.PanicRecovery(logger),
-	)
-
-	apiGroup := router.Group(apiBasePath)
-	for _, registrar := range registrars {
-		registrar.RegisterRoutes(apiGroup)
-	}
-	return router
 }
 
 func New(address string, handler http.Handler, logger *slog.Logger) *Server {

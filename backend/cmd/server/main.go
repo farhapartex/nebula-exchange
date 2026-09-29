@@ -11,6 +11,7 @@ import (
 	"nebula-exchange/backend/internal/platform/config"
 	"nebula-exchange/backend/internal/platform/database"
 	"nebula-exchange/backend/internal/platform/httpserver"
+	"nebula-exchange/backend/internal/platform/idempotency"
 	"nebula-exchange/backend/internal/platform/logger"
 )
 
@@ -38,7 +39,12 @@ func run() error {
 	}
 	defer databasePool.Close()
 
-	router := httpserver.NewRouter(appLogger, appConfig.IsProduction(),
+	router := httpserver.NewRouter(httpserver.RouterOptions{
+		Logger:           appLogger,
+		IsProduction:     appConfig.IsProduction(),
+		AllowedOrigins:   appConfig.AllowedOrigins,
+		IdempotencyStore: idempotency.NewPostgresStore(databasePool),
+	},
 		health.NewHandler(),
 	)
 
