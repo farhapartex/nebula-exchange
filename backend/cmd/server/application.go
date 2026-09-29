@@ -21,6 +21,7 @@ import (
 	"nebula-exchange/backend/internal/auth/session"
 	"nebula-exchange/backend/internal/auth/signup"
 	"nebula-exchange/backend/internal/auth/twofactor"
+	"nebula-exchange/backend/internal/balances"
 	"nebula-exchange/backend/internal/catalog"
 	"nebula-exchange/backend/internal/health"
 	"nebula-exchange/backend/internal/ledger"
@@ -136,6 +137,7 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 		signup.NewHandler(signupService, rateLimits.PerClientIP(ratelimit.SignupPolicy)),
 		login.NewHandler(loginService, cookieSettings, time.Now, rateLimits.PerClientIP(ratelimit.LoginPolicy)),
 		users.NewMeHandler(databasePool, userRepository),
+		balances.NewHandler(balances.NewReader(databasePool)),
 		activation.NewHandler(activation.NewService(databasePool, userRepository, time.Now)),
 		activation.NewResendHandler(
 			activation.NewResender(databasePool, userRepository, activationIssuer, activationMailer, time.Now),

@@ -64,3 +64,16 @@ func RequireIntegrity(t *testing.T, pool *pgxpool.Pool) {
 		t.Fatalf("ledger integrity broken: %+v", report)
 	}
 }
+
+func Hold(t *testing.T, pool *pgxpool.Pool, account ledger.AccountKey, amount int64) uuid.UUID {
+	t.Helper()
+	var holdID uuid.UUID
+	if err := InTransaction(t, pool, func(tx pgx.Tx) error {
+		var holdErr error
+		holdID, holdErr = ledger.Hold(context.Background(), tx, account, amount, ledger.Reference{Type: "test_hold", ID: uuid.NewString()})
+		return holdErr
+	}); err != nil {
+		t.Fatalf("hold %d on %+v: %v", amount, account, err)
+	}
+	return holdID
+}
