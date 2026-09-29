@@ -67,7 +67,9 @@ export function SignupForm() {
     <form onSubmit={handleSubmit(submitSignup)} noValidate className="space-y-5">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">Create your pilot account</h1>
-        <p className="mt-1 text-sm text-muted">Sign up, verify your email, and pay the 5 NC entry fee to launch.</p>
+        <p className="mt-1 text-sm text-muted">
+          Sign up, activate your account from the email link, and pay the 5 NC entry fee to launch.
+        </p>
       </div>
 
       {formErrorMessage && (

@@ -1,4 +1,4 @@
-import { KeyRound, LogIn, MailCheck, UserPlus, type LucideIcon } from "lucide-react";
+import { KeyRound, LogIn, MailCheck, Send, UserPlus, type LucideIcon } from "lucide-react";
 
 export type AuthPage = {
   href: `/${string}`;
@@ -16,10 +16,17 @@ export const authPages: AuthPage[] = [
     icon: UserPlus,
   },
   {
-    href: "/verify",
-    label: "Verify email",
-    description: "Enter the 6-digit code sent to your inbox.",
+    href: "/activate",
+    label: "Activate account",
+    description: "Opened from the activation link in the signup email.",
     icon: MailCheck,
+    plannedTask: "T-013",
+  },
+  {
+    href: "/resend-activation",
+    label: "Resend activation",
+    description: "Request a new activation link when the old one expired.",
+    icon: Send,
     plannedTask: "T-013",
   },
   {

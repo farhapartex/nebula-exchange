@@ -28,7 +28,7 @@ export const authHandlers = [
       email: signupRequest.email,
       username: signupRequest.username,
       status: "UNVERIFIED",
-      verification_code_expires_at: new Date(Date.now() + 15 * 60_000).toISOString(),
+      activation_link_expires_at: new Date(Date.now() + 24 * 60 * 60_000).toISOString(),
     };
     return mockDataResponse(signedUpAccount, 201);
   }),

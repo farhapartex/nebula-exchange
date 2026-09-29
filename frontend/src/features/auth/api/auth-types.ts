@@ -12,5 +12,5 @@ export type SignedUpAccount = {
   email: string;
   username: string;
   status: AccountStatus;
-  verification_code_expires_at: string;
+  activation_link_expires_at: string;
 };

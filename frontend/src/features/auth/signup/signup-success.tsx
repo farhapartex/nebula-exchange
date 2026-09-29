@@ -1,6 +1,6 @@
+import Link from "next/link";
 import { MailCheck } from "lucide-react";
 
-import { StatusBadge } from "@/components/ui/status-badge";
 import type { SignedUpAccount } from "@/features/auth/api/auth-types";
 
 export function SignupSuccess({ signedUpAccount }: { signedUpAccount: SignedUpAccount }) {
@@ -11,13 +11,18 @@ export function SignupSuccess({ signedUpAccount }: { signedUpAccount: SignedUpAc
       </span>
       <h2 className="text-xl font-semibold text-foreground">Check your email</h2>
       <p className="mt-2 text-sm text-muted">
-        We sent a 6-digit code to <span className="font-medium text-foreground">{signedUpAccount.email}</span>. It
-        expires in 15 minutes.
+        We sent an activation link to <span className="font-medium text-foreground">{signedUpAccount.email}</span>. It
+        stays valid for 24 hours.
       </p>
       <p className="mt-4 text-sm text-muted">
         Welcome aboard, <span className="font-mono text-accent-soft">{signedUpAccount.username}</span>.
       </p>
-      <StatusBadge className="mt-6" label="Code entry arrives in T-013" tone="neutral" />
+      <p className="mt-6 text-xs text-subtle">
+        No email?{" "}
+        <Link href="/resend-activation" className="text-accent-soft underline-offset-2 hover:underline">
+          Send a new link
+        </Link>
+      </p>
     </div>
   );
 }
