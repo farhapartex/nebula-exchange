@@ -7,14 +7,17 @@ import (
 	"time"
 )
 
+const testJWTSecret = "test-jwt-secret-with-at-least-32-characters"
+
 const testDatabaseURL = "postgres://nebula:nebula@localhost:5432/nebula_exchange?sslmode=disable"
 
 func clearOptionalEnvironment(t *testing.T) {
 	t.Helper()
-	for _, key := range []string{"APP_ENV", "HTTP_PORT", "LOG_LEVEL", "SHUTDOWN_TIMEOUT", "DATABASE_MAX_CONNECTIONS", "FRONTEND_ORIGINS", "FRONTEND_BASE_URL", "SMTP_HOST", "SMTP_PORT", "SMTP_USERNAME", "SMTP_PASSWORD", "EMAIL_FROM_ADDRESS", "EMAIL_FROM_NAME"} {
+	for _, key := range []string{"APP_ENV", "HTTP_PORT", "LOG_LEVEL", "SHUTDOWN_TIMEOUT", "DATABASE_MAX_CONNECTIONS", "FRONTEND_ORIGINS", "FRONTEND_BASE_URL", "SMTP_HOST", "SMTP_PORT", "SMTP_USERNAME", "SMTP_PASSWORD", "EMAIL_FROM_ADDRESS", "EMAIL_FROM_NAME", "COOKIE_SECURE"} {
 		t.Setenv(key, "")
 	}
 	t.Setenv("DATABASE_URL", testDatabaseURL)
+	t.Setenv("JWT_SECRET", testJWTSecret)
 }
 
 func TestLoadUsesDefaultsWhenEnvironmentIsEmpty(t *testing.T) {
@@ -39,6 +42,7 @@ func TestLoadUsesDefaultsWhenEnvironmentIsEmpty(t *testing.T) {
 			FromAddress: "no-reply@nebula.test",
 			FromName:    "Nebula Exchange",
 		},
+		Session: SessionConfig{JWTSecret: testJWTSecret, IsCookieSecure: false},
 	}
 	if !reflect.DeepEqual(loadedConfig, expectedConfig) {
 		t.Fatalf("got %+v, want %+v", loadedConfig, expectedConfig)
@@ -74,6 +78,9 @@ func TestLoadReadsValuesFromEnvironment(t *testing.T) {
 	if !reflect.DeepEqual(loadedConfig.AllowedOrigins, []string{"https://play.nebula.test", "https://admin.nebula.test"}) {
 		t.Fatalf("got origins %v", loadedConfig.AllowedOrigins)
 	}
+	if !loadedConfig.Session.IsCookieSecure {
+		t.Fatal("cookies must be secure outside development")
+	}
 	if loadedConfig.Database.MaxConnections != 7 {
 		t.Fatalf("got max connections %d, want 7", loadedConfig.Database.MaxConnections)
 	}
@@ -88,6 +95,8 @@ func TestLoadRejectsInvalidValues(t *testing.T) {
 		"missing database url":     {"DATABASE_URL": ""},
 		"zero database connection": {"DATABASE_MAX_CONNECTIONS": "0"},
 		"non numeric smtp port":    {"SMTP_PORT": "mail"},
+		"short jwt secret":         {"JWT_SECRET": "too-short"},
+		"invalid cookie flag":      {"COOKIE_SECURE": "sometimes"},
 	}
 
 	for caseName, environmentValues := range invalidEnvironments {

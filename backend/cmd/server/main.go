@@ -8,8 +8,12 @@ import (
 	"syscall"
 	"time"
 
+	"nebula-exchange/backend/internal/auth/accesstoken"
 	"nebula-exchange/backend/internal/auth/activation"
+	"nebula-exchange/backend/internal/auth/authentication"
+	"nebula-exchange/backend/internal/auth/login"
 	"nebula-exchange/backend/internal/auth/passwordhash"
+	"nebula-exchange/backend/internal/auth/session"
 	"nebula-exchange/backend/internal/auth/signup"
 	"nebula-exchange/backend/internal/health"
 	"nebula-exchange/backend/internal/notify/email"
@@ -57,9 +61,15 @@ func run() error {
 		From:     email.Address{Name: appConfig.Email.FromName, Email: appConfig.Email.FromAddress},
 	})
 
+	userRepository := users.NewRepository()
+	accessTokens, err := accesstoken.NewManager(appConfig.Session.JWTSecret, accesstoken.DefaultLifetime, time.Now)
+	if err != nil {
+		return err
+	}
+
 	signupService := signup.NewService(signup.Dependencies{
 		Pool:                databasePool,
-		Users:               users.NewRepository(),
+		Users:               userRepository,
 		ActivationIssuer:    activation.NewIssuer(activation.DefaultTokenLifetime, time.Now),
 		ActivationEmail:     activation.NewEmailComposer(appConfig.FrontendBaseURL, emailTemplates),
 		EmailSender:         emailSender,
@@ -68,14 +78,30 @@ func run() error {
 		Now:                 time.Now,
 	})
 
+	loginService, err := login.NewService(login.Dependencies{
+		Pool:                databasePool,
+		Users:               userRepository,
+		AccessTokens:        accessTokens,
+		RefreshTokens:       session.NewRefreshTokens(session.DefaultRefreshTokenLifetime, time.Now),
+		PasswordHashOptions: passwordhash.DefaultParameters,
+		Now:                 time.Now,
+	})
+	if err != nil {
+		return err
+	}
+	cookieSettings := session.CookieSettings{IsSecure: appConfig.Session.IsCookieSecure}
+
 	router := httpserver.NewRouter(httpserver.RouterOptions{
 		Logger:           appLogger,
 		IsProduction:     appConfig.IsProduction(),
 		AllowedOrigins:   appConfig.AllowedOrigins,
+		IdentifyUser:     authentication.IdentifyUser(accessTokens),
 		IdempotencyStore: idempotency.NewPostgresStore(databasePool),
 	},
 		health.NewHandler(),
 		signup.NewHandler(signupService),
+		login.NewHandler(loginService, cookieSettings, time.Now),
+		users.NewMeHandler(databasePool, userRepository),
 	)
 
 	server := httpserver.New(appConfig.HTTPAddress(), router, appLogger)

@@ -6,11 +6,16 @@ package usersstore
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 type Querier interface {
 	CheckIdentifiersTaken(ctx context.Context, arg CheckIdentifiersTakenParams) (CheckIdentifiersTakenRow, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error)
+	FindUserByID(ctx context.Context, id uuid.UUID) (FindUserByIDRow, error)
+	FindUserCredentialsByEmail(ctx context.Context, email string) (FindUserCredentialsByEmailRow, error)
+	RecordLogin(ctx context.Context, arg RecordLoginParams) error
 }
 
 var _ Querier = (*Queries)(nil)

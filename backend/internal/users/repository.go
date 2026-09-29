@@ -3,8 +3,10 @@ package users
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
 	"nebula-exchange/backend/internal/users/usersstore"
@@ -83,4 +85,51 @@ func translateUniqueViolation(err error) error {
 	default:
 		return err
 	}
+}
+
+func (repository *Repository) FindCredentialsByEmail(ctx context.Context, database usersstore.DBTX, email string) (Credentials, bool, error) {
+	credentialRow, err := usersstore.New(database).FindUserCredentialsByEmail(ctx, email)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Credentials{}, false, nil
+	}
+	if err != nil {
+		return Credentials{}, false, err
+	}
+	return Credentials{
+		User: User{
+			ID:          credentialRow.ID,
+			Email:       credentialRow.Email,
+			Username:    credentialRow.Username,
+			Status:      Status(credentialRow.Status),
+			IsActive:    credentialRow.IsActive,
+			IsAdmin:     credentialRow.IsAdmin,
+			CreatedAt:   credentialRow.CreatedAt,
+			LastLoginAt: credentialRow.LastLoginAt,
+		},
+		PasswordHash: credentialRow.PasswordHash,
+	}, true, nil
+}
+
+func (repository *Repository) FindByID(ctx context.Context, database usersstore.DBTX, userID uuid.UUID) (User, bool, error) {
+	userRow, err := usersstore.New(database).FindUserByID(ctx, userID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return User{}, false, nil
+	}
+	if err != nil {
+		return User{}, false, err
+	}
+	return User{
+		ID:          userRow.ID,
+		Email:       userRow.Email,
+		Username:    userRow.Username,
+		Status:      Status(userRow.Status),
+		IsActive:    userRow.IsActive,
+		IsAdmin:     userRow.IsAdmin,
+		CreatedAt:   userRow.CreatedAt,
+		LastLoginAt: userRow.LastLoginAt,
+	}, true, nil
+}
+
+func (repository *Repository) RecordLogin(ctx context.Context, database usersstore.DBTX, userID uuid.UUID, loggedInAt time.Time) error {
+	return usersstore.New(database).RecordLogin(ctx, usersstore.RecordLoginParams{ID: userID, LastLoginAt: &loggedInAt})
 }

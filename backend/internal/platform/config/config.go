@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+const minimumJWTSecretLength = 32
+
 const (
 	EnvironmentDevelopment = "development"
 	EnvironmentProduction  = "production"
@@ -27,6 +29,11 @@ type EmailConfig struct {
 	FromName     string
 }
 
+type SessionConfig struct {
+	JWTSecret      string
+	IsCookieSecure bool
+}
+
 type Config struct {
 	Environment     string
 	HTTPPort        int
@@ -36,6 +43,7 @@ type Config struct {
 	FrontendBaseURL string
 	Database        DatabaseConfig
 	Email           EmailConfig
+	Session         SessionConfig
 }
 
 func Load() (Config, error) {
@@ -71,6 +79,11 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	sessionConfig, err := loadSessionConfig(environment)
+	if err != nil {
+		return Config{}, err
+	}
+
 	return Config{
 		Environment:     environment,
 		HTTPPort:        httpPort,
@@ -80,7 +93,20 @@ func Load() (Config, error) {
 		FrontendBaseURL: readString("FRONTEND_BASE_URL", "http://localhost:3000"),
 		Database:        databaseConfig,
 		Email:           emailConfig,
+		Session:         sessionConfig,
 	}, nil
+}
+
+func loadSessionConfig(environment string) (SessionConfig, error) {
+	jwtSecret := readString("JWT_SECRET", "")
+	if len(jwtSecret) < minimumJWTSecretLength {
+		return SessionConfig{}, fmt.Errorf("JWT_SECRET must be at least %d characters", minimumJWTSecretLength)
+	}
+	isCookieSecure, err := readBool("COOKIE_SECURE", environment != EnvironmentDevelopment)
+	if err != nil {
+		return SessionConfig{}, err
+	}
+	return SessionConfig{JWTSecret: jwtSecret, IsCookieSecure: isCookieSecure}, nil
 }
 
 func loadEmailConfig() (EmailConfig, error) {

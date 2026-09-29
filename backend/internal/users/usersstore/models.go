@@ -32,6 +32,16 @@ type IdempotencyKey struct {
 	CompletedAt         *time.Time
 }
 
+type RefreshToken struct {
+	ID         uuid.UUID
+	UserID     uuid.UUID
+	TokenHash  []byte
+	ExpiresAt  time.Time
+	RevokedAt  *time.Time
+	ReplacedBy *uuid.UUID
+	CreatedAt  time.Time
+}
+
 type User struct {
 	ID              uuid.UUID
 	Email           string

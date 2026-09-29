@@ -66,3 +66,15 @@ func readList(key string, fallback []string) []string {
 	}
 	return listValues
 }
+
+func readBool(key string, fallback bool) (bool, error) {
+	rawValue := readString(key, "")
+	if rawValue == "" {
+		return fallback, nil
+	}
+	parsedValue, err := strconv.ParseBool(rawValue)
+	if err != nil {
+		return false, fmt.Errorf("%s must be true or false: %w", key, err)
+	}
+	return parsedValue, nil
+}

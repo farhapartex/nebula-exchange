@@ -87,3 +87,87 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateU
 	)
 	return i, err
 }
+
+const findUserByID = `-- name: FindUserByID :one
+SELECT id, email, username, status, is_active, is_admin, created_at, last_login_at
+FROM users
+WHERE id = $1
+`
+
+type FindUserByIDRow struct {
+	ID          uuid.UUID
+	Email       string
+	Username    string
+	Status      string
+	IsActive    bool
+	IsAdmin     bool
+	CreatedAt   time.Time
+	LastLoginAt *time.Time
+}
+
+func (q *Queries) FindUserByID(ctx context.Context, id uuid.UUID) (FindUserByIDRow, error) {
+	row := q.db.QueryRow(ctx, findUserByID, id)
+	var i FindUserByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Username,
+		&i.Status,
+		&i.IsActive,
+		&i.IsAdmin,
+		&i.CreatedAt,
+		&i.LastLoginAt,
+	)
+	return i, err
+}
+
+const findUserCredentialsByEmail = `-- name: FindUserCredentialsByEmail :one
+SELECT id, email, username, password_hash, status, is_active, is_admin, created_at, last_login_at
+FROM users
+WHERE lower(email) = lower($1::text)
+`
+
+type FindUserCredentialsByEmailRow struct {
+	ID           uuid.UUID
+	Email        string
+	Username     string
+	PasswordHash string
+	Status       string
+	IsActive     bool
+	IsAdmin      bool
+	CreatedAt    time.Time
+	LastLoginAt  *time.Time
+}
+
+func (q *Queries) FindUserCredentialsByEmail(ctx context.Context, email string) (FindUserCredentialsByEmailRow, error) {
+	row := q.db.QueryRow(ctx, findUserCredentialsByEmail, email)
+	var i FindUserCredentialsByEmailRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Username,
+		&i.PasswordHash,
+		&i.Status,
+		&i.IsActive,
+		&i.IsAdmin,
+		&i.CreatedAt,
+		&i.LastLoginAt,
+	)
+	return i, err
+}
+
+const recordLogin = `-- name: RecordLogin :exec
+UPDATE users
+SET last_login_at = $2, updated_at = $2
+WHERE id = $1
+`
+
+type RecordLoginParams struct {
+	ID          uuid.UUID
+	LastLoginAt *time.Time
+}
+
+func (q *Queries) RecordLogin(ctx context.Context, arg RecordLoginParams) error {
+	_, err := q.db.Exec(ctx, recordLogin, arg.ID, arg.LastLoginAt)
+	return err
+}

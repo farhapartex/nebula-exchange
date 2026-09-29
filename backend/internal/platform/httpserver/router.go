@@ -26,6 +26,7 @@ type RouterOptions struct {
 	Logger           *slog.Logger
 	IsProduction     bool
 	AllowedOrigins   []string
+	IdentifyUser     gin.HandlerFunc
 	IdempotencyStore idempotency.Store
 }
 
@@ -54,6 +55,9 @@ func NewRouter(options RouterOptions, registrars ...RouteRegistrar) *gin.Engine 
 		router.Use(middleware.CrossOrigin(options.AllowedOrigins, idempotency.ReplayedHeader))
 	}
 	router.Use(middleware.RequireClientIdentification(webhookPathPrefix))
+	if options.IdentifyUser != nil {
+		router.Use(options.IdentifyUser)
+	}
 	if options.IdempotencyStore != nil {
 		router.Use(idempotency.Middleware(options.IdempotencyStore, options.Logger, idempotency.Options{}))
 	}

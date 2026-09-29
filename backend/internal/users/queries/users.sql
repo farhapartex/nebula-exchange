@@ -7,3 +7,18 @@ RETURNING id, email, username, status, is_active, is_admin, terms_accepted_at, a
 SELECT
     EXISTS (SELECT 1 FROM users WHERE lower(users.email) = lower(sqlc.arg(email)::text)) AS is_email_taken,
     EXISTS (SELECT 1 FROM users WHERE lower(users.username) = lower(sqlc.arg(username)::text)) AS is_username_taken;
+
+-- name: FindUserCredentialsByEmail :one
+SELECT id, email, username, password_hash, status, is_active, is_admin, created_at, last_login_at
+FROM users
+WHERE lower(email) = lower(sqlc.arg(email)::text);
+
+-- name: FindUserByID :one
+SELECT id, email, username, status, is_active, is_admin, created_at, last_login_at
+FROM users
+WHERE id = $1;
+
+-- name: RecordLogin :exec
+UPDATE users
+SET last_login_at = $2, updated_at = $2
+WHERE id = $1;
