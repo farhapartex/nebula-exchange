@@ -91,9 +91,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [startSession, endSession, clearRefreshTimer, router]);
 
+  const replaceUser = useCallback((updatedUser: UserProfile) => setUser(updatedUser), []);
+
   const authContextValue = useMemo(
-    () => ({ status, user, startSession, endSession, logOut }),
-    [status, user, startSession, endSession, logOut],
+    () => ({ status, user, startSession, endSession, logOut, replaceUser }),
+    [status, user, startSession, endSession, logOut, replaceUser],
   );
 
   return <AuthContext.Provider value={authContextValue}>{children}</AuthContext.Provider>;

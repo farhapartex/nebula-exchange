@@ -12,6 +12,7 @@ export type AuthContextValue = {
   startSession: (establishedSession: EstablishedSession) => void;
   endSession: () => void;
   logOut: () => Promise<void>;
+  replaceUser: (updatedUser: UserProfile) => void;
 };
 
 export const AuthContext = createContext<AuthContextValue | null>(null);

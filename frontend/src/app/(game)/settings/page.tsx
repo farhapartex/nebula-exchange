@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 
-import { SectionPlaceholder } from "@/components/app-shell/section-placeholder";
+import { SettingsPageContent } from "@/features/settings/settings-page-content";
 
 export const metadata: Metadata = {
   title: "Settings",
 };
 
 export default function SettingsPage() {
-  return <SectionPlaceholder section="settings" />;
+  return <SettingsPageContent />;
 }

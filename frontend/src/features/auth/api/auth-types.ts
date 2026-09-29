@@ -22,6 +22,7 @@ export type UserProfile = {
   status: AccountStatus;
   is_active: boolean;
   is_admin: boolean;
+  two_factor_enabled: boolean;
   created_at: string;
   last_login_at: string | null;
 };
@@ -32,10 +33,23 @@ export type LoginRequest = {
 };
 
 export type EstablishedSession = {
+  two_factor_required?: false;
   access_token: string;
   access_token_expires_at: string;
   user: UserProfile;
 };
+
+export type TwoFactorChallenge = {
+  two_factor_required: true;
+  challenge_token: string;
+  challenge_expires_at: string;
+};
+
+export type LoginResponse = EstablishedSession | TwoFactorChallenge;
+
+export function isTwoFactorChallenge(loginResponse: LoginResponse): loginResponse is TwoFactorChallenge {
+  return loginResponse.two_factor_required === true;
+}
 
 export type ActivationPreview = {
   email: string;

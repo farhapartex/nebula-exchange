@@ -10,12 +10,25 @@ type MockAccount = UserProfile & { outcome: "success" | "not_activated" | "banne
 
 const mockAccounts: MockAccount[] = [
   {
+    id: "01a0edce-0000-7000-8000-000000000006",
+    email: "totp@nebula.test",
+    username: "secure_pilot",
+    status: "ACTIVE",
+    is_active: true,
+    is_admin: false,
+    two_factor_enabled: true,
+    created_at: "2026-09-29T10:00:00Z",
+    last_login_at: null,
+    outcome: "success",
+  },
+  {
     id: "01a0edce-0000-7000-8000-000000000001",
     email: "pilot@nebula.test",
     username: "pilot_nova",
     status: "ACTIVE",
     is_active: true,
     is_admin: false,
+    two_factor_enabled: false,
     created_at: "2026-09-29T10:00:00Z",
     last_login_at: null,
     outcome: "success",
@@ -27,6 +40,7 @@ const mockAccounts: MockAccount[] = [
     status: "PENDING_PAYMENT",
     is_active: true,
     is_admin: false,
+    two_factor_enabled: false,
     created_at: "2026-09-29T10:00:00Z",
     last_login_at: null,
     outcome: "success",
@@ -38,6 +52,7 @@ const mockAccounts: MockAccount[] = [
     status: "FROZEN",
     is_active: true,
     is_admin: false,
+    two_factor_enabled: false,
     created_at: "2026-09-29T10:00:00Z",
     last_login_at: null,
     outcome: "success",
@@ -49,6 +64,7 @@ const mockAccounts: MockAccount[] = [
     status: "UNVERIFIED",
     is_active: false,
     is_admin: false,
+    two_factor_enabled: false,
     created_at: "2026-09-29T10:00:00Z",
     last_login_at: null,
     outcome: "not_activated",
@@ -60,6 +76,7 @@ const mockAccounts: MockAccount[] = [
     status: "BANNED",
     is_active: true,
     is_admin: false,
+    two_factor_enabled: false,
     created_at: "2026-09-29T10:00:00Z",
     last_login_at: null,
     outcome: "banned",
@@ -106,6 +123,10 @@ function buildMockSession(mockAccount: MockAccount): EstablishedSession {
   };
 }
 
+export const mockTwoFactorCode = "123456";
+
+const pendingChallengeAccounts = new Map<string, MockAccount>();
+
 export const sessionHandlers = [
   http.post(buildApiUrl("/auth/login"), async ({ request }) => {
     await simulateLatency(600);
@@ -138,9 +159,77 @@ export const sessionHandlers = [
       return mockErrorResponse(403, "FORBIDDEN", "This account is banned");
     }
 
+    if (mockAccount.two_factor_enabled) {
+      const challengeToken = `mock-challenge-${crypto.randomUUID()}`;
+      pendingChallengeAccounts.set(challengeToken, mockAccount);
+      return mockDataResponse({
+        two_factor_required: true,
+        challenge_token: challengeToken,
+        challenge_expires_at: new Date(Date.now() + 5 * 60_000).toISOString(),
+      });
+    }
+
     mockAccount.last_login_at = new Date().toISOString();
     signedInMockAccount = mockAccount;
     return mockDataResponse(buildMockSession(mockAccount));
+  }),
+
+  http.post(buildApiUrl("/auth/login/2fa"), async ({ request }) => {
+    await simulateLatency(500);
+    const { challenge_token: challengeToken, code } = (await request.json()) as {
+      challenge_token: string;
+      code: string;
+    };
+    const challengedAccount = pendingChallengeAccounts.get(challengeToken);
+    if (!challengedAccount) {
+      return mockErrorResponse(401, "UNAUTHORIZED", "Your login attempt expired. Enter your email and password again.");
+    }
+    if (code !== mockTwoFactorCode) {
+      return mockErrorResponse(422, "VALIDATION_FAILED", "Some fields are invalid", {
+        code: "is incorrect or already used",
+      });
+    }
+    pendingChallengeAccounts.delete(challengeToken);
+    challengedAccount.last_login_at = new Date().toISOString();
+    signedInMockAccount = challengedAccount;
+    return mockDataResponse(buildMockSession(challengedAccount));
+  }),
+
+  http.post(buildApiUrl("/auth/2fa/setup"), async () => {
+    await simulateLatency(400);
+    return mockDataResponse({
+      secret: "JBSWY3DPEHPK3PXP",
+      otpauth_url:
+        "otpauth://totp/Nebula%20Exchange:pilot%40nebula.test?secret=JBSWY3DPEHPK3PXP&issuer=Nebula%20Exchange",
+    });
+  }),
+
+  http.post(buildApiUrl("/auth/2fa/enable"), async ({ request }) => {
+    await simulateLatency(400);
+    const { code } = (await request.json()) as { code: string };
+    if (code !== mockTwoFactorCode) {
+      return mockErrorResponse(422, "VALIDATION_FAILED", "Some fields are invalid", {
+        code: "is incorrect or already used",
+      });
+    }
+    if (signedInMockAccount) {
+      signedInMockAccount.two_factor_enabled = true;
+    }
+    return mockDataResponse({ two_factor_enabled: true });
+  }),
+
+  http.post(buildApiUrl("/auth/2fa/disable"), async ({ request }) => {
+    await simulateLatency(400);
+    const { code } = (await request.json()) as { code: string };
+    if (code !== mockTwoFactorCode) {
+      return mockErrorResponse(422, "VALIDATION_FAILED", "Some fields are invalid", {
+        code: "is incorrect or already used",
+      });
+    }
+    if (signedInMockAccount) {
+      signedInMockAccount.two_factor_enabled = false;
+    }
+    return mockDataResponse({ two_factor_enabled: false });
   }),
 
   http.post(buildApiUrl("/auth/refresh"), async () => {
