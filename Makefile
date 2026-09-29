@@ -3,7 +3,7 @@
 ANVIL_PORT ?= 8545
 COMPOSE := docker compose --env-file .env
 
-.PHONY: help docker-up docker-down docker-logs docker-ps chain backend-build backend-test backend-lint migrate-up migrate-down migrate-version migrate-force migrate-create sqlc-generate contracts-build contracts-test contracts-fmt dev-activate-user dev-reset-rate-limits
+.PHONY: help docker-up docker-down docker-logs docker-ps chain backend-build backend-test backend-lint migrate-up migrate-down migrate-version migrate-force migrate-create sqlc-generate contracts-build contracts-test contracts-fmt dev-activate-user dev-reset-rate-limits dev-set-status
 
 help:
 	@echo "Available commands:"
@@ -87,3 +87,7 @@ dev-activate-user:
 
 dev-reset-rate-limits:
 	$(COMPOSE) exec -T redis sh -c "redis-cli --scan --pattern 'nebula:ratelimit:*' | xargs -r redis-cli del; redis-cli --scan --pattern 'nebula:login-lockout:*' | xargs -r redis-cli del"
+
+dev-set-status:
+	@test -n "$(email)" -a -n "$(status)" || (echo "usage: make dev-set-status email=pilot@nebula.test status=ACTIVE" && exit 1)
+	$(COMPOSE) exec -T postgres psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 -c "UPDATE users SET status = '$(status)', updated_at = now() WHERE lower(email) = lower('$(email)') RETURNING email, username, status, is_active;"
