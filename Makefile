@@ -86,4 +86,4 @@ dev-activate-user:
 	$(COMPOSE) exec -T postgres psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 -c "UPDATE users SET is_active = true, activated_at = now(), status = 'PENDING_PAYMENT', updated_at = now() WHERE lower(email) = lower('$(email)') AND is_active = false RETURNING email, username, status;"
 
 dev-reset-rate-limits:
-	$(COMPOSE) exec -T redis sh -c "redis-cli --scan --pattern 'nebula:ratelimit:*' | xargs -r redis-cli del"
+	$(COMPOSE) exec -T redis sh -c "redis-cli --scan --pattern 'nebula:ratelimit:*' | xargs -r redis-cli del; redis-cli --scan --pattern 'nebula:login-lockout:*' | xargs -r redis-cli del"
