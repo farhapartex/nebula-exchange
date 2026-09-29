@@ -13,8 +13,11 @@ type Querier interface {
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) error
 	FindRefreshTokenByHash(ctx context.Context, tokenHash []byte) (FindRefreshTokenByHashRow, error)
 	LinkReplacementRefreshToken(ctx context.Context, arg LinkReplacementRefreshTokenParams) error
+	ListActiveSessions(ctx context.Context, arg ListActiveSessionsParams) ([]ListActiveSessionsRow, error)
 	RevokeAllActiveRefreshTokensForUser(ctx context.Context, arg RevokeAllActiveRefreshTokensForUserParams) (int64, error)
+	RevokeOtherSessionsForUser(ctx context.Context, arg RevokeOtherSessionsForUserParams) (int64, error)
 	RevokeRefreshTokenByHash(ctx context.Context, arg RevokeRefreshTokenByHashParams) error
+	RevokeSessionForUser(ctx context.Context, arg RevokeSessionForUserParams) ([]byte, error)
 }
 
 var _ Querier = (*Queries)(nil)

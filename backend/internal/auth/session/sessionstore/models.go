@@ -61,13 +61,16 @@ type PasswordResetToken struct {
 }
 
 type RefreshToken struct {
-	ID         uuid.UUID
-	UserID     uuid.UUID
-	TokenHash  []byte
-	ExpiresAt  time.Time
-	RevokedAt  *time.Time
-	ReplacedBy *uuid.UUID
-	CreatedAt  time.Time
+	ID               uuid.UUID
+	UserID           uuid.UUID
+	TokenHash        []byte
+	ExpiresAt        time.Time
+	RevokedAt        *time.Time
+	ReplacedBy       *uuid.UUID
+	CreatedAt        time.Time
+	UserAgent        string
+	IpAddress        string
+	SessionStartedAt time.Time
 }
 
 type User struct {

@@ -31,6 +31,20 @@ func (reusedError *RefreshTokenReusedError) Error() string {
 	return "a revoked refresh token was presented again"
 }
 
+const maximumUserAgentLength = 256
+
+type ClientMetadata struct {
+	UserAgent string
+	IPAddress string
+}
+
+func (metadata ClientMetadata) normalized() ClientMetadata {
+	if len(metadata.UserAgent) > maximumUserAgentLength {
+		metadata.UserAgent = metadata.UserAgent[:maximumUserAgentLength]
+	}
+	return metadata
+}
+
 type IssuedRefreshToken struct {
 	ID        uuid.UUID
 	Plaintext string
@@ -52,7 +66,11 @@ func NewRefreshTokens(lifetime time.Duration, now func() time.Time) *RefreshToke
 	return &RefreshTokens{lifetime: lifetime, concurrentRefreshGrace: DefaultConcurrentRefreshGrace, now: now}
 }
 
-func (refreshTokens *RefreshTokens) Issue(ctx context.Context, database sessionstore.DBTX, userID uuid.UUID) (IssuedRefreshToken, error) {
+func (refreshTokens *RefreshTokens) Issue(ctx context.Context, database sessionstore.DBTX, userID uuid.UUID, metadata ClientMetadata) (IssuedRefreshToken, error) {
+	return refreshTokens.issueForSession(ctx, database, userID, metadata, refreshTokens.now().UTC())
+}
+
+func (refreshTokens *RefreshTokens) issueForSession(ctx context.Context, database sessionstore.DBTX, userID uuid.UUID, metadata ClientMetadata, sessionStartedAt time.Time) (IssuedRefreshToken, error) {
 	randomBytes := make([]byte, refreshTokenByteLength)
 	if _, err := rand.Read(randomBytes); err != nil {
 		return IssuedRefreshToken{}, fmt.Errorf("generate refresh token: %w", err)
@@ -64,11 +82,15 @@ func (refreshTokens *RefreshTokens) Issue(ctx context.Context, database sessions
 
 	plaintextToken := base64.RawURLEncoding.EncodeToString(randomBytes)
 	expiresAt := refreshTokens.now().UTC().Add(refreshTokens.lifetime)
+	normalizedMetadata := metadata.normalized()
 	err = sessionstore.New(database).CreateRefreshToken(ctx, sessionstore.CreateRefreshTokenParams{
-		ID:        tokenID,
-		UserID:    userID,
-		TokenHash: hashRefreshToken(plaintextToken),
-		ExpiresAt: expiresAt,
+		ID:               tokenID,
+		UserID:           userID,
+		TokenHash:        hashRefreshToken(plaintextToken),
+		ExpiresAt:        expiresAt,
+		UserAgent:        normalizedMetadata.UserAgent,
+		IpAddress:        normalizedMetadata.IPAddress,
+		SessionStartedAt: sessionStartedAt,
 	})
 	if err != nil {
 		return IssuedRefreshToken{}, err
@@ -76,7 +98,7 @@ func (refreshTokens *RefreshTokens) Issue(ctx context.Context, database sessions
 	return IssuedRefreshToken{ID: tokenID, Plaintext: plaintextToken, ExpiresAt: expiresAt}, nil
 }
 
-func (refreshTokens *RefreshTokens) Rotate(ctx context.Context, transaction pgx.Tx, plaintextToken string) (RotatedRefreshToken, error) {
+func (refreshTokens *RefreshTokens) Rotate(ctx context.Context, transaction pgx.Tx, plaintextToken string, metadata ClientMetadata) (RotatedRefreshToken, error) {
 	queries := sessionstore.New(transaction)
 	tokenHash := hashRefreshToken(plaintextToken)
 	now := refreshTokens.now().UTC()
@@ -89,7 +111,7 @@ func (refreshTokens *RefreshTokens) Rotate(ctx context.Context, transaction pgx.
 		return RotatedRefreshToken{}, err
 	}
 
-	replacementToken, err := refreshTokens.Issue(ctx, transaction, consumedToken.UserID)
+	replacementToken, err := refreshTokens.issueForSession(ctx, transaction, consumedToken.UserID, metadata, consumedToken.SessionStartedAt)
 	if err != nil {
 		return RotatedRefreshToken{}, err
 	}
@@ -138,4 +160,8 @@ func (refreshTokens *RefreshTokens) RevokeAllForUser(ctx context.Context, databa
 func hashRefreshToken(plaintextToken string) []byte {
 	tokenHash := sha256.Sum256([]byte(plaintextToken))
 	return tokenHash[:]
+}
+
+func HashForCookie(plaintextToken string) []byte {
+	return hashRefreshToken(plaintextToken)
 }

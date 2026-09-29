@@ -18,7 +18,7 @@ SET revoked_at = $1::timestamptz
 WHERE token_hash = $2
   AND revoked_at IS NULL
   AND expires_at > $1::timestamptz
-RETURNING id, user_id
+RETURNING id, user_id, session_started_at
 `
 
 type ConsumeRefreshTokenParams struct {
@@ -27,27 +27,31 @@ type ConsumeRefreshTokenParams struct {
 }
 
 type ConsumeRefreshTokenRow struct {
-	ID     uuid.UUID
-	UserID uuid.UUID
+	ID               uuid.UUID
+	UserID           uuid.UUID
+	SessionStartedAt time.Time
 }
 
 func (q *Queries) ConsumeRefreshToken(ctx context.Context, arg ConsumeRefreshTokenParams) (ConsumeRefreshTokenRow, error) {
 	row := q.db.QueryRow(ctx, consumeRefreshToken, arg.Now, arg.TokenHash)
 	var i ConsumeRefreshTokenRow
-	err := row.Scan(&i.ID, &i.UserID)
+	err := row.Scan(&i.ID, &i.UserID, &i.SessionStartedAt)
 	return i, err
 }
 
 const createRefreshToken = `-- name: CreateRefreshToken :exec
-INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at)
-VALUES ($1, $2, $3, $4)
+INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, user_agent, ip_address, session_started_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 `
 
 type CreateRefreshTokenParams struct {
-	ID        uuid.UUID
-	UserID    uuid.UUID
-	TokenHash []byte
-	ExpiresAt time.Time
+	ID               uuid.UUID
+	UserID           uuid.UUID
+	TokenHash        []byte
+	ExpiresAt        time.Time
+	UserAgent        string
+	IpAddress        string
+	SessionStartedAt time.Time
 }
 
 func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) error {
@@ -56,6 +60,9 @@ func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshToken
 		arg.UserID,
 		arg.TokenHash,
 		arg.ExpiresAt,
+		arg.UserAgent,
+		arg.IpAddress,
+		arg.SessionStartedAt,
 	)
 	return err
 }
@@ -103,6 +110,66 @@ func (q *Queries) LinkReplacementRefreshToken(ctx context.Context, arg LinkRepla
 	return err
 }
 
+const listActiveSessions = `-- name: ListActiveSessions :many
+SELECT id, user_agent, ip_address, session_started_at, created_at
+FROM refresh_tokens
+WHERE user_id = $1
+  AND revoked_at IS NULL
+  AND expires_at > $2::timestamptz
+  AND ($3::timestamptz IS NULL
+       OR (created_at, id) < ($3::timestamptz, $4::uuid))
+ORDER BY created_at DESC, id DESC
+LIMIT $5::integer
+`
+
+type ListActiveSessionsParams struct {
+	UserID          uuid.UUID
+	Now             time.Time
+	CursorCreatedAt *time.Time
+	CursorID        *uuid.UUID
+	RowLimit        int32
+}
+
+type ListActiveSessionsRow struct {
+	ID               uuid.UUID
+	UserAgent        string
+	IpAddress        string
+	SessionStartedAt time.Time
+	CreatedAt        time.Time
+}
+
+func (q *Queries) ListActiveSessions(ctx context.Context, arg ListActiveSessionsParams) ([]ListActiveSessionsRow, error) {
+	rows, err := q.db.Query(ctx, listActiveSessions,
+		arg.UserID,
+		arg.Now,
+		arg.CursorCreatedAt,
+		arg.CursorID,
+		arg.RowLimit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListActiveSessionsRow
+	for rows.Next() {
+		var i ListActiveSessionsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserAgent,
+			&i.IpAddress,
+			&i.SessionStartedAt,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const revokeAllActiveRefreshTokensForUser = `-- name: RevokeAllActiveRefreshTokensForUser :execrows
 UPDATE refresh_tokens
 SET revoked_at = $1::timestamptz
@@ -124,6 +191,28 @@ func (q *Queries) RevokeAllActiveRefreshTokensForUser(ctx context.Context, arg R
 	return result.RowsAffected(), nil
 }
 
+const revokeOtherSessionsForUser = `-- name: RevokeOtherSessionsForUser :execrows
+UPDATE refresh_tokens
+SET revoked_at = $1::timestamptz
+WHERE user_id = $2
+  AND revoked_at IS NULL
+  AND token_hash <> $3
+`
+
+type RevokeOtherSessionsForUserParams struct {
+	Now           time.Time
+	UserID        uuid.UUID
+	KeptTokenHash []byte
+}
+
+func (q *Queries) RevokeOtherSessionsForUser(ctx context.Context, arg RevokeOtherSessionsForUserParams) (int64, error) {
+	result, err := q.db.Exec(ctx, revokeOtherSessionsForUser, arg.Now, arg.UserID, arg.KeptTokenHash)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const revokeRefreshTokenByHash = `-- name: RevokeRefreshTokenByHash :exec
 UPDATE refresh_tokens
 SET revoked_at = $1::timestamptz
@@ -138,4 +227,24 @@ type RevokeRefreshTokenByHashParams struct {
 func (q *Queries) RevokeRefreshTokenByHash(ctx context.Context, arg RevokeRefreshTokenByHashParams) error {
 	_, err := q.db.Exec(ctx, revokeRefreshTokenByHash, arg.Now, arg.TokenHash)
 	return err
+}
+
+const revokeSessionForUser = `-- name: RevokeSessionForUser :one
+UPDATE refresh_tokens
+SET revoked_at = $1::timestamptz
+WHERE id = $2 AND user_id = $3 AND revoked_at IS NULL
+RETURNING token_hash
+`
+
+type RevokeSessionForUserParams struct {
+	Now    time.Time
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) RevokeSessionForUser(ctx context.Context, arg RevokeSessionForUserParams) ([]byte, error) {
+	row := q.db.QueryRow(ctx, revokeSessionForUser, arg.Now, arg.ID, arg.UserID)
+	var token_hash []byte
+	err := row.Scan(&token_hash)
+	return token_hash, err
 }

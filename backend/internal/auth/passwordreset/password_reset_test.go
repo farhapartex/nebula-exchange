@@ -174,7 +174,7 @@ func TestResetRequestQueuesALinkOnlyForActiveAccounts(t *testing.T) {
 func TestResetChangesPasswordRevokesSessionsAndClearsLockout(t *testing.T) {
 	harness := newResetTestHarness(t)
 	userID := harness.createUser(t, "pilot@nebula.test", true)
-	issuedRefreshToken, _ := harness.refreshTokens.Issue(context.Background(), harness.pool, userID)
+	issuedRefreshToken, _ := harness.refreshTokens.Issue(context.Background(), harness.pool, userID, session.ClientMetadata{})
 	for failedAttempt := 0; failedAttempt < 5; failedAttempt++ {
 		_ = harness.lockout.RecordFailure(context.Background(), "pilot@nebula.test")
 	}

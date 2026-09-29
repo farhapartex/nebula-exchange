@@ -132,6 +132,17 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateU
 	return i, err
 }
 
+const findPasswordHashByID = `-- name: FindPasswordHashByID :one
+SELECT password_hash FROM users WHERE id = $1
+`
+
+func (q *Queries) FindPasswordHashByID(ctx context.Context, id uuid.UUID) (string, error) {
+	row := q.db.QueryRow(ctx, findPasswordHashByID, id)
+	var password_hash string
+	err := row.Scan(&password_hash)
+	return password_hash, err
+}
+
 const findUserByID = `-- name: FindUserByID :one
 SELECT id, email, username, status, is_active, is_admin, created_at, activated_at, last_login_at, totp_enabled_at
 FROM users
@@ -240,4 +251,24 @@ func (q *Queries) UpdatePasswordHash(ctx context.Context, arg UpdatePasswordHash
 	var email string
 	err := row.Scan(&email)
 	return email, err
+}
+
+const updateUsername = `-- name: UpdateUsername :one
+UPDATE users
+SET username = $1, updated_at = $2::timestamptz
+WHERE id = $3
+RETURNING id
+`
+
+type UpdateUsernameParams struct {
+	Username  string
+	UpdatedAt time.Time
+	ID        uuid.UUID
+}
+
+func (q *Queries) UpdateUsername(ctx context.Context, arg UpdateUsernameParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, updateUsername, arg.Username, arg.UpdatedAt, arg.ID)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
 }

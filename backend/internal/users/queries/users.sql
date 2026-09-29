@@ -37,3 +37,12 @@ UPDATE users
 SET password_hash = sqlc.arg(password_hash), updated_at = sqlc.arg(updated_at)::timestamptz
 WHERE id = sqlc.arg(id)
 RETURNING email;
+
+-- name: UpdateUsername :one
+UPDATE users
+SET username = sqlc.arg(username), updated_at = sqlc.arg(updated_at)::timestamptz
+WHERE id = sqlc.arg(id)
+RETURNING id;
+
+-- name: FindPasswordHashByID :one
+SELECT password_hash FROM users WHERE id = $1;

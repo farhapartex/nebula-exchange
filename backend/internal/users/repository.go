@@ -165,3 +165,12 @@ func (repository *Repository) UpdatePasswordHash(ctx context.Context, database u
 		UpdatedAt:    updatedAt,
 	})
 }
+
+func (repository *Repository) UpdateUsername(ctx context.Context, database usersstore.DBTX, userID uuid.UUID, username string, updatedAt time.Time) error {
+	_, err := usersstore.New(database).UpdateUsername(ctx, usersstore.UpdateUsernameParams{ID: userID, Username: username, UpdatedAt: updatedAt})
+	return translateUniqueViolation(err)
+}
+
+func (repository *Repository) FindPasswordHash(ctx context.Context, database usersstore.DBTX, userID uuid.UUID) (string, error) {
+	return usersstore.New(database).FindPasswordHashByID(ctx, userID)
+}

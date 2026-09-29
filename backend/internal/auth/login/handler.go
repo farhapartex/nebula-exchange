@@ -64,7 +64,7 @@ func (handler *Handler) postLogin(context *gin.Context) {
 		return
 	}
 
-	loginOutcome, err := handler.service.LogIn(context.Request.Context(), loginRequest)
+	loginOutcome, err := handler.service.LogIn(context.Request.Context(), loginRequest, clientMetadataFrom(context))
 	if err != nil {
 		response.WriteError(context, err)
 		return
@@ -86,7 +86,7 @@ func (handler *Handler) postTwoFactorLogin(context *gin.Context) {
 		response.WriteError(context, err)
 		return
 	}
-	establishedSession, err := handler.service.CompleteTwoFactor(context.Request.Context(), twoFactorRequest)
+	establishedSession, err := handler.service.CompleteTwoFactor(context.Request.Context(), twoFactorRequest, clientMetadataFrom(context))
 	if err != nil {
 		response.WriteError(context, err)
 		return
@@ -95,7 +95,7 @@ func (handler *Handler) postTwoFactorLogin(context *gin.Context) {
 }
 
 func (handler *Handler) postRefresh(context *gin.Context) {
-	establishedSession, err := handler.service.Refresh(context.Request.Context(), session.RefreshTokenFromCookie(context))
+	establishedSession, err := handler.service.Refresh(context.Request.Context(), session.RefreshTokenFromCookie(context), clientMetadataFrom(context))
 	if err != nil {
 		handler.cookieSettings.ClearRefreshCookie(context)
 		response.WriteError(context, err)
@@ -111,4 +111,8 @@ func (handler *Handler) respondWithSession(context *gin.Context, establishedSess
 		AccessTokenExpiresAt: establishedSession.AccessToken.ExpiresAt,
 		User:                 establishedSession.User.Profile(),
 	})
+}
+
+func clientMetadataFrom(context *gin.Context) session.ClientMetadata {
+	return session.ClientMetadata{UserAgent: context.GetHeader("User-Agent"), IPAddress: context.ClientIP()}
 }

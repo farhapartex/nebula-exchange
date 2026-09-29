@@ -26,6 +26,7 @@ var (
 	PasswordResetSubmissionPolicy   = Policy{Name: "password_reset_submission", Limit: 10, Window: 15 * time.Minute}
 
 	TwoFactorChangePolicy = Policy{Name: "two_factor_change", Limit: 10, Window: 15 * time.Minute}
+	PasswordChangePolicy  = Policy{Name: "password_change", Limit: 5, Window: 15 * time.Minute}
 )
 
 func HashedSubject(subjectValue string) string {

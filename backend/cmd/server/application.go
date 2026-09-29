@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 
+	"nebula-exchange/backend/internal/account"
 	"nebula-exchange/backend/internal/auth/accesstoken"
 	"nebula-exchange/backend/internal/auth/activation"
 	"nebula-exchange/backend/internal/auth/authentication"
@@ -111,6 +112,8 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 		appLogger,
 	)
 	cookieSettings := session.CookieSettings{IsSecure: appConfig.Session.IsCookieSecure}
+	activeSessions := session.NewSessions(databasePool, time.Now)
+	accountGuard := users.NewAccountGuard(databasePool, userRepository)
 
 	router := httpserver.NewRouter(httpserver.RouterOptions{
 		Logger:           appLogger,
@@ -130,6 +133,17 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 			rateLimits,
 		),
 		twofactor.NewHandler(twoFactorService, rateLimits.PerClientIP(ratelimit.TwoFactorChangePolicy)),
+		session.NewSessionsHandler(activeSessions, cookieSettings),
+		account.NewHandler(account.NewService(account.Dependencies{
+			Pool:           databasePool,
+			Users:          userRepository,
+			PasswordHasher: passwordHasher,
+			Sessions:       activeSessions,
+			Now:            time.Now,
+		}),
+			rateLimits.PerClientIP(ratelimit.PasswordChangePolicy),
+			accountGuard.RequireStatus(users.StatusActive, users.StatusPendingPayment),
+		),
 		passwordreset.NewHandler(passwordreset.NewService(passwordreset.Dependencies{
 			Pool:            databasePool,
 			Users:           userRepository,

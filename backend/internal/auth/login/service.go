@@ -80,7 +80,7 @@ var (
 	errChallengeGone  = apierror.Unauthorized("Your login attempt expired. Enter your email and password again.")
 )
 
-func (service *Service) LogIn(ctx context.Context, request Request) (LoginOutcome, error) {
+func (service *Service) LogIn(ctx context.Context, request Request, metadata session.ClientMetadata) (LoginOutcome, error) {
 	normalizedEmail := strings.ToLower(strings.TrimSpace(request.Email))
 	if err := service.dependencies.LoginLockout.EnsureNotLocked(ctx, normalizedEmail); err != nil {
 		return LoginOutcome{}, err
@@ -117,14 +117,14 @@ func (service *Service) LogIn(ctx context.Context, request Request) (LoginOutcom
 	}
 
 	service.dependencies.LoginLockout.Reset(ctx, normalizedEmail)
-	establishedSession, err := service.establishSession(ctx, credentials.User)
+	establishedSession, err := service.establishSession(ctx, credentials.User, metadata)
 	if err != nil {
 		return LoginOutcome{}, err
 	}
 	return LoginOutcome{Session: &establishedSession}, nil
 }
 
-func (service *Service) CompleteTwoFactor(ctx context.Context, request TwoFactorRequest) (EstablishedSession, error) {
+func (service *Service) CompleteTwoFactor(ctx context.Context, request TwoFactorRequest, metadata session.ClientMetadata) (EstablishedSession, error) {
 	pendingChallenge, err := service.dependencies.LoginChallenges.Find(ctx, request.ChallengeToken)
 	if errors.Is(err, loginchallenge.ErrChallengeInvalid) {
 		return EstablishedSession{}, errChallengeGone
@@ -165,7 +165,7 @@ func (service *Service) CompleteTwoFactor(ctx context.Context, request TwoFactor
 	if err := ensureAccountMayLogIn(challengedUser); err != nil {
 		return EstablishedSession{}, err
 	}
-	return service.establishSession(ctx, challengedUser)
+	return service.establishSession(ctx, challengedUser, metadata)
 }
 
 func ensureAccountMayLogIn(accountUser users.User) error {
@@ -178,7 +178,7 @@ func ensureAccountMayLogIn(accountUser users.User) error {
 	return nil
 }
 
-func (service *Service) establishSession(ctx context.Context, accountUser users.User) (EstablishedSession, error) {
+func (service *Service) establishSession(ctx context.Context, accountUser users.User, metadata session.ClientMetadata) (EstablishedSession, error) {
 	loggedInAt := service.dependencies.Now().UTC()
 	loggedInUser := accountUser
 	loggedInUser.LastLoginAt = &loggedInAt
@@ -189,7 +189,7 @@ func (service *Service) establishSession(ctx context.Context, accountUser users.
 			return err
 		}
 		var err error
-		refreshToken, err = service.dependencies.RefreshTokens.Issue(ctx, transaction, loggedInUser.ID)
+		refreshToken, err = service.dependencies.RefreshTokens.Issue(ctx, transaction, loggedInUser.ID, metadata)
 		return err
 	})
 	if err != nil {
@@ -203,7 +203,7 @@ func (service *Service) establishSession(ctx context.Context, accountUser users.
 	return EstablishedSession{AccessToken: accessToken, RefreshToken: refreshToken, User: loggedInUser}, nil
 }
 
-func (service *Service) Refresh(ctx context.Context, plaintextRefreshToken string) (EstablishedSession, error) {
+func (service *Service) Refresh(ctx context.Context, plaintextRefreshToken string, metadata session.ClientMetadata) (EstablishedSession, error) {
 	if plaintextRefreshToken == "" {
 		return EstablishedSession{}, errSessionExpired
 	}
@@ -212,7 +212,7 @@ func (service *Service) Refresh(ctx context.Context, plaintextRefreshToken strin
 	var sessionUser users.User
 	err := database.WithTransaction(ctx, service.dependencies.Pool, func(transaction pgx.Tx) error {
 		var err error
-		rotatedToken, err = service.dependencies.RefreshTokens.Rotate(ctx, transaction, plaintextRefreshToken)
+		rotatedToken, err = service.dependencies.RefreshTokens.Rotate(ctx, transaction, plaintextRefreshToken, metadata)
 		if err != nil {
 			return err
 		}

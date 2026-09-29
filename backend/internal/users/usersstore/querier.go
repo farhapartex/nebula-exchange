@@ -14,10 +14,12 @@ type Querier interface {
 	ActivateUser(ctx context.Context, arg ActivateUserParams) (ActivateUserRow, error)
 	CheckIdentifiersTaken(ctx context.Context, arg CheckIdentifiersTakenParams) (CheckIdentifiersTakenRow, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error)
+	FindPasswordHashByID(ctx context.Context, id uuid.UUID) (string, error)
 	FindUserByID(ctx context.Context, id uuid.UUID) (FindUserByIDRow, error)
 	FindUserCredentialsByEmail(ctx context.Context, email string) (FindUserCredentialsByEmailRow, error)
 	RecordLogin(ctx context.Context, arg RecordLoginParams) error
 	UpdatePasswordHash(ctx context.Context, arg UpdatePasswordHashParams) (string, error)
+	UpdateUsername(ctx context.Context, arg UpdateUsernameParams) (uuid.UUID, error)
 }
 
 var _ Querier = (*Queries)(nil)
