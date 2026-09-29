@@ -1,4 +1,4 @@
-import { PreviewSection } from "@/features/theme-preview/preview-section";
+import { ContentSection } from "@/components/layout/content-section";
 import { marketSignalExamples, type MarketSignalExample } from "@/features/theme-preview/theme-tokens";
 import { cn } from "@/utils/class-names";
 
@@ -10,7 +10,7 @@ const directionStyles: Record<MarketSignalExample["direction"], { arrow: string;
 
 export function MarketSignalSection() {
   return (
-    <PreviewSection
+    <ContentSection
       title="Market signals"
       description="Up is green and down is red, and every color also carries an arrow for colorblind players."
     >
@@ -38,6 +38,6 @@ export function MarketSignalSection() {
           );
         })}
       </ul>
-    </PreviewSection>
+    </ContentSection>
   );
 }

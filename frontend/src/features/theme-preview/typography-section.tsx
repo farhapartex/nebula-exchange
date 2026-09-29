@@ -1,8 +1,8 @@
-import { PreviewSection } from "@/features/theme-preview/preview-section";
+import { ContentSection } from "@/components/layout/content-section";
 
 export function TypographySection() {
   return (
-    <PreviewSection
+    <ContentSection
       title="Typography"
       description="Geist for interface text, Geist Mono with tabular figures for numbers."
     >
@@ -20,6 +20,6 @@ export function TypographySection() {
           <span className="text-highlight">00:14:59</span>
         </div>
       </div>
-    </PreviewSection>
+    </ContentSection>
   );
 }

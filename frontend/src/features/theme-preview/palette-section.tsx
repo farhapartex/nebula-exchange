@@ -1,4 +1,4 @@
-import { PreviewSection } from "@/features/theme-preview/preview-section";
+import { ContentSection } from "@/components/layout/content-section";
 import { colorTokenGroups, type ColorToken } from "@/features/theme-preview/theme-tokens";
 import { cn } from "@/utils/class-names";
 
@@ -17,7 +17,7 @@ function ColorSwatch({ token }: { token: ColorToken }) {
 
 export function PaletteSection() {
   return (
-    <PreviewSection
+    <ContentSection
       title="Color palette"
       description="Semantic tokens used as Tailwind classes, e.g. bg-surface, text-muted."
     >
@@ -33,6 +33,6 @@ export function PaletteSection() {
           </div>
         ))}
       </div>
-    </PreviewSection>
+    </ContentSection>
   );
 }

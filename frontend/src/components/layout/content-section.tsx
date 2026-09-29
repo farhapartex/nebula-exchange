@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
 
-type PreviewSectionProps = {
+type ContentSectionProps = {
   title: string;
   description: string;
   children: ReactNode;
 };
 
-export function PreviewSection({ title, description, children }: PreviewSectionProps) {
+export function ContentSection({ title, description, children }: ContentSectionProps) {
   return (
     <section className="rounded-2xl border border-border bg-surface/70 p-5 sm:p-6">
       <header className="mb-5">
