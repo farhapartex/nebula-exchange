@@ -23,6 +23,7 @@ import (
 	"nebula-exchange/backend/internal/auth/twofactor"
 	"nebula-exchange/backend/internal/catalog"
 	"nebula-exchange/backend/internal/health"
+	"nebula-exchange/backend/internal/ledger"
 	"nebula-exchange/backend/internal/maintenance"
 	"nebula-exchange/backend/internal/notify/email"
 	"nebula-exchange/backend/internal/notify/email/outbox"
@@ -167,6 +168,7 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 
 	jobScheduler := scheduler.New(databasePool, appLogger, scheduler.Options{InitialDelay: time.Minute})
 	jobScheduler.Register(maintenance.NewCleanupJob(databasePool, appLogger, time.Now))
+	jobScheduler.Register(ledger.NewCheckJob(databasePool, appLogger))
 
 	return application{
 		router:          router,

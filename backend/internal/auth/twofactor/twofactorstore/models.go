@@ -67,6 +67,53 @@ type Item struct {
 	UpdatedAt     time.Time
 }
 
+type LedgerAccount struct {
+	ID            int64
+	UserID        *uuid.UUID
+	SystemAccount pgtype.Text
+	ItemID        pgtype.Int4
+	Bucket        pgtype.Text
+	CreatedAt     time.Time
+}
+
+type LedgerBalance struct {
+	AccountID               int64
+	Available               int64
+	Held                    int64
+	NegativeAvailablePolicy string
+	UpdatedAt               time.Time
+}
+
+type LedgerEntry struct {
+	ID            int64
+	JournalID     uuid.UUID
+	AccountID     int64
+	Amount        int64
+	SyncedOnchain bool
+	CreatedAt     time.Time
+}
+
+type LedgerHold struct {
+	ID        uuid.UUID
+	AccountID int64
+	Amount    int64
+	Remaining int64
+	RefType   string
+	RefID     string
+	Status    string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type LedgerJournal struct {
+	ID        uuid.UUID
+	Type      string
+	RefType   string
+	RefID     string
+	Metadata  []byte
+	CreatedAt time.Time
+}
+
 type LootTable struct {
 	ZoneID            string
 	ItemID            int32

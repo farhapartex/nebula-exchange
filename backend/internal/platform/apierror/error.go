@@ -54,10 +54,18 @@ func Internal() *Error {
 	return New(http.StatusInternalServerError, CodeInternalError, "Something went wrong")
 }
 
+type Convertible interface {
+	APIError() *Error
+}
+
 func From(err error) *Error {
 	var apiError *Error
 	if errors.As(err, &apiError) {
 		return apiError
+	}
+	var convertible Convertible
+	if errors.As(err, &convertible) {
+		return convertible.APIError()
 	}
 	return Internal()
 }

@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.31.1
 
-package catalogstore
+package ledgerstore
 
 import (
 	"time"
@@ -33,7 +33,7 @@ type EmailOutbox struct {
 	MaxAttempts    int32
 	NextAttemptAt  time.Time
 	ClaimedUntil   *time.Time
-	LastError      pgtype.Text
+	LastError      *string
 	SentAt         *time.Time
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
@@ -44,8 +44,8 @@ type IdempotencyKey struct {
 	IdempotencyKey      string
 	RequestHash         []byte
 	Status              string
-	ResponseStatusCode  pgtype.Int4
-	ResponseContentType pgtype.Text
+	ResponseStatusCode  *int32
+	ResponseContentType *string
 	ResponseBody        []byte
 	CreatedAt           time.Time
 	CompletedAt         *time.Time
@@ -56,7 +56,7 @@ type Item struct {
 	Slug          string
 	Name          string
 	Category      string
-	Tier          pgtype.Int4
+	Tier          *int32
 	RarityRank    int32
 	IsTradeable   bool
 	IsAuctionOnly bool
@@ -70,9 +70,9 @@ type Item struct {
 type LedgerAccount struct {
 	ID            int64
 	UserID        *uuid.UUID
-	SystemAccount pgtype.Text
-	ItemID        pgtype.Int4
-	Bucket        pgtype.Text
+	SystemAccount *string
+	ItemID        *int32
+	Bucket        *string
 	CreatedAt     time.Time
 }
 
