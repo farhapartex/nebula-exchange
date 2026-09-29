@@ -3,7 +3,7 @@
 ANVIL_PORT ?= 8545
 COMPOSE := docker compose --env-file .env
 
-.PHONY: help docker-up docker-down docker-logs docker-ps chain backend-build backend-test backend-lint
+.PHONY: help docker-up docker-down docker-logs docker-ps chain backend-build backend-test backend-lint migrate-up migrate-down migrate-version migrate-force migrate-create sqlc-generate
 
 help:
 	@echo "Available commands:"
@@ -15,6 +15,12 @@ help:
 	@echo "  make backend-build Build the backend binary into backend/bin"
 	@echo "  make backend-test  Run backend tests with the race detector"
 	@echo "  make backend-lint  Check formatting and run go vet"
+	@echo "  make migrate-up                 Apply all pending migrations"
+	@echo "  make migrate-down               Roll back the last migration"
+	@echo "  make migrate-version            Show the current migration version"
+	@echo "  make migrate-force version=N    Mark the database as being at version N"
+	@echo "  make migrate-create name=NAME   Create a new up/down migration pair"
+	@echo "  make sqlc-generate              Generate typed Go code from SQL queries"
 
 docker-up:
 	$(COMPOSE) up -d --build
@@ -39,3 +45,25 @@ backend-test:
 
 backend-lint:
 	cd backend && test -z "$$(gofmt -l .)" && go vet ./...
+
+MIGRATE := $(COMPOSE) run --rm migrate
+
+migrate-up:
+	$(MIGRATE) up
+
+migrate-down:
+	$(MIGRATE) down 1
+
+migrate-version:
+	$(MIGRATE) version
+
+migrate-force:
+	@test -n "$(version)" || (echo "usage: make migrate-force version=N" && exit 1)
+	$(MIGRATE) force $(version)
+
+migrate-create:
+	@test -n "$(name)" || (echo "usage: make migrate-create name=create_users" && exit 1)
+	$(COMPOSE) run --rm --no-deps migrate create -ext sql -dir /migrations -seq $(name)
+
+sqlc-generate:
+	cd backend && go tool sqlc generate

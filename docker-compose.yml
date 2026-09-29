@@ -53,6 +53,8 @@ services:
       HTTP_PORT: 8080
       LOG_LEVEL: ${LOG_LEVEL:-info}
       SHUTDOWN_TIMEOUT: ${SHUTDOWN_TIMEOUT:-15s}
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      DATABASE_MAX_CONNECTIONS: ${DATABASE_MAX_CONNECTIONS:-20}
     ports:
       - "${BACKEND_PORT:-8080}:8080"
     extra_hosts:
@@ -63,6 +65,19 @@ services:
       redis:
         condition: service_healthy
       mailpit:
+        condition: service_healthy
+
+  migrate:
+    image: migrate/migrate:latest
+    profiles: ["tools"]
+    volumes:
+      - ./backend/migrations:/migrations
+    entrypoint:
+      - migrate
+      - -path=/migrations
+      - -database=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+    depends_on:
+      postgres:
         condition: service_healthy
 
 volumes:
