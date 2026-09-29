@@ -1,0 +1,9 @@
+DROP TABLE IF EXISTS shop_sku_items;
+DROP TABLE IF EXISTS shop_skus;
+DROP TABLE IF EXISTS loot_tables;
+DROP TABLE IF EXISTS zones;
+DROP TABLE IF EXISTS upgrade_inputs;
+DROP TABLE IF EXISTS upgrades;
+DROP TABLE IF EXISTS recipe_inputs;
+DROP TABLE IF EXISTS recipes;
+DROP TABLE IF EXISTS items;

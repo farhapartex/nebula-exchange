@@ -21,6 +21,7 @@ import (
 	"nebula-exchange/backend/internal/auth/session"
 	"nebula-exchange/backend/internal/auth/signup"
 	"nebula-exchange/backend/internal/auth/twofactor"
+	"nebula-exchange/backend/internal/catalog"
 	"nebula-exchange/backend/internal/health"
 	"nebula-exchange/backend/internal/maintenance"
 	"nebula-exchange/backend/internal/notify/email"
@@ -38,6 +39,7 @@ const (
 	rateLimitKeyPrefix      = "nebula:ratelimit:"
 	loginLockoutKeyPrefix   = "nebula:login-lockout:"
 	loginChallengeKeyPrefix = "nebula:login-challenge:"
+	catalogCacheLifetime    = time.Minute
 )
 
 type application struct {
@@ -118,6 +120,8 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 	activeSessions := session.NewSessions(databasePool, time.Now)
 	accountGuard := users.NewAccountGuard(databasePool, userRepository)
 
+	catalogService := catalog.NewService(catalog.NewLoader(databasePool), catalogCacheLifetime, time.Now)
+
 	router := httpserver.NewRouter(httpserver.RouterOptions{
 		Logger:           appLogger,
 		IsProduction:     appConfig.IsProduction(),
@@ -127,6 +131,7 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 		IdempotencyStore: idempotency.NewPostgresStore(databasePool),
 	},
 		health.NewHandler(),
+		catalog.NewHandler(catalogService),
 		signup.NewHandler(signupService, rateLimits.PerClientIP(ratelimit.SignupPolicy)),
 		login.NewHandler(loginService, cookieSettings, time.Now, rateLimits.PerClientIP(ratelimit.LoginPolicy)),
 		users.NewMeHandler(databasePool, userRepository),

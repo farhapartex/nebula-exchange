@@ -51,6 +51,30 @@ type IdempotencyKey struct {
 	CompletedAt         *time.Time
 }
 
+type Item struct {
+	ID            int32
+	Slug          string
+	Name          string
+	Category      string
+	Tier          pgtype.Int4
+	RarityRank    int32
+	IsTradeable   bool
+	IsAuctionOnly bool
+	MaxSupply     pgtype.Int8
+	Description   string
+	Attributes    []byte
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+}
+
+type LootTable struct {
+	ZoneID            string
+	ItemID            int32
+	MinimumQuantity   int32
+	MaximumQuantity   int32
+	ChanceBasisPoints int32
+}
+
 type PasswordResetToken struct {
 	ID        uuid.UUID
 	UserID    uuid.UUID
@@ -58,6 +82,21 @@ type PasswordResetToken struct {
 	ExpiresAt time.Time
 	UsedAt    *time.Time
 	CreatedAt time.Time
+}
+
+type Recipe struct {
+	ID             string
+	OutputItemID   int32
+	OutputQuantity int32
+	CraftSeconds   int32
+	FeeMicro       int64
+	IsEnabled      bool
+}
+
+type RecipeInput struct {
+	RecipeID string
+	ItemID   int32
+	Quantity int32
 }
 
 type RefreshToken struct {
@@ -71,6 +110,36 @@ type RefreshToken struct {
 	UserAgent        string
 	IpAddress        string
 	SessionStartedAt time.Time
+}
+
+type ShopSku struct {
+	Sku         string
+	Name        string
+	Description string
+	PriceMicro  int64
+	SortOrder   int32
+	IsEnabled   bool
+}
+
+type ShopSkuItem struct {
+	Sku      string
+	ItemID   int32
+	Quantity int32
+}
+
+type Upgrade struct {
+	ID            string
+	FromItemID    int32
+	ToItemID      int32
+	CraftFeeMicro int64
+	BuyPriceMicro pgtype.Int8
+	IsEnabled     bool
+}
+
+type UpgradeInput struct {
+	UpgradeID string
+	ItemID    int32
+	Quantity  int32
 }
 
 type User struct {
@@ -89,4 +158,16 @@ type User struct {
 	UpdatedAt        time.Time
 	TotpEnabledAt    *time.Time
 	TotpLastUsedStep pgtype.Int8
+}
+
+type Zone struct {
+	ID                 string
+	Name               string
+	Description        string
+	DurationSeconds    int32
+	FuelCost           int32
+	MinimumDrillTier   int32
+	AllowedShipItemIds []int32
+	SortOrder          int32
+	IsEnabled          bool
 }
