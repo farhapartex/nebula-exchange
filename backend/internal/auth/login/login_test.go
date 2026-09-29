@@ -48,6 +48,7 @@ func newLoginTestHarness(t *testing.T) *loginTestHarness {
 		Users:               repository,
 		AccessTokens:        accessTokens,
 		RefreshTokens:       session.NewRefreshTokens(session.DefaultRefreshTokenLifetime, time.Now),
+		PasswordHasher:      passwordhash.NewHasher(passwordhash.HasherOptions{Parameters: fastHashParameters}),
 		PasswordHashOptions: fastHashParameters,
 		Now:                 time.Now,
 	})

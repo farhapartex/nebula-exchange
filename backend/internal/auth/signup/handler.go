@@ -10,15 +10,16 @@ import (
 )
 
 type Handler struct {
-	service *Service
+	service     *Service
+	routeGuards []gin.HandlerFunc
 }
 
-func NewHandler(service *Service) *Handler {
-	return &Handler{service: service}
+func NewHandler(service *Service, routeGuards ...gin.HandlerFunc) *Handler {
+	return &Handler{service: service, routeGuards: routeGuards}
 }
 
 func (handler *Handler) RegisterRoutes(router gin.IRouter) {
-	router.POST("/auth/signup", handler.postSignup)
+	router.POST("/auth/signup", append(handler.routeGuards, handler.postSignup)...)
 }
 
 func (handler *Handler) postSignup(context *gin.Context) {

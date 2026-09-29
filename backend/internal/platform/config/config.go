@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"time"
 )
 
@@ -40,6 +41,8 @@ type Config struct {
 	LogLevel        slog.Level
 	ShutdownTimeout time.Duration
 	AllowedOrigins  []string
+	TrustedProxies  []string
+	RedisURL        string
 	FrontendBaseURL string
 	Database        DatabaseConfig
 	Email           EmailConfig
@@ -69,6 +72,11 @@ func Load() (Config, error) {
 
 	allowedOrigins := readList("FRONTEND_ORIGINS", []string{"http://localhost:3000"})
 
+	trustedProxies := readList("TRUSTED_PROXIES", nil)
+	if err := validateTrustedProxies(trustedProxies); err != nil {
+		return Config{}, err
+	}
+
 	databaseConfig, err := loadDatabaseConfig()
 	if err != nil {
 		return Config{}, err
@@ -90,6 +98,8 @@ func Load() (Config, error) {
 		LogLevel:        logLevel,
 		ShutdownTimeout: shutdownTimeout,
 		AllowedOrigins:  allowedOrigins,
+		TrustedProxies:  trustedProxies,
+		RedisURL:        readString("REDIS_URL", "redis://localhost:6379/0"),
 		FrontendBaseURL: readString("FRONTEND_BASE_URL", "http://localhost:3000"),
 		Database:        databaseConfig,
 		Email:           emailConfig,
@@ -156,4 +166,16 @@ func isSupportedEnvironment(environment string) bool {
 	default:
 		return false
 	}
+}
+
+func validateTrustedProxies(trustedProxies []string) error {
+	for _, trustedProxy := range trustedProxies {
+		if net.ParseIP(trustedProxy) != nil {
+			continue
+		}
+		if _, _, err := net.ParseCIDR(trustedProxy); err != nil {
+			return fmt.Errorf("TRUSTED_PROXIES entry %q is not an IP address or CIDR range", trustedProxy)
+		}
+	}
+	return nil
 }

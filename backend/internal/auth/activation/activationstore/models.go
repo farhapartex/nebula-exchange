@@ -20,6 +20,25 @@ type AccountActivationToken struct {
 	CreatedAt time.Time
 }
 
+type EmailOutbox struct {
+	ID             uuid.UUID
+	Template       string
+	RecipientEmail string
+	RecipientName  string
+	Subject        string
+	HtmlBody       string
+	TextBody       string
+	Status         string
+	Attempts       int32
+	MaxAttempts    int32
+	NextAttemptAt  time.Time
+	ClaimedUntil   *time.Time
+	LastError      pgtype.Text
+	SentAt         *time.Time
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+}
+
 type IdempotencyKey struct {
 	Scope               string
 	IdempotencyKey      string

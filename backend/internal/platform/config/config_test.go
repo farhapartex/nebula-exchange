@@ -13,7 +13,7 @@ const testDatabaseURL = "postgres://nebula:nebula@localhost:5432/nebula_exchange
 
 func clearOptionalEnvironment(t *testing.T) {
 	t.Helper()
-	for _, key := range []string{"APP_ENV", "HTTP_PORT", "LOG_LEVEL", "SHUTDOWN_TIMEOUT", "DATABASE_MAX_CONNECTIONS", "FRONTEND_ORIGINS", "FRONTEND_BASE_URL", "SMTP_HOST", "SMTP_PORT", "SMTP_USERNAME", "SMTP_PASSWORD", "EMAIL_FROM_ADDRESS", "EMAIL_FROM_NAME", "COOKIE_SECURE"} {
+	for _, key := range []string{"APP_ENV", "HTTP_PORT", "LOG_LEVEL", "SHUTDOWN_TIMEOUT", "DATABASE_MAX_CONNECTIONS", "FRONTEND_ORIGINS", "FRONTEND_BASE_URL", "SMTP_HOST", "SMTP_PORT", "SMTP_USERNAME", "SMTP_PASSWORD", "EMAIL_FROM_ADDRESS", "EMAIL_FROM_NAME", "COOKIE_SECURE", "TRUSTED_PROXIES", "REDIS_URL"} {
 		t.Setenv(key, "")
 	}
 	t.Setenv("DATABASE_URL", testDatabaseURL)
@@ -34,6 +34,7 @@ func TestLoadUsesDefaultsWhenEnvironmentIsEmpty(t *testing.T) {
 		LogLevel:        slog.LevelInfo,
 		ShutdownTimeout: 15 * time.Second,
 		AllowedOrigins:  []string{"http://localhost:3000"},
+		RedisURL:        "redis://localhost:6379/0",
 		FrontendBaseURL: "http://localhost:3000",
 		Database:        DatabaseConfig{URL: testDatabaseURL, MaxConnections: 20},
 		Email: EmailConfig{
@@ -97,6 +98,7 @@ func TestLoadRejectsInvalidValues(t *testing.T) {
 		"non numeric smtp port":    {"SMTP_PORT": "mail"},
 		"short jwt secret":         {"JWT_SECRET": "too-short"},
 		"invalid cookie flag":      {"COOKIE_SECURE": "sometimes"},
+		"invalid trusted proxy":    {"TRUSTED_PROXIES": "10.0.0.0/33"},
 	}
 
 	for caseName, environmentValues := range invalidEnvironments {

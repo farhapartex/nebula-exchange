@@ -26,6 +26,7 @@ type RouterOptions struct {
 	Logger           *slog.Logger
 	IsProduction     bool
 	AllowedOrigins   []string
+	TrustedProxies   []string
 	IdentifyUser     gin.HandlerFunc
 	IdempotencyStore idempotency.Store
 }
@@ -37,6 +38,9 @@ func NewRouter(options RouterOptions, registrars ...RouteRegistrar) *gin.Engine 
 	request.RegisterJSONFieldNames()
 
 	router := gin.New()
+	if err := router.SetTrustedProxies(options.TrustedProxies); err != nil {
+		panic(err)
+	}
 	router.HandleMethodNotAllowed = true
 	router.NoRoute(func(context *gin.Context) {
 		response.WriteError(context, apierror.NotFound("Route not found"))

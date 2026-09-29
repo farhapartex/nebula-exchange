@@ -3,7 +3,6 @@ package signup
 import (
 	"context"
 	"errors"
-	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,6 +12,7 @@ import (
 	"nebula-exchange/backend/internal/auth/activation"
 	"nebula-exchange/backend/internal/auth/passwordhash"
 	"nebula-exchange/backend/internal/notify/email"
+	"nebula-exchange/backend/internal/notify/email/outbox"
 	"nebula-exchange/backend/internal/platform/apierror"
 	"nebula-exchange/backend/internal/platform/database"
 	"nebula-exchange/backend/internal/users"
@@ -27,14 +27,13 @@ type SignedUpAccount struct {
 }
 
 type Dependencies struct {
-	Pool                *pgxpool.Pool
-	Users               *users.Repository
-	ActivationIssuer    *activation.Issuer
-	ActivationEmail     *activation.EmailComposer
-	EmailSender         email.Sender
-	PasswordHashOptions passwordhash.Parameters
-	Logger              *slog.Logger
-	Now                 func() time.Time
+	Pool             *pgxpool.Pool
+	Users            *users.Repository
+	ActivationIssuer *activation.Issuer
+	ActivationEmail  *activation.EmailComposer
+	EmailQueue       *outbox.Queue
+	PasswordHasher   *passwordhash.Hasher
+	Now              func() time.Time
 }
 
 type Service struct {
@@ -59,7 +58,7 @@ func (service *Service) SignUp(ctx context.Context, request Request) (SignedUpAc
 		return SignedUpAccount{}, takenIdentifiersError(takenIdentifiers)
 	}
 
-	passwordHash, err := passwordhash.Hash(request.Password, service.dependencies.PasswordHashOptions)
+	passwordHash, err := service.dependencies.PasswordHasher.Hash(ctx, request.Password)
 	if err != nil {
 		return SignedUpAccount{}, err
 	}
@@ -77,13 +76,14 @@ func (service *Service) SignUp(ctx context.Context, request Request) (SignedUpAc
 			return err
 		}
 		issuedToken, err = service.dependencies.ActivationIssuer.Issue(ctx, transaction, createdUser.ID)
-		return err
+		if err != nil {
+			return err
+		}
+		return service.queueActivationEmail(ctx, transaction, createdUser, issuedToken)
 	})
 	if err != nil {
 		return SignedUpAccount{}, translateCreateError(err)
 	}
-
-	service.sendActivationEmail(ctx, createdUser, issuedToken)
 
 	return SignedUpAccount{
 		ID:                      createdUser.ID,
@@ -94,21 +94,17 @@ func (service *Service) SignUp(ctx context.Context, request Request) (SignedUpAc
 	}, nil
 }
 
-func (service *Service) sendActivationEmail(ctx context.Context, createdUser users.User, issuedToken activation.IssuedToken) {
+func (service *Service) queueActivationEmail(ctx context.Context, transaction pgx.Tx, createdUser users.User, issuedToken activation.IssuedToken) error {
 	activationMessage, err := service.dependencies.ActivationEmail.Compose(
 		email.Address{Name: createdUser.Username, Email: createdUser.Email},
 		createdUser.Username,
 		issuedToken,
 	)
-	if err == nil {
-		err = service.dependencies.EmailSender.Send(context.WithoutCancel(ctx), activationMessage)
-	}
 	if err != nil {
-		service.dependencies.Logger.ErrorContext(ctx, "send activation email",
-			slog.String("user_id", createdUser.ID.String()),
-			slog.String("error", err.Error()),
-		)
+		return err
 	}
+	_, err = service.dependencies.EmailQueue.Enqueue(ctx, transaction, email.TemplateAccountActivation, activationMessage)
+	return err
 }
 
 func takenIdentifiersError(takenIdentifiers users.TakenIdentifiers) error {

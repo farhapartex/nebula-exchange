@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -19,7 +18,7 @@ import (
 	"nebula-exchange/backend/internal/auth/passwordhash"
 	"nebula-exchange/backend/internal/auth/signup"
 	"nebula-exchange/backend/internal/notify/email"
-	"nebula-exchange/backend/internal/notify/email/emailtest"
+	"nebula-exchange/backend/internal/notify/email/outbox"
 	"nebula-exchange/backend/internal/platform/database/databasetest"
 	"nebula-exchange/backend/internal/platform/httpserver"
 	"nebula-exchange/backend/internal/platform/logger"
@@ -29,15 +28,13 @@ import (
 var fixedNow = time.Date(2026, 9, 30, 10, 0, 0, 0, time.UTC)
 
 type signupTestHarness struct {
-	pool        *pgxpool.Pool
-	emailSender *emailtest.RecordingSender
-	router      http.Handler
+	pool   *pgxpool.Pool
+	router http.Handler
 }
 
 func newSignupTestHarness(t *testing.T) *signupTestHarness {
 	t.Helper()
 	pool := databasetest.NewPool(t)
-	emailSender := emailtest.NewRecordingSender()
 	templateRenderer, err := email.NewTemplateRenderer()
 	if err != nil {
 		t.Fatalf("load email templates: %v", err)
@@ -46,18 +43,19 @@ func newSignupTestHarness(t *testing.T) *signupTestHarness {
 	clock := func() time.Time { return fixedNow }
 
 	signupService := signup.NewService(signup.Dependencies{
-		Pool:                pool,
-		Users:               users.NewRepository(),
-		ActivationIssuer:    activation.NewIssuer(activation.DefaultTokenLifetime, clock),
-		ActivationEmail:     activation.NewEmailComposer("http://localhost:3000/", templateRenderer),
-		EmailSender:         emailSender,
-		PasswordHashOptions: passwordhash.Parameters{MemoryInKibibytes: 1024, Iterations: 1, Parallelism: 1, SaltLength: 16, KeyLength: 32},
-		Logger:              testLogger,
-		Now:                 clock,
+		Pool:             pool,
+		Users:            users.NewRepository(),
+		ActivationIssuer: activation.NewIssuer(activation.DefaultTokenLifetime, clock),
+		ActivationEmail:  activation.NewEmailComposer("http://localhost:3000/", templateRenderer),
+		EmailQueue:       outbox.NewQueue(),
+		PasswordHasher: passwordhash.NewHasher(passwordhash.HasherOptions{
+			Parameters: passwordhash.Parameters{MemoryInKibibytes: 1024, Iterations: 1, Parallelism: 1, SaltLength: 16, KeyLength: 32},
+		}),
+		Now: clock,
 	})
 
 	router := httpserver.NewRouter(httpserver.RouterOptions{Logger: testLogger}, signup.NewHandler(signupService))
-	return &signupTestHarness{pool: pool, emailSender: emailSender, router: router}
+	return &signupTestHarness{pool: pool, router: router}
 }
 
 type signupResponse struct {
@@ -133,11 +131,17 @@ func TestSignupCreatesInactiveUserAndSendsActivationLink(t *testing.T) {
 		t.Fatal("stored password hash does not verify")
 	}
 
-	sentMessages := harness.emailSender.SentMessages()
-	if len(sentMessages) != 1 || sentMessages[0].To.Email != "pilot@nebula.test" {
-		t.Fatalf("expected one activation email, got %+v", sentMessages)
+	var queuedRecipient, queuedTemplate, queuedStatus, queuedTextBody, queuedHTMLBody string
+	err = harness.pool.QueryRow(context.Background(),
+		"SELECT recipient_email, template, status, text_body, html_body FROM email_outbox",
+	).Scan(&queuedRecipient, &queuedTemplate, &queuedStatus, &queuedTextBody, &queuedHTMLBody)
+	if err != nil {
+		t.Fatalf("expected one queued activation email: %v", err)
 	}
-	plaintextToken := extractActivationToken(t, sentMessages[0].TextBody)
+	if queuedRecipient != "pilot@nebula.test" || queuedTemplate != "account_activation" || queuedStatus != "pending" {
+		t.Fatalf("unexpected outbox row %s %s %s", queuedRecipient, queuedTemplate, queuedStatus)
+	}
+	plaintextToken := extractActivationToken(t, queuedTextBody)
 
 	var storedTokenHash []byte
 	err = harness.pool.QueryRow(context.Background(),
@@ -152,7 +156,7 @@ func TestSignupCreatesInactiveUserAndSendsActivationLink(t *testing.T) {
 	if bytes.Contains(storedTokenHash, []byte(plaintextToken)) {
 		t.Fatal("the plaintext token must never be stored")
 	}
-	if !strings.Contains(sentMessages[0].HTMLBody, "http://localhost:3000/activate?token=") {
+	if !strings.Contains(queuedHTMLBody, "http://localhost:3000/activate?token=") {
 		t.Fatal("html email must contain the activation link")
 	}
 }
@@ -231,13 +235,15 @@ func TestSignupValidatesFields(t *testing.T) {
 	}
 }
 
-func TestSignupStillSucceedsWhenEmailDeliveryFails(t *testing.T) {
+func TestRejectedSignupQueuesNoEmail(t *testing.T) {
 	harness := newSignupTestHarness(t)
-	harness.emailSender.FailWith(errors.New("smtp unavailable"))
+	requestBody := validSignupBody()
+	requestBody["accepts_terms"] = false
 
-	statusCode, signedUp := harness.signUp(t, validSignupBody())
+	harness.signUp(t, requestBody)
 
-	if statusCode != http.StatusCreated || signedUp.Data.ID == "" {
-		t.Fatalf("got status %d, want 201 even when email fails", statusCode)
+	var queuedEmailCount int
+	if err := harness.pool.QueryRow(context.Background(), "SELECT count(*) FROM email_outbox").Scan(&queuedEmailCount); err != nil || queuedEmailCount != 0 {
+		t.Fatalf("a rejected signup must not queue email, found %d (%v)", queuedEmailCount, err)
 	}
 }

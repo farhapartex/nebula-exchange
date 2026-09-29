@@ -19,17 +19,18 @@ type SessionResponse struct {
 }
 
 type Handler struct {
-	service        *Service
-	cookieSettings session.CookieSettings
-	now            func() time.Time
+	service          *Service
+	cookieSettings   session.CookieSettings
+	now              func() time.Time
+	loginRouteGuards []gin.HandlerFunc
 }
 
-func NewHandler(service *Service, cookieSettings session.CookieSettings, now func() time.Time) *Handler {
-	return &Handler{service: service, cookieSettings: cookieSettings, now: now}
+func NewHandler(service *Service, cookieSettings session.CookieSettings, now func() time.Time, loginRouteGuards ...gin.HandlerFunc) *Handler {
+	return &Handler{service: service, cookieSettings: cookieSettings, now: now, loginRouteGuards: loginRouteGuards}
 }
 
 func (handler *Handler) RegisterRoutes(router gin.IRouter) {
-	router.POST("/auth/login", handler.postLogin)
+	router.POST("/auth/login", append(handler.loginRouteGuards, handler.postLogin)...)
 	router.POST("/auth/refresh", handler.postRefresh)
 }
 

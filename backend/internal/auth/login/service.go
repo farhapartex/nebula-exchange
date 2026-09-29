@@ -34,6 +34,7 @@ type Dependencies struct {
 	Users               *users.Repository
 	AccessTokens        *accesstoken.Manager
 	RefreshTokens       *session.RefreshTokens
+	PasswordHasher      *passwordhash.Hasher
 	PasswordHashOptions passwordhash.Parameters
 	Now                 func() time.Time
 }
@@ -66,11 +67,13 @@ func (service *Service) LogIn(ctx context.Context, request Request) (Established
 		return EstablishedSession{}, err
 	}
 	if !isFound {
-		_, _ = passwordhash.Verify(request.Password, service.timingEqualizerHash)
+		if _, err := service.dependencies.PasswordHasher.Verify(ctx, request.Password, service.timingEqualizerHash); err != nil {
+			return EstablishedSession{}, err
+		}
 		return EstablishedSession{}, errInvalidCredentials
 	}
 
-	isPasswordCorrect, err := passwordhash.Verify(request.Password, credentials.PasswordHash)
+	isPasswordCorrect, err := service.dependencies.PasswordHasher.Verify(ctx, request.Password, credentials.PasswordHash)
 	if err != nil {
 		return EstablishedSession{}, err
 	}
