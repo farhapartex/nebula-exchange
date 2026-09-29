@@ -97,14 +97,15 @@ func (repository *Repository) FindCredentialsByEmail(ctx context.Context, databa
 	}
 	return Credentials{
 		User: User{
-			ID:          credentialRow.ID,
-			Email:       credentialRow.Email,
-			Username:    credentialRow.Username,
-			Status:      Status(credentialRow.Status),
-			IsActive:    credentialRow.IsActive,
-			IsAdmin:     credentialRow.IsAdmin,
-			CreatedAt:   credentialRow.CreatedAt,
-			LastLoginAt: credentialRow.LastLoginAt,
+			ID:            credentialRow.ID,
+			Email:         credentialRow.Email,
+			Username:      credentialRow.Username,
+			Status:        Status(credentialRow.Status),
+			IsActive:      credentialRow.IsActive,
+			IsAdmin:       credentialRow.IsAdmin,
+			CreatedAt:     credentialRow.CreatedAt,
+			LastLoginAt:   credentialRow.LastLoginAt,
+			TotpEnabledAt: credentialRow.TotpEnabledAt,
 		},
 		PasswordHash: credentialRow.PasswordHash,
 	}, true, nil
@@ -119,15 +120,16 @@ func (repository *Repository) FindByID(ctx context.Context, database usersstore.
 		return User{}, false, err
 	}
 	return User{
-		ID:          userRow.ID,
-		Email:       userRow.Email,
-		Username:    userRow.Username,
-		Status:      Status(userRow.Status),
-		IsActive:    userRow.IsActive,
-		IsAdmin:     userRow.IsAdmin,
-		CreatedAt:   userRow.CreatedAt,
-		ActivatedAt: userRow.ActivatedAt,
-		LastLoginAt: userRow.LastLoginAt,
+		ID:            userRow.ID,
+		Email:         userRow.Email,
+		Username:      userRow.Username,
+		Status:        Status(userRow.Status),
+		IsActive:      userRow.IsActive,
+		IsAdmin:       userRow.IsAdmin,
+		CreatedAt:     userRow.CreatedAt,
+		ActivatedAt:   userRow.ActivatedAt,
+		LastLoginAt:   userRow.LastLoginAt,
+		TotpEnabledAt: userRow.TotpEnabledAt,
 	}, true, nil
 }
 

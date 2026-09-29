@@ -3,6 +3,8 @@ package login_test
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -13,17 +15,23 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/pquerna/otp/totp"
 
 	"nebula-exchange/backend/internal/auth/accesstoken"
 	"nebula-exchange/backend/internal/auth/authentication"
 	"nebula-exchange/backend/internal/auth/login"
+	"nebula-exchange/backend/internal/auth/loginchallenge"
 	"nebula-exchange/backend/internal/auth/loginlockout"
 	"nebula-exchange/backend/internal/auth/passwordhash"
 	"nebula-exchange/backend/internal/auth/session"
+	"nebula-exchange/backend/internal/auth/twofactor"
+	"nebula-exchange/backend/internal/notify/email"
+	"nebula-exchange/backend/internal/notify/email/outbox"
 	"nebula-exchange/backend/internal/platform/database/databasetest"
 	"nebula-exchange/backend/internal/platform/httpserver"
 	"nebula-exchange/backend/internal/platform/logger"
 	"nebula-exchange/backend/internal/platform/redisclient/redistest"
+	"nebula-exchange/backend/internal/platform/secretbox"
 	"nebula-exchange/backend/internal/users"
 )
 
@@ -36,6 +44,7 @@ type loginTestHarness struct {
 	router       http.Handler
 	accessTokens *accesstoken.Manager
 	repository   *users.Repository
+	twoFactor    *twofactor.Service
 	currentTime  atomic.Pointer[time.Time]
 }
 
@@ -59,13 +68,28 @@ func newLoginTestHarness(t *testing.T) *loginTestHarness {
 	harness.currentTime.Store(&startTime)
 	testLogger := logger.NewWithWriter(&bytes.Buffer{}, slog.LevelError, true)
 
+	encryptionKey := make([]byte, 32)
+	_, _ = rand.Read(encryptionKey)
+	totpSecretBox, _ := secretbox.NewFromBase64Key(base64.StdEncoding.EncodeToString(encryptionKey))
+	emailTemplates, _ := email.NewTemplateRenderer()
+	harness.twoFactor = twofactor.NewService(twofactor.Dependencies{
+		Pool:           pool,
+		SecretBox:      totpSecretBox,
+		EmailTemplates: emailTemplates,
+		EmailQueue:     outbox.NewQueue(),
+		Now:            harness.now,
+	})
+	redisClient := redistest.NewClient(t)
+
 	loginService, err := login.NewService(login.Dependencies{
-		Pool:          pool,
-		Users:         repository,
-		AccessTokens:  accessTokens,
-		RefreshTokens: session.NewRefreshTokens(session.DefaultRefreshTokenLifetime, harness.now),
+		Pool:            pool,
+		Users:           repository,
+		AccessTokens:    accessTokens,
+		RefreshTokens:   session.NewRefreshTokens(session.DefaultRefreshTokenLifetime, harness.now),
+		TwoFactor:       harness.twoFactor,
+		LoginChallenges: loginchallenge.NewStore(redisClient, "test:login-challenge:"+uuid.NewString()+":", loginchallenge.DefaultLifetime, harness.now),
 		LoginLockout: loginlockout.NewGuard(
-			redistest.NewClient(t),
+			redisClient,
 			"test:login-lockout:"+uuid.NewString()+":",
 			loginlockout.DefaultPolicy,
 			testLogger,
@@ -437,5 +461,88 @@ func TestSuccessfulLoginResetsTheFailureCount(t *testing.T) {
 
 	if afterResetRecorder := harness.failLogins(t, "pilot@nebula.test", 4); afterResetRecorder.Code != http.StatusUnauthorized {
 		t.Fatalf("the counter should restart after a success, got %d", afterResetRecorder.Code)
+	}
+}
+
+type challengeEnvelope struct {
+	Data struct {
+		TwoFactorRequired bool   `json:"two_factor_required"`
+		ChallengeToken    string `json:"challenge_token"`
+		AccessToken       string `json:"access_token"`
+	} `json:"data"`
+	Error struct {
+		Code string `json:"code"`
+	} `json:"error"`
+}
+
+func (harness *loginTestHarness) enableTwoFactor(t *testing.T, userID uuid.UUID) string {
+	t.Helper()
+	setupDetails, err := harness.twoFactor.BeginSetup(context.Background(), userID)
+	if err != nil {
+		t.Fatalf("begin setup: %v", err)
+	}
+	enableCode, _ := totp.GenerateCode(setupDetails.Secret, harness.now())
+	if err := harness.twoFactor.Enable(context.Background(), userID, enableCode); err != nil {
+		t.Fatalf("enable: %v", err)
+	}
+	harness.advanceClock(30 * time.Second)
+	return setupDetails.Secret
+}
+
+func (harness *loginTestHarness) postJSON(t *testing.T, path string, requestBody any) (*httptest.ResponseRecorder, challengeEnvelope) {
+	t.Helper()
+	recorder, _ := harness.send(t, http.MethodPost, path, requestBody, nil)
+	var decodedBody challengeEnvelope
+	_ = json.Unmarshal(recorder.Body.Bytes(), &decodedBody)
+	return recorder, decodedBody
+}
+
+func TestTwoFactorLoginNeedsAValidCodeAfterThePassword(t *testing.T) {
+	harness := newLoginTestHarness(t)
+	userID := harness.createUser(t, "pilot@nebula.test", true, users.StatusActive)
+	totpSecret := harness.enableTwoFactor(t, userID)
+
+	passwordRecorder, challenge := harness.postJSON(t, "/api/v1/auth/login", map[string]string{"email": "pilot@nebula.test", "password": testPassword})
+	if passwordRecorder.Code != http.StatusOK || !challenge.Data.TwoFactorRequired || challenge.Data.ChallengeToken == "" || challenge.Data.AccessToken != "" {
+		t.Fatalf("password step: got %d %+v", passwordRecorder.Code, challenge.Data)
+	}
+	for _, responseCookie := range passwordRecorder.Result().Cookies() {
+		if responseCookie.Name == session.RefreshCookieName {
+			t.Fatal("no session cookie may be set before the code is entered")
+		}
+	}
+
+	wrongRecorder, wrong := harness.postJSON(t, "/api/v1/auth/login/2fa", map[string]string{"challenge_token": challenge.Data.ChallengeToken, "code": "000000"})
+	if wrongRecorder.Code != http.StatusUnprocessableEntity || wrong.Error.Code != "VALIDATION_FAILED" {
+		t.Fatalf("wrong code: got %d %s", wrongRecorder.Code, wrong.Error.Code)
+	}
+
+	validCode, _ := totp.GenerateCode(totpSecret, harness.now())
+	completedRecorder, completed := harness.postJSON(t, "/api/v1/auth/login/2fa", map[string]string{"challenge_token": challenge.Data.ChallengeToken, "code": validCode})
+	if completedRecorder.Code != http.StatusOK || completed.Data.AccessToken == "" {
+		t.Fatalf("valid code: got %d %s", completedRecorder.Code, completedRecorder.Body.String())
+	}
+	refreshCookieFrom(t, completedRecorder)
+
+	harness.advanceClock(30 * time.Second)
+	nextCode, _ := totp.GenerateCode(totpSecret, harness.now())
+	if reusedRecorder, _ := harness.postJSON(t, "/api/v1/auth/login/2fa", map[string]string{"challenge_token": challenge.Data.ChallengeToken, "code": nextCode}); reusedRecorder.Code != http.StatusUnauthorized {
+		t.Fatalf("a used challenge must not work again, got %d", reusedRecorder.Code)
+	}
+}
+
+func TestTwoFactorChallengeIsDestroyedAfterFiveWrongCodes(t *testing.T) {
+	harness := newLoginTestHarness(t)
+	userID := harness.createUser(t, "pilot@nebula.test", true, users.StatusActive)
+	totpSecret := harness.enableTwoFactor(t, userID)
+	_, challenge := harness.postJSON(t, "/api/v1/auth/login", map[string]string{"email": "pilot@nebula.test", "password": testPassword})
+
+	for attemptNumber := 0; attemptNumber < loginchallenge.MaximumCodeAttempts; attemptNumber++ {
+		harness.postJSON(t, "/api/v1/auth/login/2fa", map[string]string{"challenge_token": challenge.Data.ChallengeToken, "code": "000000"})
+	}
+
+	validCode, _ := totp.GenerateCode(totpSecret, harness.now())
+	if recorder, _ := harness.postJSON(t, "/api/v1/auth/login/2fa", map[string]string{"challenge_token": challenge.Data.ChallengeToken, "code": validCode}); recorder.Code == http.StatusOK {
+		t.Fatal("the challenge must be unusable after five wrong codes")
 	}
 }

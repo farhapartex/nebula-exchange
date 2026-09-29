@@ -68,17 +68,19 @@ type RefreshToken struct {
 }
 
 type User struct {
-	ID              pgtype.UUID
-	Email           string
-	Username        string
-	PasswordHash    string
-	Status          string
-	IsActive        bool
-	IsAdmin         bool
-	TotpSecretEnc   []byte
-	TermsAcceptedAt pgtype.Timestamptz
-	ActivatedAt     pgtype.Timestamptz
-	LastLoginAt     pgtype.Timestamptz
-	CreatedAt       pgtype.Timestamptz
-	UpdatedAt       pgtype.Timestamptz
+	ID               pgtype.UUID
+	Email            string
+	Username         string
+	PasswordHash     string
+	Status           string
+	IsActive         bool
+	IsAdmin          bool
+	TotpSecretEnc    []byte
+	TermsAcceptedAt  pgtype.Timestamptz
+	ActivatedAt      pgtype.Timestamptz
+	LastLoginAt      pgtype.Timestamptz
+	CreatedAt        pgtype.Timestamptz
+	UpdatedAt        pgtype.Timestamptz
+	TotpEnabledAt    pgtype.Timestamptz
+	TotpLastUsedStep pgtype.Int8
 }

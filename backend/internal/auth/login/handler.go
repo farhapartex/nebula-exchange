@@ -13,9 +13,16 @@ import (
 )
 
 type SessionResponse struct {
+	TwoFactorRequired    bool          `json:"two_factor_required"`
 	AccessToken          string        `json:"access_token"`
 	AccessTokenExpiresAt time.Time     `json:"access_token_expires_at"`
 	User                 users.Profile `json:"user"`
+}
+
+type TwoFactorChallengeResponse struct {
+	TwoFactorRequired  bool      `json:"two_factor_required"`
+	ChallengeToken     string    `json:"challenge_token"`
+	ChallengeExpiresAt time.Time `json:"challenge_expires_at"`
 }
 
 type Handler struct {
@@ -31,6 +38,7 @@ func NewHandler(service *Service, cookieSettings session.CookieSettings, now fun
 
 func (handler *Handler) RegisterRoutes(router gin.IRouter) {
 	router.POST("/auth/login", append(handler.loginRouteGuards, handler.postLogin)...)
+	router.POST("/auth/login/2fa", append(handler.loginRouteGuards, handler.postTwoFactorLogin)...)
 	router.POST("/auth/refresh", handler.postRefresh)
 	router.POST("/auth/logout", handler.postLogout)
 }
@@ -56,7 +64,29 @@ func (handler *Handler) postLogin(context *gin.Context) {
 		return
 	}
 
-	establishedSession, err := handler.service.LogIn(context.Request.Context(), loginRequest)
+	loginOutcome, err := handler.service.LogIn(context.Request.Context(), loginRequest)
+	if err != nil {
+		response.WriteError(context, err)
+		return
+	}
+	if loginOutcome.TwoFactorChallenge != nil {
+		response.WriteData(context, http.StatusOK, TwoFactorChallengeResponse{
+			TwoFactorRequired:  true,
+			ChallengeToken:     loginOutcome.TwoFactorChallenge.Token,
+			ChallengeExpiresAt: loginOutcome.TwoFactorChallenge.ExpiresAt,
+		})
+		return
+	}
+	handler.respondWithSession(context, *loginOutcome.Session)
+}
+
+func (handler *Handler) postTwoFactorLogin(context *gin.Context) {
+	var twoFactorRequest TwoFactorRequest
+	if err := request.BindJSON(context, &twoFactorRequest); err != nil {
+		response.WriteError(context, err)
+		return
+	}
+	establishedSession, err := handler.service.CompleteTwoFactor(context.Request.Context(), twoFactorRequest)
 	if err != nil {
 		response.WriteError(context, err)
 		return

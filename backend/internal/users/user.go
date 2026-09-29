@@ -26,8 +26,13 @@ type User struct {
 	TermsAcceptedAt time.Time
 	ActivatedAt     *time.Time
 	LastLoginAt     *time.Time
+	TotpEnabledAt   *time.Time
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
+}
+
+func (user User) HasTwoFactorEnabled() bool {
+	return user.TotpEnabledAt != nil
 }
 
 type NewUser struct {
@@ -52,25 +57,27 @@ type Credentials struct {
 }
 
 type Profile struct {
-	ID          uuid.UUID  `json:"id"`
-	Email       string     `json:"email"`
-	Username    string     `json:"username"`
-	Status      Status     `json:"status"`
-	IsActive    bool       `json:"is_active"`
-	IsAdmin     bool       `json:"is_admin"`
-	CreatedAt   time.Time  `json:"created_at"`
-	LastLoginAt *time.Time `json:"last_login_at"`
+	ID               uuid.UUID  `json:"id"`
+	Email            string     `json:"email"`
+	Username         string     `json:"username"`
+	Status           Status     `json:"status"`
+	IsActive         bool       `json:"is_active"`
+	IsAdmin          bool       `json:"is_admin"`
+	TwoFactorEnabled bool       `json:"two_factor_enabled"`
+	CreatedAt        time.Time  `json:"created_at"`
+	LastLoginAt      *time.Time `json:"last_login_at"`
 }
 
 func (user User) Profile() Profile {
 	return Profile{
-		ID:          user.ID,
-		Email:       user.Email,
-		Username:    user.Username,
-		Status:      user.Status,
-		IsActive:    user.IsActive,
-		IsAdmin:     user.IsAdmin,
-		CreatedAt:   user.CreatedAt,
-		LastLoginAt: user.LastLoginAt,
+		ID:               user.ID,
+		Email:            user.Email,
+		Username:         user.Username,
+		Status:           user.Status,
+		IsActive:         user.IsActive,
+		IsAdmin:          user.IsAdmin,
+		TwoFactorEnabled: user.HasTwoFactorEnabled(),
+		CreatedAt:        user.CreatedAt,
+		LastLoginAt:      user.LastLoginAt,
 	}
 }

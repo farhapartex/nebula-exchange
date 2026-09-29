@@ -31,8 +31,9 @@ type EmailConfig struct {
 }
 
 type SessionConfig struct {
-	JWTSecret      string
-	IsCookieSecure bool
+	JWTSecret         string
+	IsCookieSecure    bool
+	TOTPEncryptionKey string
 }
 
 type Config struct {
@@ -116,7 +117,11 @@ func loadSessionConfig(environment string) (SessionConfig, error) {
 	if err != nil {
 		return SessionConfig{}, err
 	}
-	return SessionConfig{JWTSecret: jwtSecret, IsCookieSecure: isCookieSecure}, nil
+	totpEncryptionKey := readString("TOTP_ENCRYPTION_KEY", "")
+	if totpEncryptionKey == "" {
+		return SessionConfig{}, errors.New("TOTP_ENCRYPTION_KEY is required")
+	}
+	return SessionConfig{JWTSecret: jwtSecret, IsCookieSecure: isCookieSecure, TOTPEncryptionKey: totpEncryptionKey}, nil
 }
 
 func loadEmailConfig() (EmailConfig, error) {

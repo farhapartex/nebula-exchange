@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.31.1
 
-package activationstore
+package twofactorstore
 
 import (
 	"time"

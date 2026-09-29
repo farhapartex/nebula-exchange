@@ -1,0 +1,7 @@
+NEBULA EXCHANGE
+
+Two-factor authentication was {{.ChangeDescription}}
+
+Hi {{.Username}}, two-factor authentication on your account was {{.ChangeDescription}} at {{.ChangedAt}}.
+
+If this wasn't you, reset your password right away and contact support.

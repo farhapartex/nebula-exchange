@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -12,11 +13,13 @@ import (
 	"nebula-exchange/backend/internal/auth/activation"
 	"nebula-exchange/backend/internal/auth/authentication"
 	"nebula-exchange/backend/internal/auth/login"
+	"nebula-exchange/backend/internal/auth/loginchallenge"
 	"nebula-exchange/backend/internal/auth/loginlockout"
 	"nebula-exchange/backend/internal/auth/passwordhash"
 	"nebula-exchange/backend/internal/auth/passwordreset"
 	"nebula-exchange/backend/internal/auth/session"
 	"nebula-exchange/backend/internal/auth/signup"
+	"nebula-exchange/backend/internal/auth/twofactor"
 	"nebula-exchange/backend/internal/health"
 	"nebula-exchange/backend/internal/notify/email"
 	"nebula-exchange/backend/internal/notify/email/outbox"
@@ -24,12 +27,14 @@ import (
 	"nebula-exchange/backend/internal/platform/httpserver"
 	"nebula-exchange/backend/internal/platform/idempotency"
 	"nebula-exchange/backend/internal/platform/ratelimit"
+	"nebula-exchange/backend/internal/platform/secretbox"
 	"nebula-exchange/backend/internal/users"
 )
 
 const (
-	rateLimitKeyPrefix    = "nebula:ratelimit:"
-	loginLockoutKeyPrefix = "nebula:login-lockout:"
+	rateLimitKeyPrefix      = "nebula:ratelimit:"
+	loginLockoutKeyPrefix   = "nebula:login-lockout:"
+	loginChallengeKeyPrefix = "nebula:login-challenge:"
 )
 
 type application struct {
@@ -69,6 +74,18 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 		Now:              time.Now,
 	})
 
+	totpSecretBox, err := secretbox.NewFromBase64Key(appConfig.Session.TOTPEncryptionKey)
+	if err != nil {
+		return application{}, fmt.Errorf("TOTP_ENCRYPTION_KEY: %w", err)
+	}
+	twoFactorService := twofactor.NewService(twofactor.Dependencies{
+		Pool:           databasePool,
+		SecretBox:      totpSecretBox,
+		EmailTemplates: emailTemplates,
+		EmailQueue:     outbox.NewQueue(),
+		Now:            time.Now,
+	})
+
 	refreshTokens := session.NewRefreshTokens(session.DefaultRefreshTokenLifetime, time.Now)
 	loginLockout := loginlockout.NewGuard(redisClient, loginLockoutKeyPrefix, loginlockout.DefaultPolicy, appLogger)
 
@@ -80,6 +97,8 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 		PasswordHasher:      passwordHasher,
 		PasswordHashOptions: passwordhash.DefaultParameters,
 		LoginLockout:        loginLockout,
+		TwoFactor:           twoFactorService,
+		LoginChallenges:     loginchallenge.NewStore(redisClient, loginChallengeKeyPrefix, loginchallenge.DefaultLifetime, time.Now),
 		Logger:              appLogger,
 		Now:                 time.Now,
 	})
@@ -110,6 +129,7 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 			activation.NewResender(databasePool, userRepository, activationIssuer, activationMailer, time.Now),
 			rateLimits,
 		),
+		twofactor.NewHandler(twoFactorService, rateLimits.PerClientIP(ratelimit.TwoFactorChangePolicy)),
 		passwordreset.NewHandler(passwordreset.NewService(passwordreset.Dependencies{
 			Pool:            databasePool,
 			Users:           userRepository,

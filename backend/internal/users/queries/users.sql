@@ -9,12 +9,12 @@ SELECT
     EXISTS (SELECT 1 FROM users WHERE lower(users.username) = lower(sqlc.arg(username)::text)) AS is_username_taken;
 
 -- name: FindUserCredentialsByEmail :one
-SELECT id, email, username, password_hash, status, is_active, is_admin, created_at, last_login_at
+SELECT id, email, username, password_hash, status, is_active, is_admin, created_at, last_login_at, totp_enabled_at
 FROM users
 WHERE lower(email) = lower(sqlc.arg(email)::text);
 
 -- name: FindUserByID :one
-SELECT id, email, username, status, is_active, is_admin, created_at, activated_at, last_login_at
+SELECT id, email, username, status, is_active, is_admin, created_at, activated_at, last_login_at, totp_enabled_at
 FROM users
 WHERE id = $1;
 

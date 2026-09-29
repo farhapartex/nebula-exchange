@@ -16,6 +16,7 @@ type TemplateName string
 const (
 	TemplateAccountActivation TemplateName = "account_activation"
 	TemplatePasswordReset     TemplateName = "password_reset"
+	TemplateTwoFactorChanged  TemplateName = "two_factor_changed"
 )
 
 type TemplateRenderer struct {

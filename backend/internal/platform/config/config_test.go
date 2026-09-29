@@ -7,7 +7,10 @@ import (
 	"time"
 )
 
-const testJWTSecret = "test-jwt-secret-with-at-least-32-characters"
+const (
+	testJWTSecret         = "test-jwt-secret-with-at-least-32-characters"
+	testTOTPEncryptionKey = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
+)
 
 const testDatabaseURL = "postgres://nebula:nebula@localhost:5432/nebula_exchange?sslmode=disable"
 
@@ -18,6 +21,7 @@ func clearOptionalEnvironment(t *testing.T) {
 	}
 	t.Setenv("DATABASE_URL", testDatabaseURL)
 	t.Setenv("JWT_SECRET", testJWTSecret)
+	t.Setenv("TOTP_ENCRYPTION_KEY", testTOTPEncryptionKey)
 }
 
 func TestLoadUsesDefaultsWhenEnvironmentIsEmpty(t *testing.T) {
@@ -43,7 +47,7 @@ func TestLoadUsesDefaultsWhenEnvironmentIsEmpty(t *testing.T) {
 			FromAddress: "no-reply@nebula.test",
 			FromName:    "Nebula Exchange",
 		},
-		Session: SessionConfig{JWTSecret: testJWTSecret, IsCookieSecure: false},
+		Session: SessionConfig{JWTSecret: testJWTSecret, IsCookieSecure: false, TOTPEncryptionKey: testTOTPEncryptionKey},
 	}
 	if !reflect.DeepEqual(loadedConfig, expectedConfig) {
 		t.Fatalf("got %+v, want %+v", loadedConfig, expectedConfig)
@@ -97,6 +101,7 @@ func TestLoadRejectsInvalidValues(t *testing.T) {
 		"zero database connection": {"DATABASE_MAX_CONNECTIONS": "0"},
 		"non numeric smtp port":    {"SMTP_PORT": "mail"},
 		"short jwt secret":         {"JWT_SECRET": "too-short"},
+		"missing totp key":         {"TOTP_ENCRYPTION_KEY": ""},
 		"invalid cookie flag":      {"COOKIE_SECURE": "sometimes"},
 		"invalid trusted proxy":    {"TRUSTED_PROXIES": "10.0.0.0/33"},
 	}

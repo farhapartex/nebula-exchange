@@ -133,21 +133,22 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateU
 }
 
 const findUserByID = `-- name: FindUserByID :one
-SELECT id, email, username, status, is_active, is_admin, created_at, activated_at, last_login_at
+SELECT id, email, username, status, is_active, is_admin, created_at, activated_at, last_login_at, totp_enabled_at
 FROM users
 WHERE id = $1
 `
 
 type FindUserByIDRow struct {
-	ID          uuid.UUID
-	Email       string
-	Username    string
-	Status      string
-	IsActive    bool
-	IsAdmin     bool
-	CreatedAt   time.Time
-	ActivatedAt *time.Time
-	LastLoginAt *time.Time
+	ID            uuid.UUID
+	Email         string
+	Username      string
+	Status        string
+	IsActive      bool
+	IsAdmin       bool
+	CreatedAt     time.Time
+	ActivatedAt   *time.Time
+	LastLoginAt   *time.Time
+	TotpEnabledAt *time.Time
 }
 
 func (q *Queries) FindUserByID(ctx context.Context, id uuid.UUID) (FindUserByIDRow, error) {
@@ -163,26 +164,28 @@ func (q *Queries) FindUserByID(ctx context.Context, id uuid.UUID) (FindUserByIDR
 		&i.CreatedAt,
 		&i.ActivatedAt,
 		&i.LastLoginAt,
+		&i.TotpEnabledAt,
 	)
 	return i, err
 }
 
 const findUserCredentialsByEmail = `-- name: FindUserCredentialsByEmail :one
-SELECT id, email, username, password_hash, status, is_active, is_admin, created_at, last_login_at
+SELECT id, email, username, password_hash, status, is_active, is_admin, created_at, last_login_at, totp_enabled_at
 FROM users
 WHERE lower(email) = lower($1::text)
 `
 
 type FindUserCredentialsByEmailRow struct {
-	ID           uuid.UUID
-	Email        string
-	Username     string
-	PasswordHash string
-	Status       string
-	IsActive     bool
-	IsAdmin      bool
-	CreatedAt    time.Time
-	LastLoginAt  *time.Time
+	ID            uuid.UUID
+	Email         string
+	Username      string
+	PasswordHash  string
+	Status        string
+	IsActive      bool
+	IsAdmin       bool
+	CreatedAt     time.Time
+	LastLoginAt   *time.Time
+	TotpEnabledAt *time.Time
 }
 
 func (q *Queries) FindUserCredentialsByEmail(ctx context.Context, email string) (FindUserCredentialsByEmailRow, error) {
@@ -198,6 +201,7 @@ func (q *Queries) FindUserCredentialsByEmail(ctx context.Context, email string) 
 		&i.IsAdmin,
 		&i.CreatedAt,
 		&i.LastLoginAt,
+		&i.TotpEnabledAt,
 	)
 	return i, err
 }
