@@ -1,10 +1,10 @@
-import { BalanceChipPlaceholder } from "@/components/app-shell/balance-chip-placeholder";
 import { MobileNavDrawer } from "@/components/app-shell/mobile-nav-drawer";
 import { NotificationBell } from "@/components/app-shell/notification-bell";
 import { PrimaryNavLinks } from "@/components/app-shell/primary-nav-links";
 import { ProfileMenu } from "@/components/app-shell/profile-menu";
 import { NebulaLogo } from "@/components/brand/nebula-logo";
 import { PageContainer } from "@/components/layout/page-container";
+import { BalanceChip } from "@/features/balances/balance-chip";
 
 export function AppTopNav() {
   return (
@@ -16,7 +16,7 @@ export function AppTopNav() {
           <PrimaryNavLinks />
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <BalanceChipPlaceholder />
+          <BalanceChip />
           <NotificationBell />
           <ProfileMenu />
         </div>
