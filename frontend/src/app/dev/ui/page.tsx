@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { PageContainer } from "@/components/layout/page-container";
+import { ApiShowcase } from "@/features/ui-showcase/api-showcase";
 import { ButtonShowcase } from "@/features/ui-showcase/button-showcase";
 import { CardShowcase } from "@/features/ui-showcase/card-showcase";
 import { FeedbackShowcase } from "@/features/ui-showcase/feedback-showcase";
 import { FormShowcase } from "@/features/ui-showcase/form-showcase";
+import { MoneyShowcase } from "@/features/ui-showcase/money-showcase";
 import { OverlayShowcase } from "@/features/ui-showcase/overlay-showcase";
 import { TabsShowcase } from "@/features/ui-showcase/tabs-showcase";
 
@@ -36,6 +38,8 @@ export default function UiShowcasePage() {
         <div className="lg:col-span-2">
           <FeedbackShowcase />
         </div>
+        <MoneyShowcase />
+        <ApiShowcase />
       </div>
     </PageContainer>
   );
