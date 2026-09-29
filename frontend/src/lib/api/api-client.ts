@@ -1,3 +1,4 @@
+import { getAccessToken, refreshAccessTokenOnce } from "@/lib/api/access-token-store";
 import { buildApiUrl, clientIdentificationHeader, idempotencyKeyHeaderName } from "@/lib/api/api-config";
 import { ApiError, isErrorEnvelope } from "@/lib/api/api-error";
 import type { DataEnvelope, ListEnvelope, PaginationParameters } from "@/lib/api/api-types";
@@ -10,6 +11,7 @@ type RequestOptions = {
   query?: Record<string, string | number | boolean | null | undefined>;
   idempotencyKey?: string;
   signal?: AbortSignal;
+  skipSessionRefresh?: boolean;
 };
 
 const stateChangingMethods: ReadonlySet<HttpMethod> = new Set(["POST", "PUT", "PATCH", "DELETE"]);
@@ -33,14 +35,20 @@ function buildRequestUrl(path: string, query: RequestOptions["query"]): string {
   return queryString ? `${requestUrl}?${queryString}` : requestUrl;
 }
 
-function buildHeaders(method: HttpMethod, hasBody: boolean, idempotencyKey?: string): Headers {
+function buildHeaders(method: HttpMethod, hasBody: boolean, idempotencyKey: string | undefined): Headers {
   const headers = new Headers({ Accept: "application/json" });
   if (hasBody) {
     headers.set("Content-Type", "application/json");
   }
+  const accessToken = getAccessToken();
+  if (accessToken) {
+    headers.set("Authorization", `Bearer ${accessToken}`);
+  }
   if (stateChangingMethods.has(method)) {
     headers.set(clientIdentificationHeader.name, clientIdentificationHeader.value);
-    headers.set(idempotencyKeyHeaderName, idempotencyKey ?? createIdempotencyKey());
+    if (idempotencyKey) {
+      headers.set(idempotencyKeyHeaderName, idempotencyKey);
+    }
   }
   return headers;
 }
@@ -59,13 +67,38 @@ async function readJsonBody(response: Response): Promise<unknown> {
 
 async function sendRequest(path: string, options: RequestOptions): Promise<unknown> {
   const method = options.method ?? "GET";
+  const idempotencyKey = stateChangingMethods.has(method)
+    ? (options.idempotencyKey ?? createIdempotencyKey())
+    : undefined;
+
+  try {
+    return await sendSingleRequest(path, method, idempotencyKey, options);
+  } catch (requestError) {
+    const isExpiredSession = requestError instanceof ApiError && requestError.statusCode === 401;
+    if (!isExpiredSession || options.skipSessionRefresh) {
+      throw requestError;
+    }
+    const refreshedAccessToken = await refreshAccessTokenOnce();
+    if (!refreshedAccessToken) {
+      throw requestError;
+    }
+    return sendSingleRequest(path, method, idempotencyKey, options);
+  }
+}
+
+async function sendSingleRequest(
+  path: string,
+  method: HttpMethod,
+  idempotencyKey: string | undefined,
+  options: RequestOptions,
+): Promise<unknown> {
   const hasBody = options.body !== undefined;
 
   let response: Response;
   try {
     response = await fetch(buildRequestUrl(path, options.query), {
       method,
-      headers: buildHeaders(method, hasBody, options.idempotencyKey),
+      headers: buildHeaders(method, hasBody, idempotencyKey),
       body: hasBody ? JSON.stringify(options.body) : undefined,
       credentials: "include",
       signal: options.signal,

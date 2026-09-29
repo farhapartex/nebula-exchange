@@ -13,7 +13,7 @@ import {
   type NavigationLink,
 } from "@/components/app-shell/navigation-links";
 import { PilotAvatar } from "@/components/app-shell/pilot-avatar";
-import { placeholderPilot } from "@/components/app-shell/placeholder-pilot";
+import { useDisplayedPilot } from "@/components/app-shell/use-displayed-pilot";
 import { NebulaLogo } from "@/components/brand/nebula-logo";
 import { cn } from "@/utils/class-names";
 
@@ -62,6 +62,7 @@ function DrawerLinkGroup({
 export function MobileNavDrawer() {
   const [isOpen, setIsOpen] = useState(false);
   const currentPathname = usePathname();
+  const displayedPilot = useDisplayedPilot();
   const closeDrawer = () => setIsOpen(false);
 
   return (
@@ -101,10 +102,10 @@ export function MobileNavDrawer() {
             />
           </div>
           <div className="flex items-center gap-3 border-t border-border p-4">
-            <PilotAvatar username={placeholderPilot.username} />
+            <PilotAvatar username={displayedPilot.username} />
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-foreground">{placeholderPilot.username}</p>
-              <p className="truncate text-xs text-muted">{placeholderPilot.email}</p>
+              <p className="truncate text-sm font-medium text-foreground">{displayedPilot.username}</p>
+              <p className="truncate text-xs text-muted">{displayedPilot.email}</p>
             </div>
             <button
               type="button"

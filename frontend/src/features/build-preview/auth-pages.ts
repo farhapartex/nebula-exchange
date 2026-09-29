@@ -1,7 +1,7 @@
 import { KeyRound, LogIn, MailCheck, Send, UserPlus, type LucideIcon } from "lucide-react";
 
 export type AuthPage = {
-  href: `/${string}`;
+  href: string;
   label: string;
   description: string;
   icon: LucideIcon;
@@ -16,11 +16,22 @@ export const authPages: AuthPage[] = [
     icon: UserPlus,
   },
   {
-    href: "/activate",
-    label: "Activate account",
-    description: "Opened from the activation link in the signup email.",
+    href: "/activate?token=demo-pending-activation-token",
+    label: "Activate account (mock)",
+    description: "A fresh activation link: loader, success message, then login after 3 seconds.",
     icon: MailCheck,
-    plannedTask: "T-013",
+  },
+  {
+    href: "/activate?token=demo-already-activated-token",
+    label: "Activate: already done (mock)",
+    description: "A link for an account that is already active.",
+    icon: MailCheck,
+  },
+  {
+    href: "/activate?token=demo-expired-activation-token",
+    label: "Activate: expired link (mock)",
+    description: "An invalid or expired link redirects to the home page.",
+    icon: MailCheck,
   },
   {
     href: "/resend-activation",
@@ -32,9 +43,8 @@ export const authPages: AuthPage[] = [
   {
     href: "/login",
     label: "Log in",
-    description: "Sign in with email and password, plus a TOTP code if 2FA is on.",
+    description: "Sign in with email and password. Only activated accounts can log in.",
     icon: LogIn,
-    plannedTask: "T-014",
   },
   {
     href: "/forgot",
