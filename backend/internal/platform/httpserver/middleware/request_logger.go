@@ -20,13 +20,17 @@ func RequestLogger(logger *slog.Logger) gin.HandlerFunc {
 			logLevel = slog.LevelWarn
 		}
 
-		logger.LogAttrs(context.Request.Context(), logLevel, "http request",
+		requestAttributes := []slog.Attr{
 			slog.String("request_id", RequestIDFrom(context)),
 			slog.String("method", context.Request.Method),
 			slog.String("path", context.FullPath()),
 			slog.Int("status", statusCode),
 			slog.Duration("duration", time.Since(requestStartedAt)),
 			slog.String("client_ip", context.ClientIP()),
-		)
+		}
+		if len(context.Errors) > 0 {
+			requestAttributes = append(requestAttributes, slog.String("error", context.Errors.String()))
+		}
+		logger.LogAttrs(context.Request.Context(), logLevel, "http request", requestAttributes...)
 	}
 }

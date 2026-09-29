@@ -2,11 +2,11 @@ package middleware
 
 import (
 	"log/slog"
-	"net/http"
 	"runtime/debug"
 
 	"github.com/gin-gonic/gin"
 
+	"nebula-exchange/backend/internal/platform/apierror"
 	"nebula-exchange/backend/internal/platform/httpserver/response"
 )
 
@@ -22,7 +22,7 @@ func PanicRecovery(logger *slog.Logger) gin.HandlerFunc {
 				slog.Any("panic", recoveredValue),
 				slog.String("stack", string(debug.Stack())),
 			)
-			response.AbortWithError(context, http.StatusInternalServerError, "INTERNAL_ERROR", "Something went wrong")
+			response.WriteError(context, apierror.Internal())
 		}()
 		context.Next()
 	}

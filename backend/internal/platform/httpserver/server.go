@@ -9,7 +9,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"nebula-exchange/backend/internal/platform/apierror"
 	"nebula-exchange/backend/internal/platform/httpserver/middleware"
+	"nebula-exchange/backend/internal/platform/httpserver/request"
+	"nebula-exchange/backend/internal/platform/httpserver/response"
 )
 
 const apiBasePath = "/api/v1"
@@ -27,7 +30,16 @@ func NewRouter(logger *slog.Logger, isProduction bool, registrars ...RouteRegist
 	if isProduction {
 		gin.SetMode(gin.ReleaseMode)
 	}
+	request.RegisterJSONFieldNames()
+
 	router := gin.New()
+	router.HandleMethodNotAllowed = true
+	router.NoRoute(func(context *gin.Context) {
+		response.WriteError(context, apierror.NotFound("Route not found"))
+	})
+	router.NoMethod(func(context *gin.Context) {
+		response.WriteError(context, apierror.New(http.StatusMethodNotAllowed, apierror.CodeMethodNotAllowed, "Method not allowed"))
+	})
 	router.Use(
 		middleware.RequestID(),
 		middleware.RequestLogger(logger),

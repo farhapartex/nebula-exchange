@@ -116,3 +116,37 @@ func waitForServer(t *testing.T, healthURL string) {
 	}
 	t.Fatalf("server at %s did not become ready", healthURL)
 }
+
+func TestUnknownRoutesAndMethodsReturnErrorEnvelope(t *testing.T) {
+	testLogger := logger.NewWithWriter(&bytes.Buffer{}, slog.LevelInfo, true)
+	router := NewRouter(testLogger, false, health.NewHandler())
+
+	expectations := map[string]struct {
+		method         string
+		path           string
+		expectedStatus int
+		expectedCode   string
+	}{
+		"unknown route":  {method: http.MethodGet, path: "/api/v1/missing", expectedStatus: http.StatusNotFound, expectedCode: "NOT_FOUND"},
+		"unknown method": {method: http.MethodPost, path: "/api/v1/health", expectedStatus: http.StatusMethodNotAllowed, expectedCode: "METHOD_NOT_ALLOWED"},
+	}
+
+	for caseName, expectation := range expectations {
+		t.Run(caseName, func(t *testing.T) {
+			recorder := httptest.NewRecorder()
+			router.ServeHTTP(recorder, httptest.NewRequest(expectation.method, expectation.path, nil))
+
+			var responseBody struct {
+				Error struct {
+					Code string `json:"code"`
+				} `json:"error"`
+			}
+			if err := json.Unmarshal(recorder.Body.Bytes(), &responseBody); err != nil {
+				t.Fatalf("response is not valid JSON: %v", err)
+			}
+			if recorder.Code != expectation.expectedStatus || responseBody.Error.Code != expectation.expectedCode {
+				t.Fatalf("got %d %s, want %d %s", recorder.Code, responseBody.Error.Code, expectation.expectedStatus, expectation.expectedCode)
+			}
+		})
+	}
+}
