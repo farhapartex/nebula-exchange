@@ -21,3 +21,10 @@ WHERE token_hash = sqlc.arg(token_hash)
   AND used_at IS NULL
   AND expires_at > sqlc.arg(now)::timestamptz
 RETURNING user_id;
+
+-- name: ExpireUnusedActivationTokens :exec
+UPDATE account_activation_tokens
+SET expires_at = sqlc.arg(now)::timestamptz
+WHERE user_id = sqlc.arg(user_id)
+  AND used_at IS NULL
+  AND expires_at > sqlc.arg(now)::timestamptz;

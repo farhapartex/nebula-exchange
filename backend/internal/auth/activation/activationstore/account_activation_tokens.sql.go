@@ -55,6 +55,24 @@ func (q *Queries) CreateActivationToken(ctx context.Context, arg CreateActivatio
 	return err
 }
 
+const expireUnusedActivationTokens = `-- name: ExpireUnusedActivationTokens :exec
+UPDATE account_activation_tokens
+SET expires_at = $1::timestamptz
+WHERE user_id = $2
+  AND used_at IS NULL
+  AND expires_at > $1::timestamptz
+`
+
+type ExpireUnusedActivationTokensParams struct {
+	Now    time.Time
+	UserID uuid.UUID
+}
+
+func (q *Queries) ExpireUnusedActivationTokens(ctx context.Context, arg ExpireUnusedActivationTokensParams) error {
+	_, err := q.db.Exec(ctx, expireUnusedActivationTokens, arg.Now, arg.UserID)
+	return err
+}
+
 const findActivationTokenWithUser = `-- name: FindActivationTokenWithUser :one
 SELECT
     tokens.user_id,

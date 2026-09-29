@@ -13,6 +13,7 @@ import (
 type Querier interface {
 	ConsumeActivationToken(ctx context.Context, arg ConsumeActivationTokenParams) (uuid.UUID, error)
 	CreateActivationToken(ctx context.Context, arg CreateActivationTokenParams) error
+	ExpireUnusedActivationTokens(ctx context.Context, arg ExpireUnusedActivationTokensParams) error
 	FindActivationTokenWithUser(ctx context.Context, tokenHash []byte) (FindActivationTokenWithUserRow, error)
 }
 

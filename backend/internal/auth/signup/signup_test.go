@@ -46,8 +46,7 @@ func newSignupTestHarness(t *testing.T) *signupTestHarness {
 		Pool:             pool,
 		Users:            users.NewRepository(),
 		ActivationIssuer: activation.NewIssuer(activation.DefaultTokenLifetime, clock),
-		ActivationEmail:  activation.NewEmailComposer("http://localhost:3000/", templateRenderer),
-		EmailQueue:       outbox.NewQueue(),
+		ActivationMailer: activation.NewMailer(activation.NewEmailComposer("http://localhost:3000/", templateRenderer), outbox.NewQueue()),
 		PasswordHasher: passwordhash.NewHasher(passwordhash.HasherOptions{
 			Parameters: passwordhash.Parameters{MemoryInKibibytes: 1024, Iterations: 1, Parallelism: 1, SaltLength: 16, KeyLength: 32},
 		}),

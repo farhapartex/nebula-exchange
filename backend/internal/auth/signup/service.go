@@ -11,8 +11,6 @@ import (
 
 	"nebula-exchange/backend/internal/auth/activation"
 	"nebula-exchange/backend/internal/auth/passwordhash"
-	"nebula-exchange/backend/internal/notify/email"
-	"nebula-exchange/backend/internal/notify/email/outbox"
 	"nebula-exchange/backend/internal/platform/apierror"
 	"nebula-exchange/backend/internal/platform/database"
 	"nebula-exchange/backend/internal/users"
@@ -30,8 +28,7 @@ type Dependencies struct {
 	Pool             *pgxpool.Pool
 	Users            *users.Repository
 	ActivationIssuer *activation.Issuer
-	ActivationEmail  *activation.EmailComposer
-	EmailQueue       *outbox.Queue
+	ActivationMailer *activation.Mailer
 	PasswordHasher   *passwordhash.Hasher
 	Now              func() time.Time
 }
@@ -79,7 +76,7 @@ func (service *Service) SignUp(ctx context.Context, request Request) (SignedUpAc
 		if err != nil {
 			return err
 		}
-		return service.queueActivationEmail(ctx, transaction, createdUser, issuedToken)
+		return service.dependencies.ActivationMailer.QueueActivationEmail(ctx, transaction, createdUser.Email, createdUser.Username, issuedToken)
 	})
 	if err != nil {
 		return SignedUpAccount{}, translateCreateError(err)
@@ -92,19 +89,6 @@ func (service *Service) SignUp(ctx context.Context, request Request) (SignedUpAc
 		Status:                  createdUser.Status,
 		ActivationLinkExpiresAt: issuedToken.ExpiresAt,
 	}, nil
-}
-
-func (service *Service) queueActivationEmail(ctx context.Context, transaction pgx.Tx, createdUser users.User, issuedToken activation.IssuedToken) error {
-	activationMessage, err := service.dependencies.ActivationEmail.Compose(
-		email.Address{Name: createdUser.Username, Email: createdUser.Email},
-		createdUser.Username,
-		issuedToken,
-	)
-	if err != nil {
-		return err
-	}
-	_, err = service.dependencies.EmailQueue.Enqueue(ctx, transaction, email.TemplateAccountActivation, activationMessage)
-	return err
 }
 
 func takenIdentifiersError(takenIdentifiers users.TakenIdentifiers) error {

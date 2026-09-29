@@ -52,12 +52,14 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 	userRepository := users.NewRepository()
 	passwordHasher := passwordhash.NewHasher(passwordhash.HasherOptions{Parameters: passwordhash.DefaultParameters})
 
+	activationIssuer := activation.NewIssuer(activation.DefaultTokenLifetime, time.Now)
+	activationMailer := activation.NewMailer(activation.NewEmailComposer(appConfig.FrontendBaseURL, emailTemplates), outbox.NewQueue())
+
 	signupService := signup.NewService(signup.Dependencies{
 		Pool:             databasePool,
 		Users:            userRepository,
-		ActivationIssuer: activation.NewIssuer(activation.DefaultTokenLifetime, time.Now),
-		ActivationEmail:  activation.NewEmailComposer(appConfig.FrontendBaseURL, emailTemplates),
-		EmailQueue:       outbox.NewQueue(),
+		ActivationIssuer: activationIssuer,
+		ActivationMailer: activationMailer,
 		PasswordHasher:   passwordHasher,
 		Now:              time.Now,
 	})
@@ -94,6 +96,10 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 		login.NewHandler(loginService, cookieSettings, time.Now, rateLimits.PerClientIP(ratelimit.LoginPolicy)),
 		users.NewMeHandler(databasePool, userRepository),
 		activation.NewHandler(activation.NewService(databasePool, userRepository, time.Now)),
+		activation.NewResendHandler(
+			activation.NewResender(databasePool, userRepository, activationIssuer, activationMailer, time.Now),
+			rateLimits,
+		),
 	)
 
 	return application{
