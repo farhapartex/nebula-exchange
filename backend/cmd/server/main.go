@@ -50,10 +50,14 @@ func run() error {
 	}
 
 	var backgroundWorkers sync.WaitGroup
-	backgroundWorkers.Add(1)
+	backgroundWorkers.Add(2)
 	go func() {
 		defer backgroundWorkers.Done()
 		application.emailDispatcher.Run(shutdownSignal)
+	}()
+	go func() {
+		defer backgroundWorkers.Done()
+		application.jobScheduler.Run(shutdownSignal)
 	}()
 
 	server := httpserver.New(appConfig.HTTPAddress(), application.router, appLogger)

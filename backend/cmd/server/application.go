@@ -22,12 +22,14 @@ import (
 	"nebula-exchange/backend/internal/auth/signup"
 	"nebula-exchange/backend/internal/auth/twofactor"
 	"nebula-exchange/backend/internal/health"
+	"nebula-exchange/backend/internal/maintenance"
 	"nebula-exchange/backend/internal/notify/email"
 	"nebula-exchange/backend/internal/notify/email/outbox"
 	"nebula-exchange/backend/internal/platform/config"
 	"nebula-exchange/backend/internal/platform/httpserver"
 	"nebula-exchange/backend/internal/platform/idempotency"
 	"nebula-exchange/backend/internal/platform/ratelimit"
+	"nebula-exchange/backend/internal/platform/scheduler"
 	"nebula-exchange/backend/internal/platform/secretbox"
 	"nebula-exchange/backend/internal/users"
 )
@@ -41,6 +43,7 @@ const (
 type application struct {
 	router          *gin.Engine
 	emailDispatcher *outbox.Dispatcher
+	jobScheduler    *scheduler.Scheduler
 }
 
 func buildApplication(appConfig config.Config, appLogger *slog.Logger, databasePool *pgxpool.Pool, redisClient *redis.Client) (application, error) {
@@ -157,8 +160,12 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 		}), rateLimits),
 	)
 
+	jobScheduler := scheduler.New(databasePool, appLogger, scheduler.Options{InitialDelay: time.Minute})
+	jobScheduler.Register(maintenance.NewCleanupJob(databasePool, appLogger, time.Now))
+
 	return application{
 		router:          router,
 		emailDispatcher: outbox.NewDispatcher(databasePool, emailSender, appLogger, outbox.DispatcherOptions{}),
+		jobScheduler:    jobScheduler,
 	}, nil
 }
