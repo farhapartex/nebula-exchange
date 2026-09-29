@@ -16,6 +16,7 @@ import (
 
 	"nebula-exchange/backend/internal/auth/activation"
 	"nebula-exchange/backend/internal/auth/passwordhash"
+	"nebula-exchange/backend/internal/auth/securetoken"
 	"nebula-exchange/backend/internal/auth/signup"
 	"nebula-exchange/backend/internal/notify/email"
 	"nebula-exchange/backend/internal/notify/email/outbox"
@@ -149,7 +150,7 @@ func TestSignupCreatesInactiveUserAndSendsActivationLink(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load activation token: %v", err)
 	}
-	if !bytes.Equal(storedTokenHash, activation.HashToken(plaintextToken)) {
+	if !bytes.Equal(storedTokenHash, securetoken.Hash(plaintextToken)) {
 		t.Fatal("stored token hash does not match the emailed token")
 	}
 	if bytes.Contains(storedTokenHash, []byte(plaintextToken)) {

@@ -14,6 +14,7 @@ import (
 	"nebula-exchange/backend/internal/auth/login"
 	"nebula-exchange/backend/internal/auth/loginlockout"
 	"nebula-exchange/backend/internal/auth/passwordhash"
+	"nebula-exchange/backend/internal/auth/passwordreset"
 	"nebula-exchange/backend/internal/auth/session"
 	"nebula-exchange/backend/internal/auth/signup"
 	"nebula-exchange/backend/internal/health"
@@ -68,14 +69,17 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 		Now:              time.Now,
 	})
 
+	refreshTokens := session.NewRefreshTokens(session.DefaultRefreshTokenLifetime, time.Now)
+	loginLockout := loginlockout.NewGuard(redisClient, loginLockoutKeyPrefix, loginlockout.DefaultPolicy, appLogger)
+
 	loginService, err := login.NewService(login.Dependencies{
 		Pool:                databasePool,
 		Users:               userRepository,
 		AccessTokens:        accessTokens,
-		RefreshTokens:       session.NewRefreshTokens(session.DefaultRefreshTokenLifetime, time.Now),
+		RefreshTokens:       refreshTokens,
 		PasswordHasher:      passwordHasher,
 		PasswordHashOptions: passwordhash.DefaultParameters,
-		LoginLockout:        loginlockout.NewGuard(redisClient, loginLockoutKeyPrefix, loginlockout.DefaultPolicy, appLogger),
+		LoginLockout:        loginLockout,
 		Logger:              appLogger,
 		Now:                 time.Now,
 	})
@@ -106,6 +110,17 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 			activation.NewResender(databasePool, userRepository, activationIssuer, activationMailer, time.Now),
 			rateLimits,
 		),
+		passwordreset.NewHandler(passwordreset.NewService(passwordreset.Dependencies{
+			Pool:            databasePool,
+			Users:           userRepository,
+			PasswordHasher:  passwordHasher,
+			RefreshTokens:   refreshTokens,
+			LoginLockout:    loginLockout,
+			EmailTemplates:  emailTemplates,
+			EmailQueue:      outbox.NewQueue(),
+			FrontendBaseURL: appConfig.FrontendBaseURL,
+			Now:             time.Now,
+		}), rateLimits),
 	)
 
 	return application{

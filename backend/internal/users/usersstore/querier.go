@@ -17,6 +17,7 @@ type Querier interface {
 	FindUserByID(ctx context.Context, id uuid.UUID) (FindUserByIDRow, error)
 	FindUserCredentialsByEmail(ctx context.Context, email string) (FindUserCredentialsByEmailRow, error)
 	RecordLogin(ctx context.Context, arg RecordLoginParams) error
+	UpdatePasswordHash(ctx context.Context, arg UpdatePasswordHashParams) (string, error)
 }
 
 var _ Querier = (*Queries)(nil)

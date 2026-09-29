@@ -217,3 +217,23 @@ func (q *Queries) RecordLogin(ctx context.Context, arg RecordLoginParams) error 
 	_, err := q.db.Exec(ctx, recordLogin, arg.ID, arg.LastLoginAt)
 	return err
 }
+
+const updatePasswordHash = `-- name: UpdatePasswordHash :one
+UPDATE users
+SET password_hash = $1, updated_at = $2::timestamptz
+WHERE id = $3
+RETURNING email
+`
+
+type UpdatePasswordHashParams struct {
+	PasswordHash string
+	UpdatedAt    time.Time
+	ID           uuid.UUID
+}
+
+func (q *Queries) UpdatePasswordHash(ctx context.Context, arg UpdatePasswordHashParams) (string, error) {
+	row := q.db.QueryRow(ctx, updatePasswordHash, arg.PasswordHash, arg.UpdatedAt, arg.ID)
+	var email string
+	err := row.Scan(&email)
+	return email, err
+}

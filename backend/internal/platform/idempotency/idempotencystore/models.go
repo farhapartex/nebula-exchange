@@ -48,6 +48,15 @@ type IdempotencyKey struct {
 	CompletedAt         pgtype.Timestamptz
 }
 
+type PasswordResetToken struct {
+	ID        pgtype.UUID
+	UserID    pgtype.UUID
+	TokenHash []byte
+	ExpiresAt pgtype.Timestamptz
+	UsedAt    pgtype.Timestamptz
+	CreatedAt pgtype.Timestamptz
+}
+
 type RefreshToken struct {
 	ID         pgtype.UUID
 	UserID     pgtype.UUID

@@ -13,7 +13,10 @@ var templateFiles embed.FS
 
 type TemplateName string
 
-const TemplateAccountActivation TemplateName = "account_activation"
+const (
+	TemplateAccountActivation TemplateName = "account_activation"
+	TemplatePasswordReset     TemplateName = "password_reset"
+)
 
 type TemplateRenderer struct {
 	htmlTemplates *htmltemplate.Template

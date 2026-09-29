@@ -31,3 +31,9 @@ SET is_active = true,
     updated_at = sqlc.arg(activated_at)::timestamptz
 WHERE id = sqlc.arg(id) AND is_active = false
 RETURNING id, email, username, status, is_active, is_admin, created_at, activated_at, last_login_at;
+
+-- name: UpdatePasswordHash :one
+UPDATE users
+SET password_hash = sqlc.arg(password_hash), updated_at = sqlc.arg(updated_at)::timestamptz
+WHERE id = sqlc.arg(id)
+RETURNING email;

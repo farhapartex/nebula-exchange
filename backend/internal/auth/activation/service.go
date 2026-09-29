@@ -9,12 +9,11 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"nebula-exchange/backend/internal/auth/activation/activationstore"
+	"nebula-exchange/backend/internal/auth/securetoken"
 	"nebula-exchange/backend/internal/platform/apierror"
 	"nebula-exchange/backend/internal/platform/database"
 	"nebula-exchange/backend/internal/users"
 )
-
-const plaintextTokenLength = 43
 
 var errInvalidActivationLink = apierror.NotFound("This activation link is invalid or has expired")
 
@@ -42,10 +41,10 @@ func NewService(pool *pgxpool.Pool, userRepository *users.Repository, now func()
 }
 
 func (service *Service) Preview(ctx context.Context, plaintextToken string) (Preview, error) {
-	if len(plaintextToken) != plaintextTokenLength {
+	if !securetoken.HasValidShape(plaintextToken) {
 		return Preview{}, errInvalidActivationLink
 	}
-	storedToken, err := activationstore.New(service.pool).FindActivationTokenWithUser(ctx, HashToken(plaintextToken))
+	storedToken, err := activationstore.New(service.pool).FindActivationTokenWithUser(ctx, securetoken.Hash(plaintextToken))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Preview{}, errInvalidActivationLink
 	}
@@ -63,10 +62,10 @@ func (service *Service) Preview(ctx context.Context, plaintextToken string) (Pre
 }
 
 func (service *Service) Activate(ctx context.Context, plaintextToken string) (ActivatedAccount, error) {
-	if len(plaintextToken) != plaintextTokenLength {
+	if !securetoken.HasValidShape(plaintextToken) {
 		return ActivatedAccount{}, errInvalidActivationLink
 	}
-	tokenHash := HashToken(plaintextToken)
+	tokenHash := securetoken.Hash(plaintextToken)
 	activatedAt := service.now().UTC()
 
 	var activatedUser users.User

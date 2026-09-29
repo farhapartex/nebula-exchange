@@ -155,3 +155,11 @@ func (repository *Repository) Activate(ctx context.Context, database usersstore.
 		LastLoginAt: activatedRow.LastLoginAt,
 	}, true, nil
 }
+
+func (repository *Repository) UpdatePasswordHash(ctx context.Context, database usersstore.DBTX, userID uuid.UUID, passwordHash string, updatedAt time.Time) (string, error) {
+	return usersstore.New(database).UpdatePasswordHash(ctx, usersstore.UpdatePasswordHashParams{
+		ID:           userID,
+		PasswordHash: passwordHash,
+		UpdatedAt:    updatedAt,
+	})
+}

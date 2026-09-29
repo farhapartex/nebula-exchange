@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 
 	"nebula-exchange/backend/internal/auth/activation/activationstore"
+	"nebula-exchange/backend/internal/auth/securetoken"
 )
 
 const DefaultTokenLifetime = 24 * time.Hour
@@ -26,7 +27,7 @@ func NewIssuer(tokenLifetime time.Duration, now func() time.Time) *Issuer {
 }
 
 func (issuer *Issuer) Issue(ctx context.Context, database activationstore.DBTX, userID uuid.UUID) (IssuedToken, error) {
-	generatedToken, err := generateToken()
+	generatedToken, err := securetoken.Generate()
 	if err != nil {
 		return IssuedToken{}, err
 	}

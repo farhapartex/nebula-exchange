@@ -106,3 +106,9 @@ func hashEmail(emailAddress string) string {
 	emailHash := sha256.Sum256([]byte(strings.ToLower(strings.TrimSpace(emailAddress))))
 	return hex.EncodeToString(emailHash[:])
 }
+
+func (guard *Guard) Unlock(ctx context.Context, emailAddress string) {
+	if err := guard.client.Del(ctx, guard.failureKey(emailAddress), guard.lockKey(emailAddress)).Err(); err != nil {
+		guard.logUnavailable(ctx, err)
+	}
+}
