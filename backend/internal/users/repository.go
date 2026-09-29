@@ -126,10 +126,32 @@ func (repository *Repository) FindByID(ctx context.Context, database usersstore.
 		IsActive:    userRow.IsActive,
 		IsAdmin:     userRow.IsAdmin,
 		CreatedAt:   userRow.CreatedAt,
+		ActivatedAt: userRow.ActivatedAt,
 		LastLoginAt: userRow.LastLoginAt,
 	}, true, nil
 }
 
 func (repository *Repository) RecordLogin(ctx context.Context, database usersstore.DBTX, userID uuid.UUID, loggedInAt time.Time) error {
 	return usersstore.New(database).RecordLogin(ctx, usersstore.RecordLoginParams{ID: userID, LastLoginAt: &loggedInAt})
+}
+
+func (repository *Repository) Activate(ctx context.Context, database usersstore.DBTX, userID uuid.UUID, activatedAt time.Time) (User, bool, error) {
+	activatedRow, err := usersstore.New(database).ActivateUser(ctx, usersstore.ActivateUserParams{ID: userID, ActivatedAt: activatedAt})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return User{}, false, nil
+	}
+	if err != nil {
+		return User{}, false, err
+	}
+	return User{
+		ID:          activatedRow.ID,
+		Email:       activatedRow.Email,
+		Username:    activatedRow.Username,
+		Status:      Status(activatedRow.Status),
+		IsActive:    activatedRow.IsActive,
+		IsAdmin:     activatedRow.IsAdmin,
+		CreatedAt:   activatedRow.CreatedAt,
+		ActivatedAt: activatedRow.ActivatedAt,
+		LastLoginAt: activatedRow.LastLoginAt,
+	}, true, nil
 }

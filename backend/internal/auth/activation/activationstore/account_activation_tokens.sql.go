@@ -12,6 +12,27 @@ import (
 	"github.com/google/uuid"
 )
 
+const consumeActivationToken = `-- name: ConsumeActivationToken :one
+UPDATE account_activation_tokens
+SET used_at = $1::timestamptz
+WHERE token_hash = $2
+  AND used_at IS NULL
+  AND expires_at > $1::timestamptz
+RETURNING user_id
+`
+
+type ConsumeActivationTokenParams struct {
+	Now       time.Time
+	TokenHash []byte
+}
+
+func (q *Queries) ConsumeActivationToken(ctx context.Context, arg ConsumeActivationTokenParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, consumeActivationToken, arg.Now, arg.TokenHash)
+	var user_id uuid.UUID
+	err := row.Scan(&user_id)
+	return user_id, err
+}
+
 const createActivationToken = `-- name: CreateActivationToken :exec
 INSERT INTO account_activation_tokens (id, user_id, token_hash, expires_at)
 VALUES ($1, $2, $3, $4)
@@ -32,4 +53,40 @@ func (q *Queries) CreateActivationToken(ctx context.Context, arg CreateActivatio
 		arg.ExpiresAt,
 	)
 	return err
+}
+
+const findActivationTokenWithUser = `-- name: FindActivationTokenWithUser :one
+SELECT
+    tokens.user_id,
+    tokens.expires_at,
+    tokens.used_at,
+    users.email,
+    users.username,
+    users.is_active
+FROM account_activation_tokens AS tokens
+JOIN users ON users.id = tokens.user_id
+WHERE tokens.token_hash = $1
+`
+
+type FindActivationTokenWithUserRow struct {
+	UserID    uuid.UUID
+	ExpiresAt time.Time
+	UsedAt    *time.Time
+	Email     string
+	Username  string
+	IsActive  bool
+}
+
+func (q *Queries) FindActivationTokenWithUser(ctx context.Context, tokenHash []byte) (FindActivationTokenWithUserRow, error) {
+	row := q.db.QueryRow(ctx, findActivationTokenWithUser, tokenHash)
+	var i FindActivationTokenWithUserRow
+	err := row.Scan(
+		&i.UserID,
+		&i.ExpiresAt,
+		&i.UsedAt,
+		&i.Email,
+		&i.Username,
+		&i.IsActive,
+	)
+	return i, err
 }

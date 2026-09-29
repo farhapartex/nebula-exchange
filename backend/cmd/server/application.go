@@ -93,6 +93,7 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 		signup.NewHandler(signupService, rateLimits.PerClientIP(ratelimit.SignupPolicy)),
 		login.NewHandler(loginService, cookieSettings, time.Now, rateLimits.PerClientIP(ratelimit.LoginPolicy)),
 		users.NewMeHandler(databasePool, userRepository),
+		activation.NewHandler(activation.NewService(databasePool, userRepository, time.Now)),
 	)
 
 	return application{

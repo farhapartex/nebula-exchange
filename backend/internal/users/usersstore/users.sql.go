@@ -12,6 +12,50 @@ import (
 	"github.com/google/uuid"
 )
 
+const activateUser = `-- name: ActivateUser :one
+UPDATE users
+SET is_active = true,
+    activated_at = $1::timestamptz,
+    status = CASE WHEN status = 'UNVERIFIED' THEN 'PENDING_PAYMENT' ELSE status END,
+    updated_at = $1::timestamptz
+WHERE id = $2 AND is_active = false
+RETURNING id, email, username, status, is_active, is_admin, created_at, activated_at, last_login_at
+`
+
+type ActivateUserParams struct {
+	ActivatedAt time.Time
+	ID          uuid.UUID
+}
+
+type ActivateUserRow struct {
+	ID          uuid.UUID
+	Email       string
+	Username    string
+	Status      string
+	IsActive    bool
+	IsAdmin     bool
+	CreatedAt   time.Time
+	ActivatedAt *time.Time
+	LastLoginAt *time.Time
+}
+
+func (q *Queries) ActivateUser(ctx context.Context, arg ActivateUserParams) (ActivateUserRow, error) {
+	row := q.db.QueryRow(ctx, activateUser, arg.ActivatedAt, arg.ID)
+	var i ActivateUserRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Username,
+		&i.Status,
+		&i.IsActive,
+		&i.IsAdmin,
+		&i.CreatedAt,
+		&i.ActivatedAt,
+		&i.LastLoginAt,
+	)
+	return i, err
+}
+
 const checkIdentifiersTaken = `-- name: CheckIdentifiersTaken :one
 SELECT
     EXISTS (SELECT 1 FROM users WHERE lower(users.email) = lower($1::text)) AS is_email_taken,
@@ -89,7 +133,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateU
 }
 
 const findUserByID = `-- name: FindUserByID :one
-SELECT id, email, username, status, is_active, is_admin, created_at, last_login_at
+SELECT id, email, username, status, is_active, is_admin, created_at, activated_at, last_login_at
 FROM users
 WHERE id = $1
 `
@@ -102,6 +146,7 @@ type FindUserByIDRow struct {
 	IsActive    bool
 	IsAdmin     bool
 	CreatedAt   time.Time
+	ActivatedAt *time.Time
 	LastLoginAt *time.Time
 }
 
@@ -116,6 +161,7 @@ func (q *Queries) FindUserByID(ctx context.Context, id uuid.UUID) (FindUserByIDR
 		&i.IsActive,
 		&i.IsAdmin,
 		&i.CreatedAt,
+		&i.ActivatedAt,
 		&i.LastLoginAt,
 	)
 	return i, err

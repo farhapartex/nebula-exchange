@@ -6,10 +6,14 @@ package activationstore
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 type Querier interface {
+	ConsumeActivationToken(ctx context.Context, arg ConsumeActivationTokenParams) (uuid.UUID, error)
 	CreateActivationToken(ctx context.Context, arg CreateActivationTokenParams) error
+	FindActivationTokenWithUser(ctx context.Context, tokenHash []byte) (FindActivationTokenWithUserRow, error)
 }
 
 var _ Querier = (*Queries)(nil)

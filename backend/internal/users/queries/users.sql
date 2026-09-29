@@ -14,7 +14,7 @@ FROM users
 WHERE lower(email) = lower(sqlc.arg(email)::text);
 
 -- name: FindUserByID :one
-SELECT id, email, username, status, is_active, is_admin, created_at, last_login_at
+SELECT id, email, username, status, is_active, is_admin, created_at, activated_at, last_login_at
 FROM users
 WHERE id = $1;
 
@@ -22,3 +22,12 @@ WHERE id = $1;
 UPDATE users
 SET last_login_at = $2, updated_at = $2
 WHERE id = $1;
+
+-- name: ActivateUser :one
+UPDATE users
+SET is_active = true,
+    activated_at = sqlc.arg(activated_at)::timestamptz,
+    status = CASE WHEN status = 'UNVERIFIED' THEN 'PENDING_PAYMENT' ELSE status END,
+    updated_at = sqlc.arg(activated_at)::timestamptz
+WHERE id = sqlc.arg(id) AND is_active = false
+RETURNING id, email, username, status, is_active, is_admin, created_at, activated_at, last_login_at;

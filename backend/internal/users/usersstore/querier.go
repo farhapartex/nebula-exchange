@@ -11,6 +11,7 @@ import (
 )
 
 type Querier interface {
+	ActivateUser(ctx context.Context, arg ActivateUserParams) (ActivateUserRow, error)
 	CheckIdentifiersTaken(ctx context.Context, arg CheckIdentifiersTakenParams) (CheckIdentifiersTakenRow, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error)
 	FindUserByID(ctx context.Context, id uuid.UUID) (FindUserByIDRow, error)
