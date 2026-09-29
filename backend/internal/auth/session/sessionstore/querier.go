@@ -9,9 +9,12 @@ import (
 )
 
 type Querier interface {
+	ConsumeRefreshToken(ctx context.Context, arg ConsumeRefreshTokenParams) (ConsumeRefreshTokenRow, error)
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) error
-	FindRefreshTokenForUpdate(ctx context.Context, tokenHash []byte) (FindRefreshTokenForUpdateRow, error)
-	RevokeRefreshToken(ctx context.Context, arg RevokeRefreshTokenParams) error
+	FindRefreshTokenByHash(ctx context.Context, tokenHash []byte) (FindRefreshTokenByHashRow, error)
+	LinkReplacementRefreshToken(ctx context.Context, arg LinkReplacementRefreshTokenParams) error
+	RevokeAllActiveRefreshTokensForUser(ctx context.Context, arg RevokeAllActiveRefreshTokensForUserParams) (int64, error)
+	RevokeRefreshTokenByHash(ctx context.Context, arg RevokeRefreshTokenByHashParams) error
 }
 
 var _ Querier = (*Queries)(nil)

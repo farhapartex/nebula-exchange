@@ -3,10 +3,12 @@ package login
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -36,6 +38,7 @@ type Dependencies struct {
 	RefreshTokens       *session.RefreshTokens
 	PasswordHasher      *passwordhash.Hasher
 	PasswordHashOptions passwordhash.Parameters
+	Logger              *slog.Logger
 	Now                 func() time.Time
 }
 
@@ -133,6 +136,11 @@ func (service *Service) Refresh(ctx context.Context, plaintextRefreshToken strin
 		}
 		return nil
 	})
+	var reusedError *session.RefreshTokenReusedError
+	if errors.As(err, &reusedError) {
+		service.revokeAllSessionsAfterReuse(ctx, reusedError.UserID)
+		return EstablishedSession{}, errSessionExpired
+	}
 	if errors.Is(err, session.ErrRefreshTokenInvalid) {
 		return EstablishedSession{}, errSessionExpired
 	}
@@ -145,4 +153,30 @@ func (service *Service) Refresh(ctx context.Context, plaintextRefreshToken strin
 		return EstablishedSession{}, err
 	}
 	return EstablishedSession{AccessToken: accessToken, RefreshToken: rotatedToken.Issued, User: sessionUser}, nil
+}
+
+func (service *Service) revokeAllSessionsAfterReuse(ctx context.Context, userID uuid.UUID) {
+	revokedCount, err := service.dependencies.RefreshTokens.RevokeAllForUser(context.WithoutCancel(ctx), service.dependencies.Pool, userID)
+	if err != nil {
+		service.dependencies.Logger.ErrorContext(ctx, "revoke sessions after refresh token reuse",
+			slog.String("user_id", userID.String()),
+			slog.String("error", err.Error()),
+		)
+		return
+	}
+	if revokedCount == 0 {
+		service.dependencies.Logger.InfoContext(ctx, "revoked refresh token presented", slog.String("user_id", userID.String()))
+		return
+	}
+	service.dependencies.Logger.WarnContext(ctx, "refresh token reuse detected, all sessions revoked",
+		slog.String("user_id", userID.String()),
+		slog.Int64("revoked_sessions", revokedCount),
+	)
+}
+
+func (service *Service) LogOut(ctx context.Context, plaintextRefreshToken string) error {
+	if plaintextRefreshToken == "" {
+		return nil
+	}
+	return service.dependencies.RefreshTokens.Revoke(ctx, service.dependencies.Pool, plaintextRefreshToken)
 }

@@ -16,11 +16,20 @@ import (
 )
 
 const (
-	DefaultRefreshTokenLifetime = 30 * 24 * time.Hour
-	refreshTokenByteLength      = 32
+	DefaultRefreshTokenLifetime   = 30 * 24 * time.Hour
+	DefaultConcurrentRefreshGrace = 30 * time.Second
+	refreshTokenByteLength        = 32
 )
 
 var ErrRefreshTokenInvalid = errors.New("refresh token is invalid, expired or revoked")
+
+type RefreshTokenReusedError struct {
+	UserID uuid.UUID
+}
+
+func (reusedError *RefreshTokenReusedError) Error() string {
+	return "a revoked refresh token was presented again"
+}
 
 type IssuedRefreshToken struct {
 	ID        uuid.UUID
@@ -34,12 +43,13 @@ type RotatedRefreshToken struct {
 }
 
 type RefreshTokens struct {
-	lifetime time.Duration
-	now      func() time.Time
+	lifetime               time.Duration
+	concurrentRefreshGrace time.Duration
+	now                    func() time.Time
 }
 
 func NewRefreshTokens(lifetime time.Duration, now func() time.Time) *RefreshTokens {
-	return &RefreshTokens{lifetime: lifetime, now: now}
+	return &RefreshTokens{lifetime: lifetime, concurrentRefreshGrace: DefaultConcurrentRefreshGrace, now: now}
 }
 
 func (refreshTokens *RefreshTokens) Issue(ctx context.Context, database sessionstore.DBTX, userID uuid.UUID) (IssuedRefreshToken, error) {
@@ -68,32 +78,61 @@ func (refreshTokens *RefreshTokens) Issue(ctx context.Context, database sessions
 
 func (refreshTokens *RefreshTokens) Rotate(ctx context.Context, transaction pgx.Tx, plaintextToken string) (RotatedRefreshToken, error) {
 	queries := sessionstore.New(transaction)
-	storedToken, err := queries.FindRefreshTokenForUpdate(ctx, hashRefreshToken(plaintextToken))
-	if errors.Is(err, pgx.ErrNoRows) {
-		return RotatedRefreshToken{}, ErrRefreshTokenInvalid
-	}
-	if err != nil {
-		return RotatedRefreshToken{}, err
-	}
-
+	tokenHash := hashRefreshToken(plaintextToken)
 	now := refreshTokens.now().UTC()
-	if storedToken.RevokedAt != nil || !storedToken.ExpiresAt.After(now) {
-		return RotatedRefreshToken{}, ErrRefreshTokenInvalid
-	}
 
-	replacementToken, err := refreshTokens.Issue(ctx, transaction, storedToken.UserID)
+	consumedToken, err := queries.ConsumeRefreshToken(ctx, sessionstore.ConsumeRefreshTokenParams{TokenHash: tokenHash, Now: now})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return RotatedRefreshToken{}, refreshTokens.classifyUnusableToken(ctx, queries, tokenHash, now)
+	}
 	if err != nil {
 		return RotatedRefreshToken{}, err
 	}
-	err = queries.RevokeRefreshToken(ctx, sessionstore.RevokeRefreshTokenParams{
-		ID:         storedToken.ID,
-		RevokedAt:  &now,
+
+	replacementToken, err := refreshTokens.Issue(ctx, transaction, consumedToken.UserID)
+	if err != nil {
+		return RotatedRefreshToken{}, err
+	}
+	err = queries.LinkReplacementRefreshToken(ctx, sessionstore.LinkReplacementRefreshTokenParams{
+		ID:         consumedToken.ID,
 		ReplacedBy: &replacementToken.ID,
 	})
 	if err != nil {
 		return RotatedRefreshToken{}, err
 	}
-	return RotatedRefreshToken{UserID: storedToken.UserID, Issued: replacementToken}, nil
+	return RotatedRefreshToken{UserID: consumedToken.UserID, Issued: replacementToken}, nil
+}
+
+func (refreshTokens *RefreshTokens) classifyUnusableToken(ctx context.Context, queries *sessionstore.Queries, tokenHash []byte, now time.Time) error {
+	storedToken, err := queries.FindRefreshTokenByHash(ctx, tokenHash)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrRefreshTokenInvalid
+	}
+	if err != nil {
+		return err
+	}
+	if storedToken.RevokedAt == nil {
+		return ErrRefreshTokenInvalid
+	}
+	isConcurrentRefresh := storedToken.ReplacedBy != nil && now.Sub(*storedToken.RevokedAt) <= refreshTokens.concurrentRefreshGrace
+	if isConcurrentRefresh {
+		return ErrRefreshTokenInvalid
+	}
+	return &RefreshTokenReusedError{UserID: storedToken.UserID}
+}
+
+func (refreshTokens *RefreshTokens) Revoke(ctx context.Context, database sessionstore.DBTX, plaintextToken string) error {
+	return sessionstore.New(database).RevokeRefreshTokenByHash(ctx, sessionstore.RevokeRefreshTokenByHashParams{
+		TokenHash: hashRefreshToken(plaintextToken),
+		Now:       refreshTokens.now().UTC(),
+	})
+}
+
+func (refreshTokens *RefreshTokens) RevokeAllForUser(ctx context.Context, database sessionstore.DBTX, userID uuid.UUID) (int64, error) {
+	return sessionstore.New(database).RevokeAllActiveRefreshTokensForUser(ctx, sessionstore.RevokeAllActiveRefreshTokensForUserParams{
+		UserID: userID,
+		Now:    refreshTokens.now().UTC(),
+	})
 }
 
 func hashRefreshToken(plaintextToken string) []byte {

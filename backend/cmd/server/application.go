@@ -71,6 +71,7 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 		RefreshTokens:       session.NewRefreshTokens(session.DefaultRefreshTokenLifetime, time.Now),
 		PasswordHasher:      passwordHasher,
 		PasswordHashOptions: passwordhash.DefaultParameters,
+		Logger:              appLogger,
 		Now:                 time.Now,
 	})
 	if err != nil {

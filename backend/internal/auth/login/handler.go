@@ -32,6 +32,21 @@ func NewHandler(service *Service, cookieSettings session.CookieSettings, now fun
 func (handler *Handler) RegisterRoutes(router gin.IRouter) {
 	router.POST("/auth/login", append(handler.loginRouteGuards, handler.postLogin)...)
 	router.POST("/auth/refresh", handler.postRefresh)
+	router.POST("/auth/logout", handler.postLogout)
+}
+
+type LogoutResponse struct {
+	LoggedOut bool `json:"logged_out"`
+}
+
+func (handler *Handler) postLogout(context *gin.Context) {
+	err := handler.service.LogOut(context.Request.Context(), session.RefreshTokenFromCookie(context))
+	handler.cookieSettings.ClearRefreshCookie(context)
+	if err != nil {
+		response.WriteError(context, err)
+		return
+	}
+	response.WriteData(context, http.StatusOK, LogoutResponse{LoggedOut: true})
 }
 
 func (handler *Handler) postLogin(context *gin.Context) {

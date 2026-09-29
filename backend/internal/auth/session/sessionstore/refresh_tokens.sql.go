@@ -12,6 +12,32 @@ import (
 	"github.com/google/uuid"
 )
 
+const consumeRefreshToken = `-- name: ConsumeRefreshToken :one
+UPDATE refresh_tokens
+SET revoked_at = $1::timestamptz
+WHERE token_hash = $2
+  AND revoked_at IS NULL
+  AND expires_at > $1::timestamptz
+RETURNING id, user_id
+`
+
+type ConsumeRefreshTokenParams struct {
+	Now       time.Time
+	TokenHash []byte
+}
+
+type ConsumeRefreshTokenRow struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) ConsumeRefreshToken(ctx context.Context, arg ConsumeRefreshTokenParams) (ConsumeRefreshTokenRow, error) {
+	row := q.db.QueryRow(ctx, consumeRefreshToken, arg.Now, arg.TokenHash)
+	var i ConsumeRefreshTokenRow
+	err := row.Scan(&i.ID, &i.UserID)
+	return i, err
+}
+
 const createRefreshToken = `-- name: CreateRefreshToken :exec
 INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at)
 VALUES ($1, $2, $3, $4)
@@ -34,45 +60,82 @@ func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshToken
 	return err
 }
 
-const findRefreshTokenForUpdate = `-- name: FindRefreshTokenForUpdate :one
-SELECT id, user_id, expires_at, revoked_at
+const findRefreshTokenByHash = `-- name: FindRefreshTokenByHash :one
+SELECT id, user_id, expires_at, revoked_at, replaced_by
 FROM refresh_tokens
 WHERE token_hash = $1
-FOR UPDATE
 `
 
-type FindRefreshTokenForUpdateRow struct {
-	ID        uuid.UUID
-	UserID    uuid.UUID
-	ExpiresAt time.Time
-	RevokedAt *time.Time
+type FindRefreshTokenByHashRow struct {
+	ID         uuid.UUID
+	UserID     uuid.UUID
+	ExpiresAt  time.Time
+	RevokedAt  *time.Time
+	ReplacedBy *uuid.UUID
 }
 
-func (q *Queries) FindRefreshTokenForUpdate(ctx context.Context, tokenHash []byte) (FindRefreshTokenForUpdateRow, error) {
-	row := q.db.QueryRow(ctx, findRefreshTokenForUpdate, tokenHash)
-	var i FindRefreshTokenForUpdateRow
+func (q *Queries) FindRefreshTokenByHash(ctx context.Context, tokenHash []byte) (FindRefreshTokenByHashRow, error) {
+	row := q.db.QueryRow(ctx, findRefreshTokenByHash, tokenHash)
+	var i FindRefreshTokenByHashRow
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
 		&i.ExpiresAt,
 		&i.RevokedAt,
+		&i.ReplacedBy,
 	)
 	return i, err
 }
 
-const revokeRefreshToken = `-- name: RevokeRefreshToken :exec
+const linkReplacementRefreshToken = `-- name: LinkReplacementRefreshToken :exec
 UPDATE refresh_tokens
-SET revoked_at = $2, replaced_by = $3
-WHERE id = $1
+SET replaced_by = $1
+WHERE id = $2
 `
 
-type RevokeRefreshTokenParams struct {
-	ID         uuid.UUID
-	RevokedAt  *time.Time
+type LinkReplacementRefreshTokenParams struct {
 	ReplacedBy *uuid.UUID
+	ID         uuid.UUID
 }
 
-func (q *Queries) RevokeRefreshToken(ctx context.Context, arg RevokeRefreshTokenParams) error {
-	_, err := q.db.Exec(ctx, revokeRefreshToken, arg.ID, arg.RevokedAt, arg.ReplacedBy)
+func (q *Queries) LinkReplacementRefreshToken(ctx context.Context, arg LinkReplacementRefreshTokenParams) error {
+	_, err := q.db.Exec(ctx, linkReplacementRefreshToken, arg.ReplacedBy, arg.ID)
+	return err
+}
+
+const revokeAllActiveRefreshTokensForUser = `-- name: RevokeAllActiveRefreshTokensForUser :execrows
+UPDATE refresh_tokens
+SET revoked_at = $1::timestamptz
+WHERE user_id = $2
+  AND revoked_at IS NULL
+  AND expires_at > $1::timestamptz
+`
+
+type RevokeAllActiveRefreshTokensForUserParams struct {
+	Now    time.Time
+	UserID uuid.UUID
+}
+
+func (q *Queries) RevokeAllActiveRefreshTokensForUser(ctx context.Context, arg RevokeAllActiveRefreshTokensForUserParams) (int64, error) {
+	result, err := q.db.Exec(ctx, revokeAllActiveRefreshTokensForUser, arg.Now, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const revokeRefreshTokenByHash = `-- name: RevokeRefreshTokenByHash :exec
+UPDATE refresh_tokens
+SET revoked_at = $1::timestamptz
+WHERE token_hash = $2 AND revoked_at IS NULL
+`
+
+type RevokeRefreshTokenByHashParams struct {
+	Now       time.Time
+	TokenHash []byte
+}
+
+func (q *Queries) RevokeRefreshTokenByHash(ctx context.Context, arg RevokeRefreshTokenByHashParams) error {
+	_, err := q.db.Exec(ctx, revokeRefreshTokenByHash, arg.Now, arg.TokenHash)
 	return err
 }

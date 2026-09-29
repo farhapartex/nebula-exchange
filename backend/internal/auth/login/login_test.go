@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -33,6 +34,14 @@ type loginTestHarness struct {
 	router       http.Handler
 	accessTokens *accesstoken.Manager
 	repository   *users.Repository
+	currentTime  atomic.Pointer[time.Time]
+}
+
+func (harness *loginTestHarness) now() time.Time { return *harness.currentTime.Load() }
+
+func (harness *loginTestHarness) advanceClock(duration time.Duration) {
+	advancedTime := harness.now().Add(duration)
+	harness.currentTime.Store(&advancedTime)
 }
 
 func newLoginTestHarness(t *testing.T) *loginTestHarness {
@@ -43,26 +52,31 @@ func newLoginTestHarness(t *testing.T) *loginTestHarness {
 		t.Fatalf("create token manager: %v", err)
 	}
 	repository := users.NewRepository()
+	harness := &loginTestHarness{pool: pool, accessTokens: accessTokens, repository: repository}
+	startTime := time.Now()
+	harness.currentTime.Store(&startTime)
+	testLogger := logger.NewWithWriter(&bytes.Buffer{}, slog.LevelError, true)
+
 	loginService, err := login.NewService(login.Dependencies{
 		Pool:                pool,
 		Users:               repository,
 		AccessTokens:        accessTokens,
-		RefreshTokens:       session.NewRefreshTokens(session.DefaultRefreshTokenLifetime, time.Now),
+		RefreshTokens:       session.NewRefreshTokens(session.DefaultRefreshTokenLifetime, harness.now),
+		Logger:              testLogger,
 		PasswordHasher:      passwordhash.NewHasher(passwordhash.HasherOptions{Parameters: fastHashParameters}),
 		PasswordHashOptions: fastHashParameters,
-		Now:                 time.Now,
+		Now:                 harness.now,
 	})
 	if err != nil {
 		t.Fatalf("create login service: %v", err)
 	}
 
-	testLogger := logger.NewWithWriter(&bytes.Buffer{}, slog.LevelError, true)
-	router := httpserver.NewRouter(
+	harness.router = httpserver.NewRouter(
 		httpserver.RouterOptions{Logger: testLogger, IdentifyUser: authentication.IdentifyUser(accessTokens)},
-		login.NewHandler(loginService, session.CookieSettings{IsSecure: true}, time.Now),
+		login.NewHandler(loginService, session.CookieSettings{IsSecure: true}, harness.now),
 		users.NewMeHandler(pool, repository),
 	)
-	return &loginTestHarness{pool: pool, router: router, accessTokens: accessTokens, repository: repository}
+	return harness
 }
 
 func (harness *loginTestHarness) createUser(t *testing.T, email string, isActive bool, status users.Status) uuid.UUID {
@@ -266,5 +280,80 @@ func TestMeRequiresAValidAccessToken(t *testing.T) {
 		if unauthorizedRecorder.Code != http.StatusUnauthorized {
 			t.Fatalf("authorization %q: got %d, want 401", authorizationValue, unauthorizedRecorder.Code)
 		}
+	}
+}
+
+func withRefreshCookie(refreshCookie *http.Cookie) func(*http.Request) {
+	return func(request *http.Request) { request.AddCookie(refreshCookie) }
+}
+
+func (harness *loginTestHarness) refresh(t *testing.T, refreshCookie *http.Cookie) (*httptest.ResponseRecorder, sessionEnvelope) {
+	t.Helper()
+	return harness.send(t, http.MethodPost, "/api/v1/auth/refresh", nil, withRefreshCookie(refreshCookie))
+}
+
+func TestLogoutRevokesTheRefreshTokenAndClearsTheCookie(t *testing.T) {
+	harness := newLoginTestHarness(t)
+	harness.createUser(t, "pilot@nebula.test", true, users.StatusActive)
+	loginRecorder, _ := harness.logIn(t, "pilot@nebula.test", testPassword)
+	refreshCookie := refreshCookieFrom(t, loginRecorder)
+
+	logoutRecorder, _ := harness.send(t, http.MethodPost, "/api/v1/auth/logout", nil, withRefreshCookie(refreshCookie))
+
+	if logoutRecorder.Code != http.StatusOK {
+		t.Fatalf("logout: got %d %s", logoutRecorder.Code, logoutRecorder.Body.String())
+	}
+	if clearedCookie := refreshCookieFrom(t, logoutRecorder); clearedCookie.MaxAge >= 0 {
+		t.Fatal("logout must clear the refresh cookie")
+	}
+	if refreshRecorder, _ := harness.refresh(t, refreshCookie); refreshRecorder.Code != http.StatusUnauthorized {
+		t.Fatalf("refresh after logout: got %d, want 401", refreshRecorder.Code)
+	}
+
+	anonymousRecorder, _ := harness.send(t, http.MethodPost, "/api/v1/auth/logout", nil, nil)
+	if anonymousRecorder.Code != http.StatusOK {
+		t.Fatalf("logout without a session must still succeed, got %d", anonymousRecorder.Code)
+	}
+}
+
+func TestReusingAnOldRefreshTokenRevokesEverySession(t *testing.T) {
+	harness := newLoginTestHarness(t)
+	harness.createUser(t, "pilot@nebula.test", true, users.StatusActive)
+	laptopLogin, _ := harness.logIn(t, "pilot@nebula.test", testPassword)
+	phoneLogin, _ := harness.logIn(t, "pilot@nebula.test", testPassword)
+	stolenLaptopCookie := refreshCookieFrom(t, laptopLogin)
+
+	laptopRefresh, _ := harness.refresh(t, stolenLaptopCookie)
+	rotatedLaptopCookie := refreshCookieFrom(t, laptopRefresh)
+	harness.advanceClock(session.DefaultConcurrentRefreshGrace + time.Second)
+
+	reuseRecorder, reused := harness.refresh(t, stolenLaptopCookie)
+	if reuseRecorder.Code != http.StatusUnauthorized || reused.Error.Code != "UNAUTHORIZED" {
+		t.Fatalf("reused token: got %d %s", reuseRecorder.Code, reused.Error.Code)
+	}
+
+	if recorder, _ := harness.refresh(t, rotatedLaptopCookie); recorder.Code != http.StatusUnauthorized {
+		t.Fatalf("the rotated laptop session must be revoked, got %d", recorder.Code)
+	}
+	if recorder, _ := harness.refresh(t, refreshCookieFrom(t, phoneLogin)); recorder.Code != http.StatusUnauthorized {
+		t.Fatalf("the phone session must be revoked too, got %d", recorder.Code)
+	}
+}
+
+func TestConcurrentRefreshWithinGraceDoesNotRevokeSessions(t *testing.T) {
+	harness := newLoginTestHarness(t)
+	harness.createUser(t, "pilot@nebula.test", true, users.StatusActive)
+	loginRecorder, _ := harness.logIn(t, "pilot@nebula.test", testPassword)
+	sharedCookie := refreshCookieFrom(t, loginRecorder)
+
+	firstTabRefresh, _ := harness.refresh(t, sharedCookie)
+	harness.advanceClock(2 * time.Second)
+	secondTabRecorder, _ := harness.refresh(t, sharedCookie)
+
+	if secondTabRecorder.Code != http.StatusUnauthorized {
+		t.Fatalf("the losing tab gets a plain 401, got %d", secondTabRecorder.Code)
+	}
+	if recorder, _ := harness.refresh(t, refreshCookieFrom(t, firstTabRefresh)); recorder.Code != http.StatusOK {
+		t.Fatalf("the winning session must stay valid after a concurrent refresh, got %d", recorder.Code)
 	}
 }
