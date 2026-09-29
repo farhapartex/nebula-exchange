@@ -1,0 +1,11 @@
+NEBULA EXCHANGE
+
+Activate your pilot account
+
+Welcome aboard, {{.Username}}. Confirm your email to activate your account:
+
+{{.ActivationLink}}
+
+This link stays valid until {{.ExpiresAt}}.
+
+You received this email because someone signed up with this address. If it was not you, you can ignore it.

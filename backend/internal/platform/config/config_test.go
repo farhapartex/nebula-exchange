@@ -11,7 +11,7 @@ const testDatabaseURL = "postgres://nebula:nebula@localhost:5432/nebula_exchange
 
 func clearOptionalEnvironment(t *testing.T) {
 	t.Helper()
-	for _, key := range []string{"APP_ENV", "HTTP_PORT", "LOG_LEVEL", "SHUTDOWN_TIMEOUT", "DATABASE_MAX_CONNECTIONS", "FRONTEND_ORIGINS"} {
+	for _, key := range []string{"APP_ENV", "HTTP_PORT", "LOG_LEVEL", "SHUTDOWN_TIMEOUT", "DATABASE_MAX_CONNECTIONS", "FRONTEND_ORIGINS", "FRONTEND_BASE_URL", "SMTP_HOST", "SMTP_PORT", "SMTP_USERNAME", "SMTP_PASSWORD", "EMAIL_FROM_ADDRESS", "EMAIL_FROM_NAME"} {
 		t.Setenv(key, "")
 	}
 	t.Setenv("DATABASE_URL", testDatabaseURL)
@@ -31,7 +31,14 @@ func TestLoadUsesDefaultsWhenEnvironmentIsEmpty(t *testing.T) {
 		LogLevel:        slog.LevelInfo,
 		ShutdownTimeout: 15 * time.Second,
 		AllowedOrigins:  []string{"http://localhost:3000"},
+		FrontendBaseURL: "http://localhost:3000",
 		Database:        DatabaseConfig{URL: testDatabaseURL, MaxConnections: 20},
+		Email: EmailConfig{
+			SMTPHost:    "localhost",
+			SMTPPort:    1025,
+			FromAddress: "no-reply@nebula.test",
+			FromName:    "Nebula Exchange",
+		},
 	}
 	if !reflect.DeepEqual(loadedConfig, expectedConfig) {
 		t.Fatalf("got %+v, want %+v", loadedConfig, expectedConfig)
@@ -80,6 +87,7 @@ func TestLoadRejectsInvalidValues(t *testing.T) {
 		"malformed timeout":        {"SHUTDOWN_TIMEOUT": "fifteen"},
 		"missing database url":     {"DATABASE_URL": ""},
 		"zero database connection": {"DATABASE_MAX_CONNECTIONS": "0"},
+		"non numeric smtp port":    {"SMTP_PORT": "mail"},
 	}
 
 	for caseName, environmentValues := range invalidEnvironments {

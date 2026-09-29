@@ -18,13 +18,24 @@ type DatabaseConfig struct {
 	MaxConnections int32
 }
 
+type EmailConfig struct {
+	SMTPHost     string
+	SMTPPort     int
+	SMTPUsername string
+	SMTPPassword string
+	FromAddress  string
+	FromName     string
+}
+
 type Config struct {
 	Environment     string
 	HTTPPort        int
 	LogLevel        slog.Level
 	ShutdownTimeout time.Duration
 	AllowedOrigins  []string
+	FrontendBaseURL string
 	Database        DatabaseConfig
+	Email           EmailConfig
 }
 
 func Load() (Config, error) {
@@ -55,13 +66,35 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	emailConfig, err := loadEmailConfig()
+	if err != nil {
+		return Config{}, err
+	}
+
 	return Config{
 		Environment:     environment,
 		HTTPPort:        httpPort,
 		LogLevel:        logLevel,
 		ShutdownTimeout: shutdownTimeout,
 		AllowedOrigins:  allowedOrigins,
+		FrontendBaseURL: readString("FRONTEND_BASE_URL", "http://localhost:3000"),
 		Database:        databaseConfig,
+		Email:           emailConfig,
+	}, nil
+}
+
+func loadEmailConfig() (EmailConfig, error) {
+	smtpPort, err := readInt("SMTP_PORT", 1025)
+	if err != nil {
+		return EmailConfig{}, err
+	}
+	return EmailConfig{
+		SMTPHost:     readString("SMTP_HOST", "localhost"),
+		SMTPPort:     smtpPort,
+		SMTPUsername: readString("SMTP_USERNAME", ""),
+		SMTPPassword: readString("SMTP_PASSWORD", ""),
+		FromAddress:  readString("EMAIL_FROM_ADDRESS", "no-reply@nebula.test"),
+		FromName:     readString("EMAIL_FROM_NAME", "Nebula Exchange"),
 	}, nil
 }
 

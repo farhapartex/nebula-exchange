@@ -2,19 +2,22 @@
 // versions:
 //   sqlc v1.31.1
 
-package idempotencystore
+package usersstore
 
 import (
+	"time"
+
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type AccountActivationToken struct {
-	ID        pgtype.UUID
-	UserID    pgtype.UUID
+	ID        uuid.UUID
+	UserID    uuid.UUID
 	TokenHash []byte
-	ExpiresAt pgtype.Timestamptz
-	UsedAt    pgtype.Timestamptz
-	CreatedAt pgtype.Timestamptz
+	ExpiresAt time.Time
+	UsedAt    *time.Time
+	CreatedAt time.Time
 }
 
 type IdempotencyKey struct {
@@ -25,12 +28,12 @@ type IdempotencyKey struct {
 	ResponseStatusCode  pgtype.Int4
 	ResponseContentType pgtype.Text
 	ResponseBody        []byte
-	CreatedAt           pgtype.Timestamptz
-	CompletedAt         pgtype.Timestamptz
+	CreatedAt           time.Time
+	CompletedAt         *time.Time
 }
 
 type User struct {
-	ID              pgtype.UUID
+	ID              uuid.UUID
 	Email           string
 	Username        string
 	PasswordHash    string
@@ -38,9 +41,9 @@ type User struct {
 	IsActive        bool
 	IsAdmin         bool
 	TotpSecretEnc   []byte
-	TermsAcceptedAt pgtype.Timestamptz
-	ActivatedAt     pgtype.Timestamptz
-	LastLoginAt     pgtype.Timestamptz
-	CreatedAt       pgtype.Timestamptz
-	UpdatedAt       pgtype.Timestamptz
+	TermsAcceptedAt time.Time
+	ActivatedAt     *time.Time
+	LastLoginAt     *time.Time
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }

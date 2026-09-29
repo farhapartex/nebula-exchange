@@ -9,3 +9,41 @@ sql:
         out: internal/platform/idempotency/idempotencystore
         sql_package: pgx/v5
         emit_interface: true
+  - engine: postgresql
+    schema: migrations
+    queries: internal/users/queries
+    gen:
+      go:
+        package: usersstore
+        out: internal/users/usersstore
+        sql_package: pgx/v5
+        emit_interface: true
+        overrides:
+          - db_type: uuid
+            go_type: github.com/google/uuid.UUID
+          - db_type: timestamptz
+            go_type: time.Time
+          - db_type: timestamptz
+            nullable: true
+            go_type:
+              type: time.Time
+              pointer: true
+  - engine: postgresql
+    schema: migrations
+    queries: internal/auth/activation/queries
+    gen:
+      go:
+        package: activationstore
+        out: internal/auth/activation/activationstore
+        sql_package: pgx/v5
+        emit_interface: true
+        overrides:
+          - db_type: uuid
+            go_type: github.com/google/uuid.UUID
+          - db_type: timestamptz
+            go_type: time.Time
+          - db_type: timestamptz
+            nullable: true
+            go_type:
+              type: time.Time
+              pointer: true
