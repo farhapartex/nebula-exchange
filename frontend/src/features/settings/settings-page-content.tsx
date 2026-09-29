@@ -1,6 +1,9 @@
 import { Settings } from "lucide-react";
 
 import { PageContainer } from "@/components/layout/page-container";
+import { PasswordSection } from "@/features/settings/password-section";
+import { ProfileSection } from "@/features/settings/profile-section";
+import { SessionsSection } from "@/features/settings/sessions-section";
 import { TwoFactorSection } from "@/features/settings/two-factor-section";
 
 export function SettingsPageContent() {
@@ -16,7 +19,10 @@ export function SettingsPageContent() {
         </div>
       </header>
       <div className="space-y-6">
+        <ProfileSection />
+        <PasswordSection />
         <TwoFactorSection />
+        <SessionsSection />
       </div>
     </PageContainer>
   );
