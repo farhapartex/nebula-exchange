@@ -3,7 +3,7 @@
 ANVIL_PORT ?= 8545
 COMPOSE := docker compose --env-file .env
 
-.PHONY: help docker-up docker-down docker-logs docker-ps chain backend-build backend-test backend-lint migrate-up migrate-down migrate-version migrate-force migrate-create sqlc-generate
+.PHONY: help docker-up docker-down docker-logs docker-ps chain backend-build backend-test backend-lint migrate-up migrate-down migrate-version migrate-force migrate-create sqlc-generate contracts-build contracts-test contracts-fmt
 
 help:
 	@echo "Available commands:"
@@ -21,6 +21,9 @@ help:
 	@echo "  make migrate-force version=N    Mark the database as being at version N"
 	@echo "  make migrate-create name=NAME   Create a new up/down migration pair"
 	@echo "  make sqlc-generate              Generate typed Go code from SQL queries"
+	@echo "  make contracts-build            Compile the smart contracts"
+	@echo "  make contracts-test             Run Foundry tests"
+	@echo "  make contracts-fmt              Format Solidity files"
 
 docker-up:
 	$(COMPOSE) up -d --build
@@ -67,3 +70,12 @@ migrate-create:
 
 sqlc-generate:
 	cd backend && go tool sqlc generate
+
+contracts-build:
+	cd smart-contract && forge build
+
+contracts-test:
+	cd smart-contract && forge test -vv
+
+contracts-fmt:
+	cd smart-contract && forge fmt
