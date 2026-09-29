@@ -20,10 +20,15 @@ func RequestLogger(logger *slog.Logger) gin.HandlerFunc {
 			logLevel = slog.LevelWarn
 		}
 
+		routePath := context.FullPath()
+		if routePath == "" {
+			routePath = context.Request.URL.Path
+		}
+
 		requestAttributes := []slog.Attr{
 			slog.String("request_id", RequestIDFrom(context)),
 			slog.String("method", context.Request.Method),
-			slog.String("path", context.FullPath()),
+			slog.String("path", routePath),
 			slog.Int("status", statusCode),
 			slog.Duration("duration", time.Since(requestStartedAt)),
 			slog.String("client_ip", context.ClientIP()),

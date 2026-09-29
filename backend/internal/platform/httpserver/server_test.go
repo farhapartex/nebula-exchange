@@ -152,3 +152,15 @@ func TestUnknownRoutesAndMethodsReturnErrorEnvelope(t *testing.T) {
 		})
 	}
 }
+
+func TestUnknownRoutesAreLoggedWithTheirRequestPath(t *testing.T) {
+	var logOutput bytes.Buffer
+	testLogger := logger.NewWithWriter(&logOutput, slog.LevelInfo, true)
+	router := NewRouter(RouterOptions{Logger: testLogger}, health.NewHandler())
+
+	router.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/api/v1/auth/activations/some-token", nil))
+
+	if !strings.Contains(logOutput.String(), `"path":"/api/v1/auth/activations/some-token"`) {
+		t.Fatalf("expected the request path in the log, got %s", logOutput.String())
+	}
+}
