@@ -12,6 +12,7 @@ import (
 	"nebula-exchange/backend/internal/auth/activation"
 	"nebula-exchange/backend/internal/auth/authentication"
 	"nebula-exchange/backend/internal/auth/login"
+	"nebula-exchange/backend/internal/auth/loginlockout"
 	"nebula-exchange/backend/internal/auth/passwordhash"
 	"nebula-exchange/backend/internal/auth/session"
 	"nebula-exchange/backend/internal/auth/signup"
@@ -25,7 +26,10 @@ import (
 	"nebula-exchange/backend/internal/users"
 )
 
-const rateLimitKeyPrefix = "nebula:ratelimit:"
+const (
+	rateLimitKeyPrefix    = "nebula:ratelimit:"
+	loginLockoutKeyPrefix = "nebula:login-lockout:"
+)
 
 type application struct {
 	router          *gin.Engine
@@ -71,6 +75,7 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 		RefreshTokens:       session.NewRefreshTokens(session.DefaultRefreshTokenLifetime, time.Now),
 		PasswordHasher:      passwordHasher,
 		PasswordHashOptions: passwordhash.DefaultParameters,
+		LoginLockout:        loginlockout.NewGuard(redisClient, loginLockoutKeyPrefix, loginlockout.DefaultPolicy, appLogger),
 		Logger:              appLogger,
 		Now:                 time.Now,
 	})

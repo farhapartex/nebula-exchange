@@ -17,11 +17,13 @@ import (
 	"nebula-exchange/backend/internal/auth/accesstoken"
 	"nebula-exchange/backend/internal/auth/authentication"
 	"nebula-exchange/backend/internal/auth/login"
+	"nebula-exchange/backend/internal/auth/loginlockout"
 	"nebula-exchange/backend/internal/auth/passwordhash"
 	"nebula-exchange/backend/internal/auth/session"
 	"nebula-exchange/backend/internal/platform/database/databasetest"
 	"nebula-exchange/backend/internal/platform/httpserver"
 	"nebula-exchange/backend/internal/platform/logger"
+	"nebula-exchange/backend/internal/platform/redisclient/redistest"
 	"nebula-exchange/backend/internal/users"
 )
 
@@ -58,10 +60,16 @@ func newLoginTestHarness(t *testing.T) *loginTestHarness {
 	testLogger := logger.NewWithWriter(&bytes.Buffer{}, slog.LevelError, true)
 
 	loginService, err := login.NewService(login.Dependencies{
-		Pool:                pool,
-		Users:               repository,
-		AccessTokens:        accessTokens,
-		RefreshTokens:       session.NewRefreshTokens(session.DefaultRefreshTokenLifetime, harness.now),
+		Pool:          pool,
+		Users:         repository,
+		AccessTokens:  accessTokens,
+		RefreshTokens: session.NewRefreshTokens(session.DefaultRefreshTokenLifetime, harness.now),
+		LoginLockout: loginlockout.NewGuard(
+			redistest.NewClient(t),
+			"test:login-lockout:"+uuid.NewString()+":",
+			loginlockout.DefaultPolicy,
+			testLogger,
+		),
 		Logger:              testLogger,
 		PasswordHasher:      passwordhash.NewHasher(passwordhash.HasherOptions{Parameters: fastHashParameters}),
 		PasswordHashOptions: fastHashParameters,
@@ -355,5 +363,79 @@ func TestConcurrentRefreshWithinGraceDoesNotRevokeSessions(t *testing.T) {
 	}
 	if recorder, _ := harness.refresh(t, refreshCookieFrom(t, firstTabRefresh)); recorder.Code != http.StatusOK {
 		t.Fatalf("the winning session must stay valid after a concurrent refresh, got %d", recorder.Code)
+	}
+}
+
+type lockedEnvelope struct {
+	Error struct {
+		Code    string         `json:"code"`
+		Details map[string]int `json:"details"`
+	} `json:"error"`
+}
+
+func (harness *loginTestHarness) failLogins(t *testing.T, emailAddress string, attemptCount int) *httptest.ResponseRecorder {
+	t.Helper()
+	var lastRecorder *httptest.ResponseRecorder
+	for attemptNumber := 0; attemptNumber < attemptCount; attemptNumber++ {
+		lastRecorder, _ = harness.logIn(t, emailAddress, "definitely-wrong-password")
+	}
+	return lastRecorder
+}
+
+func decodeLocked(t *testing.T, recorder *httptest.ResponseRecorder) lockedEnvelope {
+	t.Helper()
+	var lockedBody lockedEnvelope
+	_ = json.Unmarshal(recorder.Body.Bytes(), &lockedBody)
+	return lockedBody
+}
+
+func TestFiveFailedLoginsLockTheEmail(t *testing.T) {
+	harness := newLoginTestHarness(t)
+	harness.createUser(t, "pilot@nebula.test", true, users.StatusActive)
+
+	if fourthRecorder := harness.failLogins(t, "pilot@nebula.test", 4); fourthRecorder.Code != http.StatusUnauthorized {
+		t.Fatalf("fourth failure should still be 401, got %d", fourthRecorder.Code)
+	}
+	fifthRecorder := harness.failLogins(t, "pilot@nebula.test", 1)
+	lockedBody := decodeLocked(t, fifthRecorder)
+	if fifthRecorder.Code != http.StatusTooManyRequests || lockedBody.Error.Code != "LOGIN_LOCKED" {
+		t.Fatalf("fifth failure should lock, got %d %s", fifthRecorder.Code, lockedBody.Error.Code)
+	}
+	if retryAfterSeconds := lockedBody.Error.Details["retry_after_seconds"]; retryAfterSeconds < 890 || retryAfterSeconds > 900 {
+		t.Fatalf("got retry_after_seconds %d, want about 900", retryAfterSeconds)
+	}
+
+	correctPasswordRecorder, _ := harness.logIn(t, "PILOT@nebula.test", testPassword)
+	if correctPasswordRecorder.Code != http.StatusTooManyRequests {
+		t.Fatalf("even the right password must be refused while locked, got %d", correctPasswordRecorder.Code)
+	}
+
+	harness.createUser(t, "other@nebula.test", true, users.StatusActive)
+	if otherRecorder, _ := harness.logIn(t, "other@nebula.test", testPassword); otherRecorder.Code != http.StatusOK {
+		t.Fatalf("the lock must only affect the locked email, got %d", otherRecorder.Code)
+	}
+}
+
+func TestUnknownEmailsLockTheSameWay(t *testing.T) {
+	harness := newLoginTestHarness(t)
+
+	lockingRecorder := harness.failLogins(t, "nobody@nebula.test", 5)
+
+	if lockingRecorder.Code != http.StatusTooManyRequests || decodeLocked(t, lockingRecorder).Error.Code != "LOGIN_LOCKED" {
+		t.Fatalf("unknown emails must lock like real ones, got %d", lockingRecorder.Code)
+	}
+}
+
+func TestSuccessfulLoginResetsTheFailureCount(t *testing.T) {
+	harness := newLoginTestHarness(t)
+	harness.createUser(t, "pilot@nebula.test", true, users.StatusActive)
+
+	harness.failLogins(t, "pilot@nebula.test", 4)
+	if successRecorder, _ := harness.logIn(t, "pilot@nebula.test", testPassword); successRecorder.Code != http.StatusOK {
+		t.Fatalf("login should succeed before the limit, got %d", successRecorder.Code)
+	}
+
+	if afterResetRecorder := harness.failLogins(t, "pilot@nebula.test", 4); afterResetRecorder.Code != http.StatusUnauthorized {
+		t.Fatalf("the counter should restart after a success, got %d", afterResetRecorder.Code)
 	}
 }

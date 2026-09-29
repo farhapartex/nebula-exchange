@@ -19,6 +19,7 @@ const (
 	CodeWalletRequired      Code = "WALLET_REQUIRED"
 	CodeTwoFactorRequired   Code = "TWO_FA_REQUIRED"
 	CodeRateLimited         Code = "RATE_LIMITED"
+	CodeLoginLocked         Code = "LOGIN_LOCKED"
 	CodeEngineBusy          Code = "ENGINE_BUSY"
 	CodeInternalError       Code = "INTERNAL_ERROR"
 	CodeServiceUnavailable  Code = "SERVICE_UNAVAILABLE"

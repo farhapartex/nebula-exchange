@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"nebula-exchange/backend/internal/auth/accesstoken"
+	"nebula-exchange/backend/internal/auth/loginlockout"
 	"nebula-exchange/backend/internal/auth/passwordhash"
 	"nebula-exchange/backend/internal/auth/session"
 	"nebula-exchange/backend/internal/platform/apierror"
@@ -38,6 +39,7 @@ type Dependencies struct {
 	RefreshTokens       *session.RefreshTokens
 	PasswordHasher      *passwordhash.Hasher
 	PasswordHashOptions passwordhash.Parameters
+	LoginLockout        *loginlockout.Guard
 	Logger              *slog.Logger
 	Now                 func() time.Time
 }
@@ -65,24 +67,29 @@ var (
 
 func (service *Service) LogIn(ctx context.Context, request Request) (EstablishedSession, error) {
 	normalizedEmail := strings.ToLower(strings.TrimSpace(request.Email))
+	if err := service.dependencies.LoginLockout.EnsureNotLocked(ctx, normalizedEmail); err != nil {
+		return EstablishedSession{}, err
+	}
+
 	credentials, isFound, err := service.dependencies.Users.FindCredentialsByEmail(ctx, service.dependencies.Pool, normalizedEmail)
 	if err != nil {
 		return EstablishedSession{}, err
 	}
-	if !isFound {
-		if _, err := service.dependencies.PasswordHasher.Verify(ctx, request.Password, service.timingEqualizerHash); err != nil {
-			return EstablishedSession{}, err
-		}
-		return EstablishedSession{}, errInvalidCredentials
+	passwordHash := service.timingEqualizerHash
+	if isFound {
+		passwordHash = credentials.PasswordHash
 	}
-
-	isPasswordCorrect, err := service.dependencies.PasswordHasher.Verify(ctx, request.Password, credentials.PasswordHash)
+	isPasswordCorrect, err := service.dependencies.PasswordHasher.Verify(ctx, request.Password, passwordHash)
 	if err != nil {
 		return EstablishedSession{}, err
 	}
-	if !isPasswordCorrect {
+	if !isFound || !isPasswordCorrect {
+		if lockedError := service.dependencies.LoginLockout.RecordFailure(ctx, normalizedEmail); lockedError != nil {
+			return EstablishedSession{}, lockedError
+		}
 		return EstablishedSession{}, errInvalidCredentials
 	}
+	service.dependencies.LoginLockout.Reset(ctx, normalizedEmail)
 	if !credentials.User.IsActive {
 		return EstablishedSession{}, errAccountNotActivated
 	}
