@@ -63,6 +63,8 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS:-no-reply@nebula.test}
       EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-Nebula Exchange}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env}
+      COOKIE_SECURE: ${COOKIE_SECURE:-}
     ports:
       - "${BACKEND_PORT:-8080}:8080"
     extra_hosts:

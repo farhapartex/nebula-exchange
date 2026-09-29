@@ -3,7 +3,7 @@
 ANVIL_PORT ?= 8545
 COMPOSE := docker compose --env-file .env
 
-.PHONY: help docker-up docker-down docker-logs docker-ps chain backend-build backend-test backend-lint migrate-up migrate-down migrate-version migrate-force migrate-create sqlc-generate contracts-build contracts-test contracts-fmt
+.PHONY: help docker-up docker-down docker-logs docker-ps chain backend-build backend-test backend-lint migrate-up migrate-down migrate-version migrate-force migrate-create sqlc-generate contracts-build contracts-test contracts-fmt dev-activate-user
 
 help:
 	@echo "Available commands:"
@@ -24,6 +24,7 @@ help:
 	@echo "  make contracts-build            Compile the smart contracts"
 	@echo "  make contracts-test             Run Foundry tests"
 	@echo "  make contracts-fmt              Format Solidity files"
+	@echo "  make dev-activate-user email=E   Activate an account directly (development only)"
 
 docker-up:
 	$(COMPOSE) up -d --build
@@ -79,3 +80,7 @@ contracts-test:
 
 contracts-fmt:
 	cd smart-contract && forge fmt
+
+dev-activate-user:
+	@test -n "$(email)" || (echo "usage: make dev-activate-user email=pilot@nebula.test" && exit 1)
+	$(COMPOSE) exec -T postgres psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 -c "UPDATE users SET is_active = true, activated_at = now(), status = 'PENDING_PAYMENT', updated_at = now() WHERE lower(email) = lower('$(email)') AND is_active = false RETURNING email, username, status;"
