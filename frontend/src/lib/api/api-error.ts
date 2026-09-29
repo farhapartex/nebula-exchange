@@ -13,6 +13,16 @@ export class ApiError extends Error {
     this.details = details;
   }
 
+  get retryAfterSeconds(): number | null {
+    const retryAfterValue =
+      this.details && "retry_after_seconds" in this.details ? this.details.retry_after_seconds : null;
+    return typeof retryAfterValue === "number" && retryAfterValue > 0 ? retryAfterValue : null;
+  }
+
+  get isThrottled(): boolean {
+    return this.code === "RATE_LIMITED" || this.code === "LOGIN_LOCKED";
+  }
+
   get fieldErrors(): Record<string, string> {
     if (this.code !== "VALIDATION_FAILED" || !this.details) {
       return {};

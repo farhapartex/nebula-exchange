@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Toast } from "radix-ui";
 
 import { ToastContext, type ToastMessage, type ToastRequest } from "@/components/ui/toast/toast-context";
 import { ToastItem } from "@/components/ui/toast/toast-item";
+import { subscribeToToastEvents } from "@/lib/notifications/toast-events";
 
 const defaultToastDurationInMilliseconds = 5000;
 const maximumVisibleToasts = 4;
@@ -26,6 +27,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const dismissToast = useCallback((toastId: string) => {
     setToastMessages((currentMessages) => currentMessages.filter((toastMessage) => toastMessage.id !== toastId));
   }, []);
+
+  useEffect(() => subscribeToToastEvents(showToast), [showToast]);
 
   const toastContextValue = useMemo(() => ({ showToast }), [showToast]);
 

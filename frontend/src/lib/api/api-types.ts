@@ -29,6 +29,7 @@ export type ApiErrorCode =
   | "WALLET_REQUIRED"
   | "TWO_FA_REQUIRED"
   | "RATE_LIMITED"
+  | "LOGIN_LOCKED"
   | "ENGINE_BUSY"
   | "INTERNAL_ERROR"
   | "SERVICE_UNAVAILABLE"

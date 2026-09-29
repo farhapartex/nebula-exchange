@@ -4,29 +4,43 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
+import { useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { logIn } from "@/features/auth/api/session-api";
 import { LoginErrorBanner } from "@/features/auth/login/login-error-banner";
+import { LoginThrottleBanner } from "@/features/auth/login/login-throttle-banner";
 import { loginFieldNames, loginSchema, type LoginFormValues } from "@/features/auth/login/login-schema";
 import { SessionEndNotice } from "@/features/auth/login/session-end-notice";
 import { parseSessionEndReason } from "@/features/auth/session/session-end-reasons";
 import { useAuth } from "@/features/auth/session/use-auth";
+import { isApiError } from "@/lib/api/api-error";
 import { applyServerFieldErrors } from "@/utils/forms/apply-server-field-errors";
 import { safeInternalPath } from "@/utils/navigation/safe-internal-path";
+import { useCooldown } from "@/utils/time/use-cooldown";
 
 const defaultPathAfterLogin = "/hangar";
+const fallbackThrottleSeconds = 60;
+
+type LoginThrottle = {
+  reason: "LOGIN_LOCKED" | "RATE_LIMITED";
+  email: string;
+};
 
 export function LoginForm() {
   const router = useRouter();
   const searchParameters = useSearchParams();
   const { startSession } = useAuth();
 
+  const [activeThrottle, setActiveThrottle] = useState<LoginThrottle | null>(null);
+  const throttleCooldown = useCooldown(fallbackThrottleSeconds);
+
   const {
     register,
+    control,
     handleSubmit,
     setError,
     formState: { errors },
@@ -36,19 +50,32 @@ export function LoginForm() {
     mode: "onTouched",
   });
 
+  const typedEmail = useWatch({ control, name: "email" });
+
   const loginMutation = useMutation({
     mutationFn: (formValues: LoginFormValues) =>
       logIn({ email: formValues.email.trim(), password: formValues.password }),
+    meta: { showsThrottlingInline: true },
     onSuccess: (establishedSession) => {
       startSession(establishedSession);
       router.replace(safeInternalPath(searchParameters.get("next")) ?? defaultPathAfterLogin);
     },
-    onError: (error) => {
+    onError: (error, formValues) => {
+      if (isApiError(error) && (error.code === "LOGIN_LOCKED" || error.code === "RATE_LIMITED")) {
+        setActiveThrottle({ reason: error.code, email: formValues.email.trim().toLowerCase() });
+        throttleCooldown.startCooldown(error.retryAfterSeconds ?? fallbackThrottleSeconds);
+        return;
+      }
       applyServerFieldErrors(error, loginFieldNames, setError);
     },
   });
 
-  const shouldShowErrorBanner = loginMutation.isError && Object.keys(errors).length === 0;
+  const isThrottleActive = activeThrottle !== null && throttleCooldown.isCoolingDown;
+  const isTypedEmailThrottled =
+    isThrottleActive &&
+    (activeThrottle.reason === "RATE_LIMITED" || activeThrottle.email === typedEmail.trim().toLowerCase());
+  const shouldShowErrorBanner =
+    loginMutation.isError && !isApiErrorThrottled(loginMutation.error) && Object.keys(errors).length === 0;
   const sessionEndReason = parseSessionEndReason(searchParameters.get("reason"));
   const shouldShowSessionEndNotice = sessionEndReason !== null && !loginMutation.isError;
 
@@ -60,6 +87,10 @@ export function LoginForm() {
       </div>
 
       {shouldShowSessionEndNotice && <SessionEndNotice reason={sessionEndReason} />}
+
+      {isTypedEmailThrottled && (
+        <LoginThrottleBanner reason={activeThrottle.reason} remainingSeconds={throttleCooldown.remainingSeconds} />
+      )}
 
       {shouldShowErrorBanner && (
         <LoginErrorBanner error={loginMutation.error} attemptedEmail={loginMutation.variables?.email.trim()} />
@@ -88,7 +119,13 @@ export function LoginForm() {
         </div>
       </div>
 
-      <Button type="submit" size="lg" className="w-full" isLoading={loginMutation.isPending}>
+      <Button
+        type="submit"
+        size="lg"
+        className="w-full"
+        isLoading={loginMutation.isPending}
+        disabled={isTypedEmailThrottled}
+      >
         {loginMutation.isPending ? "Logging in" : "Log in"}
       </Button>
 
@@ -100,4 +137,8 @@ export function LoginForm() {
       </p>
     </form>
   );
+}
+
+function isApiErrorThrottled(error: unknown): boolean {
+  return isApiError(error) && error.isThrottled;
 }

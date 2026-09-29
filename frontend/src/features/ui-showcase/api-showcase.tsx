@@ -35,6 +35,10 @@ export function ApiShowcase() {
     mutationFn: () => requestData("/dev/sample-orders", { method: "POST", body: { symbol: "IRON/NC", quantity: 40 } }),
   });
 
+  const throttledMutation = useMutation({
+    mutationFn: () => requestData("/dev/sample-throttled", { method: "POST" }),
+  });
+
   const loadedTrades = sampleTradesQuery.data?.pages.flatMap((tradePage) => tradePage.data) ?? [];
   const mutationError = isApiError(failingOrderMutation.error) ? failingOrderMutation.error : null;
 
@@ -98,6 +102,15 @@ export function ApiShowcase() {
             onClick={() => failingOrderMutation.mutate()}
           >
             Place sample order
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            className="ml-3"
+            isLoading={throttledMutation.isPending}
+            onClick={() => throttledMutation.mutate()}
+          >
+            Trigger rate limit toast
           </Button>
           {mutationError && (
             <ErrorState

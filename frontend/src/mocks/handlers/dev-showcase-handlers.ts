@@ -33,4 +33,10 @@ export const devShowcaseHandlers = [
       available: "3780000",
     });
   }),
+  http.post(buildApiUrl("/dev/sample-throttled"), async () => {
+    await simulateLatency(300);
+    return mockErrorResponse(429, "RATE_LIMITED", "Too many attempts. Please wait and try again.", {
+      retry_after_seconds: 30,
+    });
+  }),
 ];

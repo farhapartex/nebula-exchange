@@ -22,10 +22,14 @@ export function useCooldown(durationInSeconds: number) {
     return () => window.clearInterval(tickInterval);
   }, [cooldownEndsAt]);
 
-  const startCooldown = useCallback(() => {
-    setCooldownEndsAt(Date.now() + durationInSeconds * 1000);
-    setRemainingSeconds(durationInSeconds);
-  }, [durationInSeconds]);
+  const startCooldown = useCallback(
+    (overrideDurationInSeconds?: number) => {
+      const cooldownSeconds = overrideDurationInSeconds ?? durationInSeconds;
+      setCooldownEndsAt(Date.now() + cooldownSeconds * 1000);
+      setRemainingSeconds(cooldownSeconds);
+    },
+    [durationInSeconds],
+  );
 
   return { remainingSeconds, isCoolingDown: remainingSeconds > 0, startCooldown };
 }

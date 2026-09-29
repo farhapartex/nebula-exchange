@@ -46,6 +46,30 @@ const mockAccounts: MockAccount[] = [
 
 let signedInMockAccount: MockAccount | null = null;
 
+const mockLockoutFailureLimit = 5;
+const mockLockoutDurationInSeconds = 15 * 60;
+const failedLoginAttemptsByEmail = new Map<string, number>();
+const lockedUntilByEmail = new Map<string, number>();
+
+function lockedResponseFor(email: string) {
+  const lockedUntil = lockedUntilByEmail.get(email);
+  if (!lockedUntil || lockedUntil <= Date.now()) {
+    return null;
+  }
+  return mockErrorResponse(429, "LOGIN_LOCKED", "Too many failed login attempts. Try again later.", {
+    retry_after_seconds: Math.ceil((lockedUntil - Date.now()) / 1000),
+  });
+}
+
+function recordFailedLogin(email: string) {
+  const failedAttempts = (failedLoginAttemptsByEmail.get(email) ?? 0) + 1;
+  failedLoginAttemptsByEmail.set(email, failedAttempts);
+  if (failedAttempts >= mockLockoutFailureLimit) {
+    lockedUntilByEmail.set(email, Date.now() + mockLockoutDurationInSeconds * 1000);
+    failedLoginAttemptsByEmail.delete(email);
+  }
+}
+
 function toProfile(mockAccount: MockAccount): UserProfile {
   const profile: Partial<MockAccount> = { ...mockAccount };
   delete profile.outcome;
@@ -64,11 +88,23 @@ export const sessionHandlers = [
   http.post(buildApiUrl("/auth/login"), async ({ request }) => {
     await simulateLatency(600);
     const loginRequest = (await request.json()) as LoginRequest;
-    const mockAccount = mockAccounts.find((account) => account.email === loginRequest.email.toLowerCase());
+    const normalizedEmail = loginRequest.email.toLowerCase();
+    if (normalizedEmail === "busy@nebula.test") {
+      return mockErrorResponse(429, "RATE_LIMITED", "Too many attempts. Please wait and try again.", {
+        retry_after_seconds: 45,
+      });
+    }
+    const lockedResponse = lockedResponseFor(normalizedEmail);
+    if (lockedResponse) {
+      return lockedResponse;
+    }
+    const mockAccount = mockAccounts.find((account) => account.email === normalizedEmail);
 
     if (!mockAccount || loginRequest.password !== mockPassword) {
-      return mockErrorResponse(401, "UNAUTHORIZED", "Invalid email or password");
+      recordFailedLogin(normalizedEmail);
+      return lockedResponseFor(normalizedEmail) ?? mockErrorResponse(401, "UNAUTHORIZED", "Invalid email or password");
     }
+    failedLoginAttemptsByEmail.delete(normalizedEmail);
     if (mockAccount.outcome === "not_activated") {
       return mockErrorResponse(
         403,

@@ -45,6 +45,7 @@ export function SignupForm() {
         password: formValues.password,
         accepts_terms: formValues.acceptsTerms,
       }),
+    meta: { showsThrottlingInline: true },
     onSuccess: setSignedUpAccount,
     onError: (error) => {
       if (applyServerFieldErrors(error, signupFieldNames, setError)) {

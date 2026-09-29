@@ -40,14 +40,15 @@ export function ResendActivationForm() {
 
   const resendMutation = useMutation({
     mutationFn: (formValues: ResendActivationFormValues) => requestActivationEmail(formValues.email.trim()),
+    meta: { showsThrottlingInline: true },
     onSuccess: (_result, formValues) => {
       setLastRequestedEmail(formValues.email.trim());
       startCooldown();
     },
     onError: (error) => {
       applyServerFieldErrors(error, resendActivationFieldNames, setError);
-      if (isApiError(error) && error.code === "RATE_LIMITED") {
-        startCooldown();
+      if (isApiError(error) && error.isThrottled) {
+        startCooldown(error.retryAfterSeconds ?? undefined);
       }
     },
   });
