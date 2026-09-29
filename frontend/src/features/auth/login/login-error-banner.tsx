@@ -38,7 +38,16 @@ function presentLoginError(error: unknown): LoginErrorPresentation {
   };
 }
 
-export function LoginErrorBanner({ error }: { error: unknown }) {
+type LoginErrorBannerProps = {
+  error: unknown;
+  attemptedEmail?: string;
+};
+
+function resendActivationPath(attemptedEmail: string | undefined): string {
+  return attemptedEmail ? `/resend-activation?email=${encodeURIComponent(attemptedEmail)}` : "/resend-activation";
+}
+
+export function LoginErrorBanner({ error, attemptedEmail }: LoginErrorBannerProps) {
   const presentation = presentLoginError(error);
   const ErrorIcon = presentation.icon;
 
@@ -50,7 +59,7 @@ export function LoginErrorBanner({ error }: { error: unknown }) {
         <p className="mt-0.5 text-muted">{presentation.message}</p>
         {presentation.showsResendLink && (
           <Link
-            href="/resend-activation"
+            href={resendActivationPath(attemptedEmail)}
             className="mt-2 inline-block font-medium text-accent-soft underline-offset-2 hover:underline"
           >
             Send a new activation link

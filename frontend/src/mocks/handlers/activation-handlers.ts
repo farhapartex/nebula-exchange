@@ -4,6 +4,8 @@ import type { ActivatedAccount, ActivationPreview } from "@/features/auth/api/au
 import { buildApiUrl } from "@/lib/api/api-config";
 import { mockDataResponse, mockErrorResponse, simulateLatency } from "@/mocks/utils/mock-responses";
 
+export const demoRateLimitedEmail = "limited@nebula.test";
+
 export const demoActivationTokens = {
   pending: "demo-pending-activation-token",
   alreadyActivated: "demo-already-activated-token",
@@ -42,5 +44,16 @@ export const activationHandlers = [
       activated_at: new Date().toISOString(),
     };
     return mockDataResponse(activatedAccount);
+  }),
+
+  http.post(buildApiUrl("/auth/activation-emails"), async ({ request }) => {
+    await simulateLatency(700);
+    const { email } = (await request.json()) as { email: string };
+    if (email.toLowerCase() === demoRateLimitedEmail) {
+      return mockErrorResponse(429, "RATE_LIMITED", "Too many attempts. Please wait and try again.", {
+        retry_after_seconds: 60,
+      });
+    }
+    return mockDataResponse({ accepted: true }, 202);
   }),
 ];

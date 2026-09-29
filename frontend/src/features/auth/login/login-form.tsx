@@ -55,7 +55,9 @@ export function LoginForm() {
         <p className="mt-1 text-sm text-muted">Log in to return to your hangar.</p>
       </div>
 
-      {shouldShowErrorBanner && <LoginErrorBanner error={loginMutation.error} />}
+      {shouldShowErrorBanner && (
+        <LoginErrorBanner error={loginMutation.error} attemptedEmail={loginMutation.variables?.email.trim()} />
+      )}
 
       <Input
         label="Email"

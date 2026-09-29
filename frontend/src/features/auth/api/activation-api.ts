@@ -15,3 +15,15 @@ export function activateAccount(activationToken: string): Promise<ActivatedAccou
     skipSessionRefresh: true,
   });
 }
+
+export type ActivationEmailRequestResult = {
+  accepted: boolean;
+};
+
+export function requestActivationEmail(emailAddress: string): Promise<ActivationEmailRequestResult> {
+  return requestData<ActivationEmailRequestResult>("/auth/activation-emails", {
+    method: "POST",
+    body: { email: emailAddress },
+    skipSessionRefresh: true,
+  });
+}

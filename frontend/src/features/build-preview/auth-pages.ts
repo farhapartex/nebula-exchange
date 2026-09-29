@@ -38,7 +38,6 @@ export const authPages: AuthPage[] = [
     label: "Resend activation",
     description: "Request a new activation link when the old one expired.",
     icon: Send,
-    plannedTask: "T-013",
   },
   {
     href: "/login",
