@@ -9,6 +9,7 @@ import { FeedbackShowcase } from "@/features/ui-showcase/feedback-showcase";
 import { FormShowcase } from "@/features/ui-showcase/form-showcase";
 import { MoneyShowcase } from "@/features/ui-showcase/money-showcase";
 import { OverlayShowcase } from "@/features/ui-showcase/overlay-showcase";
+import { SessionShowcase } from "@/features/ui-showcase/session-showcase";
 import { TabsShowcase } from "@/features/ui-showcase/tabs-showcase";
 
 export const metadata: Metadata = {
@@ -40,6 +41,7 @@ export default function UiShowcasePage() {
         </div>
         <MoneyShowcase />
         <ApiShowcase />
+        <SessionShowcase />
       </div>
     </PageContainer>
   );

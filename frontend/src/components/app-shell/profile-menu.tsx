@@ -1,18 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDown, LogOut } from "lucide-react";
+import { ChevronDown, LogIn, LogOut } from "lucide-react";
 import { DropdownMenu } from "radix-ui";
 
 import { profileNavigationLinks } from "@/components/app-shell/navigation-links";
 import { PilotAvatar } from "@/components/app-shell/pilot-avatar";
 import { useDisplayedPilot } from "@/components/app-shell/use-displayed-pilot";
+import { useLogOutAction } from "@/features/auth/session/use-log-out-action";
 
 const menuItemClassName =
   "flex h-9 cursor-pointer items-center gap-2.5 rounded-md px-2.5 text-sm text-foreground outline-none select-none data-disabled:cursor-not-allowed data-disabled:opacity-40 data-highlighted:bg-border";
 
 export function ProfileMenu() {
   const displayedPilot = useDisplayedPilot();
+  const { logOutAndLeave, isLoggingOut } = useLogOutAction();
 
   return (
     <DropdownMenu.Root>
@@ -46,10 +48,23 @@ export function ProfileMenu() {
             );
           })}
           <DropdownMenu.Separator className="my-1 h-px bg-border" />
-          <DropdownMenu.Item disabled className={menuItemClassName}>
-            <LogOut className="size-4 text-muted" />
-            Log out
-          </DropdownMenu.Item>
+          {displayedPilot.isSignedIn ? (
+            <DropdownMenu.Item
+              disabled={isLoggingOut}
+              onSelect={() => void logOutAndLeave()}
+              className={menuItemClassName}
+            >
+              <LogOut className="size-4 text-muted" />
+              {isLoggingOut ? "Logging out" : "Log out"}
+            </DropdownMenu.Item>
+          ) : (
+            <DropdownMenu.Item asChild className={menuItemClassName}>
+              <Link href="/login">
+                <LogIn className="size-4 text-muted" />
+                Log in
+              </Link>
+            </DropdownMenu.Item>
+          )}
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>

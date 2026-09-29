@@ -16,3 +16,7 @@ export function refreshSession(): Promise<EstablishedSession> {
 export function fetchCurrentUser(signal?: AbortSignal): Promise<UserProfile> {
   return requestData<UserProfile>("/me", { signal });
 }
+
+export function logOut(): Promise<{ logged_out: boolean }> {
+  return requestData<{ logged_out: boolean }>("/auth/logout", { method: "POST", skipSessionRefresh: true });
+}

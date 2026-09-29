@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, Menu, X } from "lucide-react";
+import { LogIn, LogOut, Menu, X } from "lucide-react";
 import { Dialog } from "radix-ui";
 
 import {
@@ -15,6 +15,7 @@ import {
 import { PilotAvatar } from "@/components/app-shell/pilot-avatar";
 import { useDisplayedPilot } from "@/components/app-shell/use-displayed-pilot";
 import { NebulaLogo } from "@/components/brand/nebula-logo";
+import { useLogOutAction } from "@/features/auth/session/use-log-out-action";
 import { cn } from "@/utils/class-names";
 
 function DrawerLinkGroup({
@@ -63,6 +64,7 @@ export function MobileNavDrawer() {
   const [isOpen, setIsOpen] = useState(false);
   const currentPathname = usePathname();
   const displayedPilot = useDisplayedPilot();
+  const { logOutAndLeave, isLoggingOut } = useLogOutAction();
   const closeDrawer = () => setIsOpen(false);
 
   return (
@@ -107,14 +109,29 @@ export function MobileNavDrawer() {
               <p className="truncate text-sm font-medium text-foreground">{displayedPilot.username}</p>
               <p className="truncate text-xs text-muted">{displayedPilot.email}</p>
             </div>
-            <button
-              type="button"
-              disabled
-              aria-label="Log out"
-              className="flex size-9 items-center justify-center rounded-lg text-muted disabled:opacity-40"
-            >
-              <LogOut className="size-4" />
-            </button>
+            {displayedPilot.isSignedIn ? (
+              <button
+                type="button"
+                disabled={isLoggingOut}
+                onClick={() => {
+                  closeDrawer();
+                  void logOutAndLeave();
+                }}
+                aria-label="Log out"
+                className="flex size-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-raised hover:text-foreground disabled:opacity-40"
+              >
+                <LogOut className="size-4" />
+              </button>
+            ) : (
+              <Link
+                href="/login"
+                onClick={closeDrawer}
+                aria-label="Log in"
+                className="flex size-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-raised hover:text-foreground"
+              >
+                <LogIn className="size-4" />
+              </Link>
+            )}
           </div>
         </Dialog.Content>
       </Dialog.Portal>

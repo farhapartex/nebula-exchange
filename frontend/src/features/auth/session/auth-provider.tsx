@@ -1,19 +1,31 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 
 import type { EstablishedSession, UserProfile } from "@/features/auth/api/auth-types";
-import { refreshSession } from "@/features/auth/api/session-api";
+import { logOut as requestLogOut, refreshSession } from "@/features/auth/api/session-api";
 import { AuthContext, type AuthStatus } from "@/features/auth/session/auth-context";
+import { loginPathAfterSessionEnd } from "@/features/auth/session/session-end-reasons";
 import { refreshAccessTokenOnce, registerAccessTokenRefresher, setAccessToken } from "@/lib/api/access-token-store";
 
 const refreshLeadTimeInMilliseconds = 60_000;
 const minimumRefreshDelayInMilliseconds = 5_000;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
+  const currentPathname = usePathname();
+  const queryClient = useQueryClient();
   const [status, setStatus] = useState<AuthStatus>("restoring");
   const [user, setUser] = useState<UserProfile | null>(null);
   const refreshTimerRef = useRef<number | null>(null);
+  const hasActiveSessionRef = useRef(false);
+  const currentPathnameRef = useRef(currentPathname);
+
+  useEffect(() => {
+    currentPathnameRef.current = currentPathname;
+  }, [currentPathname]);
 
   const clearRefreshTimer = useCallback(() => {
     if (refreshTimerRef.current !== null) {
@@ -24,13 +36,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const endSession = useCallback(() => {
     clearRefreshTimer();
+    hasActiveSessionRef.current = false;
     setAccessToken(null);
     setUser(null);
     setStatus("anonymous");
-  }, [clearRefreshTimer]);
+    queryClient.clear();
+  }, [clearRefreshTimer, queryClient]);
 
   const startSession = useCallback(
     (establishedSession: EstablishedSession) => {
+      hasActiveSessionRef.current = true;
       setAccessToken(establishedSession.access_token);
       setUser(establishedSession.user);
       setStatus("authenticated");
@@ -48,6 +63,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [clearRefreshTimer],
   );
 
+  const logOut = useCallback(async () => {
+    await requestLogOut().catch(() => undefined);
+    endSession();
+  }, [endSession]);
+
   useEffect(() => {
     registerAccessTokenRefresher(async () => {
       try {
@@ -55,7 +75,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         startSession(refreshedSession);
         return refreshedSession.access_token;
       } catch {
+        const hadActiveSession = hasActiveSessionRef.current;
         endSession();
+        if (hadActiveSession) {
+          router.replace(loginPathAfterSessionEnd("session_expired", currentPathnameRef.current));
+        }
         return null;
       }
     });
@@ -65,11 +89,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       registerAccessTokenRefresher(null);
       clearRefreshTimer();
     };
-  }, [startSession, endSession, clearRefreshTimer]);
+  }, [startSession, endSession, clearRefreshTimer, router]);
 
   const authContextValue = useMemo(
-    () => ({ status, user, startSession, endSession }),
-    [status, user, startSession, endSession],
+    () => ({ status, user, startSession, endSession, logOut }),
+    [status, user, startSession, endSession, logOut],
   );
 
   return <AuthContext.Provider value={authContextValue}>{children}</AuthContext.Provider>;

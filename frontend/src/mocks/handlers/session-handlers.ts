@@ -93,6 +93,17 @@ export const sessionHandlers = [
     return mockDataResponse(buildMockSession(signedInMockAccount));
   }),
 
+  http.post(buildApiUrl("/auth/logout"), async () => {
+    await simulateLatency(300);
+    signedInMockAccount = null;
+    return mockDataResponse({ logged_out: true });
+  }),
+
+  http.post(buildApiUrl("/dev/mock-session/expire"), async () => {
+    signedInMockAccount = null;
+    return mockDataResponse({ expired: true });
+  }),
+
   http.get(buildApiUrl("/me"), async () => {
     await simulateLatency(200);
     if (!signedInMockAccount) {

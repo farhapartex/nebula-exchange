@@ -12,6 +12,8 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { logIn } from "@/features/auth/api/session-api";
 import { LoginErrorBanner } from "@/features/auth/login/login-error-banner";
 import { loginFieldNames, loginSchema, type LoginFormValues } from "@/features/auth/login/login-schema";
+import { SessionEndNotice } from "@/features/auth/login/session-end-notice";
+import { parseSessionEndReason } from "@/features/auth/session/session-end-reasons";
 import { useAuth } from "@/features/auth/session/use-auth";
 import { applyServerFieldErrors } from "@/utils/forms/apply-server-field-errors";
 import { safeInternalPath } from "@/utils/navigation/safe-internal-path";
@@ -47,6 +49,8 @@ export function LoginForm() {
   });
 
   const shouldShowErrorBanner = loginMutation.isError && Object.keys(errors).length === 0;
+  const sessionEndReason = parseSessionEndReason(searchParameters.get("reason"));
+  const shouldShowSessionEndNotice = sessionEndReason !== null && !loginMutation.isError;
 
   return (
     <form onSubmit={handleSubmit((formValues) => loginMutation.mutate(formValues))} noValidate className="space-y-5">
@@ -54,6 +58,8 @@ export function LoginForm() {
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">Welcome back, pilot</h1>
         <p className="mt-1 text-sm text-muted">Log in to return to your hangar.</p>
       </div>
+
+      {shouldShowSessionEndNotice && <SessionEndNotice reason={sessionEndReason} />}
 
       {shouldShowErrorBanner && (
         <LoginErrorBanner error={loginMutation.error} attemptedEmail={loginMutation.variables?.email.trim()} />

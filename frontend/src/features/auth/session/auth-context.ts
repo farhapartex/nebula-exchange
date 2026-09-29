@@ -11,6 +11,7 @@ export type AuthContextValue = {
   user: UserProfile | null;
   startSession: (establishedSession: EstablishedSession) => void;
   endSession: () => void;
+  logOut: () => Promise<void>;
 };
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
