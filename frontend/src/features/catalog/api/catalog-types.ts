@@ -68,3 +68,17 @@ export type ShopItem = {
   price: string;
   contents: ItemQuantity[];
 };
+
+export type ItemUsage = {
+  input_to_recipes: string[];
+  input_to_upgrades: string[];
+  crafted_by: string[];
+  upgraded_from: string[];
+  upgrades_into: string[];
+  dropped_in_zones: string[];
+  sold_as_skus: string[];
+};
+
+export type CatalogItemDetail = CatalogItem & {
+  usage: ItemUsage;
+};

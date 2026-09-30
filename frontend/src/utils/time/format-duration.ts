@@ -13,3 +13,15 @@ export function describeWaitTime(totalSeconds: number): string {
   const minutes = Math.ceil(totalSeconds / 60);
   return minutes === 1 ? "1 minute" : `${minutes} minutes`;
 }
+
+export function formatDurationShort(totalSeconds: number): string {
+  if (totalSeconds < 60) {
+    return `${totalSeconds}s`;
+  }
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  if (hours === 0) {
+    return `${minutes} min`;
+  }
+  return minutes === 0 ? `${hours} h` : `${hours} h ${minutes} min`;
+}

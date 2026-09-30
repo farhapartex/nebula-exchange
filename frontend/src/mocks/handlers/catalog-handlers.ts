@@ -8,6 +8,7 @@ import {
   mockUpgrades,
   mockZones,
 } from "@/mocks/fixtures/catalog-fixtures";
+import { buildMockItemUsage } from "@/mocks/fixtures/item-usage";
 import { mockDataResponse, mockErrorResponse, mockListResponse, simulateLatency } from "@/mocks/utils/mock-responses";
 
 function catalogListHandler<Entry>(path: string, entries: Entry[]) {
@@ -23,7 +24,7 @@ export const catalogHandlers = [
     await simulateLatency();
     const catalogItem = mockCatalogItems.find((candidate) => String(candidate.id) === params.itemID);
     return catalogItem
-      ? mockDataResponse(catalogItem)
+      ? mockDataResponse({ ...catalogItem, usage: buildMockItemUsage(catalogItem.id) })
       : mockErrorResponse(404, "NOT_FOUND", "This item does not exist");
   }),
   catalogListHandler("/recipes", mockRecipes),

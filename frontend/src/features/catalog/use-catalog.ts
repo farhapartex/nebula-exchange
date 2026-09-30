@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import {
+  fetchCatalogItem,
   fetchCatalogItems,
   fetchRecipes,
   fetchShopItems,
@@ -16,6 +17,7 @@ const catalogStaleTimeInMilliseconds = 5 * 60_000;
 
 export const catalogQueryKeys = {
   items: ["catalog", "items"],
+  item: (itemID: number) => ["catalog", "items", itemID] as const,
   recipes: ["catalog", "recipes"],
   upgrades: ["catalog", "upgrades"],
   zones: ["catalog", "zones"],
@@ -60,5 +62,14 @@ export function useShopItems() {
     queryKey: catalogQueryKeys.shopItems,
     queryFn: fetchShopItems,
     staleTime: catalogStaleTimeInMilliseconds,
+  });
+}
+
+export function useCatalogItem(itemID: number) {
+  return useQuery({
+    queryKey: catalogQueryKeys.item(itemID),
+    queryFn: () => fetchCatalogItem(itemID),
+    staleTime: catalogStaleTimeInMilliseconds,
+    enabled: Number.isInteger(itemID) && itemID > 0,
   });
 }

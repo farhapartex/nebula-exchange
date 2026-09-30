@@ -3,9 +3,11 @@ import { describe, expect, it } from "vitest";
 import { decideGameRouteAccess } from "@/features/auth/session/game-route-access";
 
 describe("decideGameRouteAccess", () => {
-  it("lets anyone view public markets and auctions", () => {
+  it("lets anyone view public markets, auctions and item pages", () => {
     expect(decideGameRouteAccess("/exchange", "anonymous", null)).toEqual({ kind: "allow" });
     expect(decideGameRouteAccess("/auctions/42", "restoring", null)).toEqual({ kind: "allow" });
+    expect(decideGameRouteAccess("/items/301", "anonymous", null)).toEqual({ kind: "allow" });
+    expect(decideGameRouteAccess("/items/301", "authenticated", "PENDING_PAYMENT")).toEqual({ kind: "allow" });
   });
 
   it("waits while the session is being restored", () => {

@@ -5,29 +5,17 @@ import { useState } from "react";
 import { ContentSection } from "@/components/layout/content-section";
 import { ErrorState } from "@/components/ui/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { ItemCategory } from "@/features/catalog/api/catalog-types";
+import { matchesCategoryFilter, type CategoryFilter } from "@/features/catalog/category-filters";
+import { CategoryFilterTabs } from "@/features/catalog/components/category-filter-tabs";
 import { ItemCard } from "@/features/catalog/components/item-card";
 import { ItemIcon } from "@/features/catalog/components/item-icon";
 import { useCatalogItems } from "@/features/catalog/use-catalog";
 
-type CategoryFilter = ItemCategory | "all";
-
-const categoryFilters: { value: CategoryFilter; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "resource", label: "Resources" },
-  { value: "component", label: "Components" },
-  { value: "drill", label: "Drills" },
-  { value: "ship", label: "Ships" },
-  { value: "consumable", label: "Consumables" },
-  { value: "legendary", label: "Legendary" },
-];
-
 export function ItemShowcase() {
   const itemsQuery = useCatalogItems();
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
-  const visibleItems = (itemsQuery.data ?? []).filter(
-    (catalogItem) => categoryFilter === "all" || catalogItem.category === categoryFilter,
+  const visibleItems = (itemsQuery.data ?? []).filter((catalogItem) =>
+    matchesCategoryFilter(catalogItem.category, categoryFilter),
   );
 
   return (
@@ -49,15 +37,7 @@ export function ItemShowcase() {
               <ItemIcon key={catalogItem.id} item={catalogItem} size="sm" />
             ))}
           </div>
-          <Tabs value={categoryFilter} onValueChange={(nextFilter) => setCategoryFilter(nextFilter as CategoryFilter)}>
-            <TabsList>
-              {categoryFilters.map((filterOption) => (
-                <TabsTrigger key={filterOption.value} value={filterOption.value}>
-                  {filterOption.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
+          <CategoryFilterTabs value={categoryFilter} onValueChange={setCategoryFilter} />
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {visibleItems.map((catalogItem) => (
               <ItemCard key={catalogItem.id} item={catalogItem} />

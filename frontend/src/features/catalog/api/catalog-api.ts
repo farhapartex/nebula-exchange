@@ -1,12 +1,19 @@
-import type { CatalogItem, Recipe, ShopItem, Upgrade, Zone } from "@/features/catalog/api/catalog-types";
+import type {
+  CatalogItem,
+  CatalogItemDetail,
+  Recipe,
+  ShopItem,
+  Upgrade,
+  Zone,
+} from "@/features/catalog/api/catalog-types";
 import { requestAllPages, requestData } from "@/lib/api/api-client";
 
 export function fetchCatalogItems(): Promise<CatalogItem[]> {
   return requestAllPages<CatalogItem>("/items");
 }
 
-export function fetchCatalogItem(itemID: number): Promise<CatalogItem> {
-  return requestData<CatalogItem>(`/items/${itemID}`);
+export function fetchCatalogItem(itemID: number): Promise<CatalogItemDetail> {
+  return requestData<CatalogItemDetail>(`/items/${itemID}`);
 }
 
 export function fetchRecipes(): Promise<Recipe[]> {
