@@ -451,6 +451,39 @@ func (q *Queries) ListPlayerJournalEntries(ctx context.Context, arg ListPlayerJo
 	return items, nil
 }
 
+const listPlayerJournalTypesAmong = `-- name: ListPlayerJournalTypesAmong :many
+SELECT DISTINCT j.type
+FROM ledger_accounts a
+JOIN ledger_entries e ON e.account_id = a.id
+JOIN ledger_journals j ON j.id = e.journal_id
+WHERE a.user_id = $1 AND j.type = ANY($2::text[])
+`
+
+type ListPlayerJournalTypesAmongParams struct {
+	UserID       *uuid.UUID
+	JournalTypes []string
+}
+
+func (q *Queries) ListPlayerJournalTypesAmong(ctx context.Context, arg ListPlayerJournalTypesAmongParams) ([]string, error) {
+	rows, err := q.db.Query(ctx, listPlayerJournalTypesAmong, arg.UserID, arg.JournalTypes)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var type_ string
+		if err := rows.Scan(&type_); err != nil {
+			return nil, err
+		}
+		items = append(items, type_)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listPlayerJournals = `-- name: ListPlayerJournals :many
 SELECT DISTINCT j.id, j.type, j.ref_type, j.ref_id, j.created_at
 FROM ledger_accounts a

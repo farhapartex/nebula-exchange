@@ -30,6 +30,7 @@ import (
 	"nebula-exchange/backend/internal/maintenance"
 	"nebula-exchange/backend/internal/notify/email"
 	"nebula-exchange/backend/internal/notify/email/outbox"
+	"nebula-exchange/backend/internal/onboarding"
 	"nebula-exchange/backend/internal/payments"
 	"nebula-exchange/backend/internal/platform/config"
 	"nebula-exchange/backend/internal/platform/httpserver"
@@ -37,6 +38,7 @@ import (
 	"nebula-exchange/backend/internal/platform/ratelimit"
 	"nebula-exchange/backend/internal/platform/scheduler"
 	"nebula-exchange/backend/internal/platform/secretbox"
+	"nebula-exchange/backend/internal/shop"
 	"nebula-exchange/backend/internal/users"
 )
 
@@ -149,7 +151,9 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 		users.NewMeHandler(databasePool, userRepository),
 		balances.NewHandler(balances.NewReader(databasePool)),
 		inventory.NewHandler(inventory.NewReader(databasePool)),
+		onboarding.NewHandler(databasePool),
 		ledgerhistory.NewHandler(ledgerhistory.NewReader(databasePool)),
+		shop.NewHandler(shop.NewService(databasePool, catalogService), accountGuard.RequireStatus(users.StatusActive)),
 		payments.NewHandler(
 			paymentService,
 			accountGuard.RequireStatus(users.StatusActive, users.StatusPendingPayment),

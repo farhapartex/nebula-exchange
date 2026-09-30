@@ -25,6 +25,7 @@ type Querier interface {
 	ListAccountsByID(ctx context.Context, accountIds []int64) ([]ListAccountsByIDRow, error)
 	ListPlayerInventory(ctx context.Context, arg ListPlayerInventoryParams) ([]ListPlayerInventoryRow, error)
 	ListPlayerJournalEntries(ctx context.Context, arg ListPlayerJournalEntriesParams) ([]ListPlayerJournalEntriesRow, error)
+	ListPlayerJournalTypesAmong(ctx context.Context, arg ListPlayerJournalTypesAmongParams) ([]string, error)
 	ListPlayerJournals(ctx context.Context, arg ListPlayerJournalsParams) ([]ListPlayerJournalsRow, error)
 	ListPlayerNCBalances(ctx context.Context, userID *uuid.UUID) ([]ListPlayerNCBalancesRow, error)
 	MoveAvailableToHeld(ctx context.Context, arg MoveAvailableToHeldParams) (int64, error)

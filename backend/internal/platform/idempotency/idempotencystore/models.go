@@ -154,6 +154,7 @@ type Payment struct {
 	SucceededAt        pgtype.Timestamptz
 	CreatedAt          pgtype.Timestamptz
 	UpdatedAt          pgtype.Timestamptz
+	Quantity           int32
 }
 
 type Recipe struct {

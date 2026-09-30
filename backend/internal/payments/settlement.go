@@ -131,7 +131,7 @@ func creditPayer(ctx context.Context, tx pgx.Tx, payment paymentsstore.Payment, 
 }
 
 func (settler *Settler) applyPurpose(ctx context.Context, tx pgx.Tx, payment paymentsstore.Payment) (string, error) {
-	purposePayment := purpose.Payment{ID: payment.ID, UserID: payment.UserID, Kind: purpose.Kind(payment.Purpose)}
+	purposePayment := purpose.Payment{ID: payment.ID, UserID: payment.UserID, Kind: purpose.Kind(payment.Purpose), Quantity: int(payment.Quantity)}
 	if payment.Sku != nil {
 		purposePayment.SKU = *payment.Sku
 	}

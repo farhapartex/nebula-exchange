@@ -34,6 +34,7 @@ type Payment struct {
 	Amount             money.Micro  `json:"amount"`
 	Credited           *money.Micro `json:"credited"`
 	SKU                *string      `json:"sku"`
+	Quantity           int          `json:"quantity"`
 	PurposeStatus      string       `json:"purpose_status"`
 	PurposeFailureCode *string      `json:"purpose_failure_code"`
 	CheckoutURL        *string      `json:"checkout_url"`
@@ -50,6 +51,7 @@ func paymentFromRow(paymentRow paymentsstore.Payment) Payment {
 		Status:             Status(paymentRow.Status),
 		Amount:             money.Micro(paymentRow.AmountMicro),
 		SKU:                paymentRow.Sku,
+		Quantity:           int(paymentRow.Quantity),
 		PurposeStatus:      paymentRow.PurposeStatus,
 		PurposeFailureCode: paymentRow.PurposeFailureCode,
 		CheckoutURL:        paymentRow.CheckoutUrl,

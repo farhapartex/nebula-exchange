@@ -22,10 +22,11 @@ const (
 )
 
 type Payment struct {
-	ID     uuid.UUID
-	UserID uuid.UUID
-	Kind   Kind
-	SKU    string
+	ID       uuid.UUID
+	UserID   uuid.UUID
+	Kind     Kind
+	SKU      string
+	Quantity int
 }
 
 type Handler interface {

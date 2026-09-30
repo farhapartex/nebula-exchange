@@ -38,7 +38,7 @@ func (handler *ShopPurchaseHandler) Apply(ctx context.Context, tx pgx.Tx, paymen
 	_, err = shop.Purchase(ctx, tx, shop.PurchaseRequest{
 		UserID:    payment.UserID,
 		ShopItem:  shopItem,
-		Quantity:  1,
+		Quantity:  max(payment.Quantity, 1),
 		Reference: paymentReference(payment),
 	})
 	return err

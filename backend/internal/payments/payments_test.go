@@ -249,3 +249,22 @@ func TestShopPurchaseByCardGrantsTheBundle(t *testing.T) {
 	}
 	ledgertest.RequireIntegrity(t, harness.pool)
 }
+
+func TestCardAndBalancePurchasesProduceTheSameItems(t *testing.T) {
+	harness := newPaymentsHarness(t)
+	player := harness.createPlayer(t, users.StatusActive)
+	fuelOrder := harness.createPayment(t, player, `{"purpose":"SHOP_PURCHASE","method":"card","sku":"fuel-cell","quantity":3}`)
+	if fuelOrder.Amount != 600_000 || fuelOrder.Quantity != 3 {
+		t.Fatalf("card order %+v", fuelOrder)
+	}
+	if outcome := harness.settle(t, fuelOrder, "evt_fuel"); !outcome.PurposeApplied {
+		t.Fatalf("outcome %+v", outcome)
+	}
+	if fuel := ledgertest.BalanceOf(t, harness.pool, ledger.PlayerItem(player, 401)); fuel.Available != 3 {
+		t.Fatalf("fuel %d", fuel.Available)
+	}
+	if card := ledgertest.BalanceOf(t, harness.pool, ledger.PlayerNC(player, ledger.BucketCard)); card.Available != 0 {
+		t.Fatalf("card left %d", card.Available)
+	}
+	ledgertest.RequireIntegrity(t, harness.pool)
+}

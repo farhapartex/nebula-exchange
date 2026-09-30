@@ -11,7 +11,9 @@ import (
 	"nebula-exchange/backend/internal/ledger"
 )
 
-var ErrInvalidQuantity = errors.New("purchase quantity must be positive")
+const MaximumQuantity = 100
+
+var ErrInvalidQuantity = errors.New("purchase quantity must be from 1 to 100")
 
 type PurchaseRequest struct {
 	UserID    uuid.UUID
@@ -21,7 +23,7 @@ type PurchaseRequest struct {
 }
 
 func Purchase(ctx context.Context, tx pgx.Tx, request PurchaseRequest) (uuid.UUID, error) {
-	if request.Quantity <= 0 {
+	if request.Quantity <= 0 || request.Quantity > MaximumQuantity {
 		return uuid.Nil, ErrInvalidQuantity
 	}
 	totalPrice := int64(request.ShopItem.Price) * int64(request.Quantity)

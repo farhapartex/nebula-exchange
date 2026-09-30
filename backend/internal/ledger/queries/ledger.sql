@@ -148,3 +148,10 @@ WHERE e.journal_id = ANY(@journal_ids::uuid[]) AND a.user_id = @user_id
 GROUP BY e.journal_id, a.item_id, a.bucket
 HAVING SUM(e.amount) <> 0
 ORDER BY e.journal_id, a.item_id NULLS FIRST, a.bucket;
+
+-- name: ListPlayerJournalTypesAmong :many
+SELECT DISTINCT j.type
+FROM ledger_accounts a
+JOIN ledger_entries e ON e.account_id = a.id
+JOIN ledger_journals j ON j.id = e.journal_id
+WHERE a.user_id = @user_id AND j.type = ANY(@journal_types::text[]);

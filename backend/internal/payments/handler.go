@@ -18,6 +18,7 @@ type createPaymentBody struct {
 	Method   string `json:"method" binding:"required,oneof=card crypto"`
 	AmountNC string `json:"amount_nc" binding:"required_if=Purpose TOPUP,max=20"`
 	SKU      string `json:"sku" binding:"required_if=Purpose SHOP_PURCHASE,max=64"`
+	Quantity int    `json:"quantity" binding:"omitempty,min=1,max=100"`
 }
 
 type Handler struct {
@@ -49,6 +50,7 @@ func (handler *Handler) createPayment(context *gin.Context) {
 		Method:   Method(body.Method),
 		AmountNC: body.AmountNC,
 		SKU:      body.SKU,
+		Quantity: body.Quantity,
 	})
 	if err != nil {
 		response.WriteError(context, err)

@@ -157,6 +157,7 @@ type Payment struct {
 	SucceededAt        *time.Time
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
+	Quantity           int32
 }
 
 type Recipe struct {

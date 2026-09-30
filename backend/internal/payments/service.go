@@ -17,6 +17,7 @@ import (
 	"nebula-exchange/backend/internal/platform/money"
 	"nebula-exchange/backend/internal/platform/pagination"
 	"nebula-exchange/backend/internal/purpose"
+	"nebula-exchange/backend/internal/shop"
 	"nebula-exchange/backend/internal/users"
 )
 
@@ -25,6 +26,7 @@ type CreateRequest struct {
 	Method   Method
 	AmountNC string
 	SKU      string
+	Quantity int
 }
 
 type Dependencies struct {
@@ -47,6 +49,7 @@ func NewService(dependencies Dependencies) *Service {
 type pricedPayment struct {
 	amount      money.Micro
 	sku         *string
+	quantity    int
 	description string
 }
 
@@ -94,6 +97,7 @@ func (service *Service) Create(ctx context.Context, userID uuid.UUID, createRequ
 		Method:            string(createRequest.Method),
 		AmountMicro:       int64(priced.amount),
 		Sku:               priced.sku,
+		Quantity:          int32(priced.quantity),
 		ProviderSessionID: &session.ProviderSessionID,
 		CheckoutUrl:       &session.URL,
 		ExpiresAt:         createdAt.Add(lifetimeFor(createRequest.Method)),
@@ -121,7 +125,7 @@ func ensureAccountMayPay(status users.Status, purposeKind purpose.Kind) error {
 func (service *Service) price(ctx context.Context, userID uuid.UUID, createRequest CreateRequest) (pricedPayment, error) {
 	switch createRequest.Purpose {
 	case purpose.KindEntryFee:
-		return pricedPayment{amount: purpose.EntryFee, description: "Nebula Exchange entry fee"}, nil
+		return pricedPayment{amount: purpose.EntryFee, quantity: 1, description: "Nebula Exchange entry fee"}, nil
 	case purpose.KindTopup:
 		amount, err := money.ParseNC(createRequest.AmountNC)
 		if err != nil || !allowedCardTopupAmounts[amount] {
@@ -130,7 +134,7 @@ func (service *Service) price(ctx context.Context, userID uuid.UUID, createReque
 		if err := service.ensureWithinTopupLimits(ctx, userID, amount); err != nil {
 			return pricedPayment{}, err
 		}
-		return pricedPayment{amount: amount, description: fmt.Sprintf("%s NC top-up", createRequest.AmountNC)}, nil
+		return pricedPayment{amount: amount, quantity: 1, description: fmt.Sprintf("%s NC top-up", createRequest.AmountNC)}, nil
 	case purpose.KindShopPurchase:
 		snapshot, err := service.dependencies.Catalog.Snapshot(ctx)
 		if err != nil {
@@ -140,8 +144,17 @@ func (service *Service) price(ctx context.Context, userID uuid.UUID, createReque
 		if !isListed {
 			return pricedPayment{}, apierror.ValidationFailed(map[string]string{"sku": "is not sold in the shop"})
 		}
+		quantity := max(createRequest.Quantity, 1)
+		if quantity > shop.MaximumQuantity {
+			return pricedPayment{}, apierror.ValidationFailed(map[string]string{"quantity": fmt.Sprintf("must be from 1 to %d", shop.MaximumQuantity)})
+		}
 		sku := shopItem.SKU
-		return pricedPayment{amount: shopItem.Price, sku: &sku, description: shopItem.Name}, nil
+		return pricedPayment{
+			amount:      shopItem.Price * money.Micro(quantity),
+			sku:         &sku,
+			quantity:    quantity,
+			description: fmt.Sprintf("%d × %s", quantity, shopItem.Name),
+		}, nil
 	default:
 		return pricedPayment{}, apierror.ValidationFailed(map[string]string{"purpose": "must be ENTRY_FEE, TOPUP or SHOP_PURCHASE"})
 	}
