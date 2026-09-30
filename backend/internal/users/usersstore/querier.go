@@ -12,6 +12,7 @@ import (
 
 type Querier interface {
 	ActivateUser(ctx context.Context, arg ActivateUserParams) (ActivateUserRow, error)
+	ChangeStatus(ctx context.Context, arg ChangeStatusParams) (uuid.UUID, error)
 	CheckIdentifiersTaken(ctx context.Context, arg CheckIdentifiersTakenParams) (CheckIdentifiersTakenRow, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error)
 	FindPasswordHashByID(ctx context.Context, id uuid.UUID) (string, error)

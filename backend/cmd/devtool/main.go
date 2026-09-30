@@ -18,7 +18,8 @@ import (
 
 const usage = `usage:
   devtool credit-nc --email EMAIL --amount NC [--bucket card|crypto|earned_pending|earned]
-  devtool grant-item --email EMAIL --item ITEM_ID --quantity N`
+  devtool grant-item --email EMAIL --item ITEM_ID --quantity N
+  devtool complete-payment --id PAYMENT_ID`
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
@@ -47,6 +48,8 @@ func run(arguments []string) error {
 		return creditNC(ctx, pool, arguments[1:])
 	case "grant-item":
 		return grantItem(ctx, pool, arguments[1:])
+	case "complete-payment":
+		return completePayment(ctx, pool, arguments[1:])
 	default:
 		return errors.New(usage)
 	}

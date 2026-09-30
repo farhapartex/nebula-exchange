@@ -36,6 +36,15 @@ type EmailOutbox struct {
 	UpdatedAt      pgtype.Timestamptz
 }
 
+type ExternalEvent struct {
+	ID          string
+	Provider    string
+	EventType   string
+	Payload     []byte
+	ReceivedAt  pgtype.Timestamptz
+	ProcessedAt pgtype.Timestamptz
+}
+
 type IdempotencyKey struct {
 	Scope               string
 	IdempotencyKey      string
@@ -126,6 +135,25 @@ type PasswordResetToken struct {
 	ExpiresAt pgtype.Timestamptz
 	UsedAt    pgtype.Timestamptz
 	CreatedAt pgtype.Timestamptz
+}
+
+type Payment struct {
+	ID                 pgtype.UUID
+	UserID             pgtype.UUID
+	Purpose            string
+	Method             string
+	Status             string
+	AmountMicro        int64
+	Sku                pgtype.Text
+	CreditedMicro      pgtype.Int8
+	PurposeStatus      string
+	PurposeFailureCode pgtype.Text
+	ProviderSessionID  pgtype.Text
+	CheckoutUrl        pgtype.Text
+	ExpiresAt          pgtype.Timestamptz
+	SucceededAt        pgtype.Timestamptz
+	CreatedAt          pgtype.Timestamptz
+	UpdatedAt          pgtype.Timestamptz
 }
 
 type Recipe struct {

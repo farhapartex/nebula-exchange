@@ -96,3 +96,12 @@ func (snapshot Snapshot) ItemByID(itemID int) (Item, bool) {
 	}
 	return Item{}, false
 }
+
+func (snapshot Snapshot) ShopItemBySKU(sku string) (ShopItem, bool) {
+	for _, shopItem := range snapshot.ShopItems {
+		if shopItem.SKU == sku {
+			return shopItem, true
+		}
+	}
+	return ShopItem{}, false
+}

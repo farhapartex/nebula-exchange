@@ -30,6 +30,7 @@ import (
 	"nebula-exchange/backend/internal/maintenance"
 	"nebula-exchange/backend/internal/notify/email"
 	"nebula-exchange/backend/internal/notify/email/outbox"
+	"nebula-exchange/backend/internal/payments"
 	"nebula-exchange/backend/internal/platform/config"
 	"nebula-exchange/backend/internal/platform/httpserver"
 	"nebula-exchange/backend/internal/platform/idempotency"
@@ -125,6 +126,13 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 	accountGuard := users.NewAccountGuard(databasePool, userRepository)
 
 	catalogService := catalog.NewService(catalog.NewLoader(databasePool), catalogCacheLifetime, time.Now)
+	paymentService := payments.NewService(payments.Dependencies{
+		Pool:     databasePool,
+		Users:    userRepository,
+		Catalog:  catalogService,
+		Checkout: cardCheckoutFor(appConfig),
+		Now:      time.Now,
+	})
 
 	router := httpserver.NewRouter(httpserver.RouterOptions{
 		Logger:           appLogger,
@@ -142,6 +150,11 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 		balances.NewHandler(balances.NewReader(databasePool)),
 		inventory.NewHandler(inventory.NewReader(databasePool)),
 		ledgerhistory.NewHandler(ledgerhistory.NewReader(databasePool)),
+		payments.NewHandler(
+			paymentService,
+			accountGuard.RequireStatus(users.StatusActive, users.StatusPendingPayment),
+			rateLimits.PerSubject(ratelimit.PaymentCreationPolicy, authenticatedSubject),
+		),
 		activation.NewHandler(activation.NewService(databasePool, userRepository, time.Now)),
 		activation.NewResendHandler(
 			activation.NewResender(databasePool, userRepository, activationIssuer, activationMailer, time.Now),
@@ -181,4 +194,16 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 		emailDispatcher: outbox.NewDispatcher(databasePool, emailSender, appLogger, outbox.DispatcherOptions{}),
 		jobScheduler:    jobScheduler,
 	}, nil
+}
+
+func cardCheckoutFor(appConfig config.Config) payments.CardCheckout {
+	if appConfig.Environment == config.EnvironmentDevelopment {
+		return payments.NewDevelopmentCheckout(appConfig.FrontendBaseURL)
+	}
+	return payments.UnavailableCheckout{}
+}
+
+func authenticatedSubject(context *gin.Context) string {
+	userID, _ := authentication.UserIDFrom(context)
+	return userID.String()
 }

@@ -56,6 +56,32 @@ func (q *Queries) ActivateUser(ctx context.Context, arg ActivateUserParams) (Act
 	return i, err
 }
 
+const changeStatus = `-- name: ChangeStatus :one
+UPDATE users
+SET status = $1, updated_at = $2::timestamptz
+WHERE id = $3 AND status = $4
+RETURNING id
+`
+
+type ChangeStatusParams struct {
+	NewStatus      string
+	UpdatedAt      time.Time
+	ID             uuid.UUID
+	ExpectedStatus string
+}
+
+func (q *Queries) ChangeStatus(ctx context.Context, arg ChangeStatusParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, changeStatus,
+		arg.NewStatus,
+		arg.UpdatedAt,
+		arg.ID,
+		arg.ExpectedStatus,
+	)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
 const checkIdentifiersTaken = `-- name: CheckIdentifiersTaken :one
 SELECT
     EXISTS (SELECT 1 FROM users WHERE lower(users.email) = lower($1::text)) AS is_email_taken,

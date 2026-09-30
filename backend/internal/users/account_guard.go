@@ -34,8 +34,7 @@ func (guard *AccountGuard) RequireStatus(allowedStatuses ...Status) gin.HandlerF
 				return
 			}
 		}
-		response.WriteError(context, apierror.New(http.StatusForbidden, apierror.CodeAccountNotActive,
-			accountStatusMessage(currentUser.Status)).WithDetails(map[string]string{"status": string(currentUser.Status)}))
+		response.WriteError(context, NotActiveError(currentUser.Status))
 	}
 }
 
@@ -93,4 +92,9 @@ func accountStatusMessage(status Status) string {
 	default:
 		return "Your account can't do this right now"
 	}
+}
+
+func NotActiveError(status Status) *apierror.Error {
+	return apierror.New(http.StatusForbidden, apierror.CodeAccountNotActive, accountStatusMessage(status)).
+		WithDetails(map[string]string{"status": string(status)})
 }

@@ -27,6 +27,8 @@ var (
 
 	TwoFactorChangePolicy = Policy{Name: "two_factor_change", Limit: 10, Window: 15 * time.Minute}
 	PasswordChangePolicy  = Policy{Name: "password_change", Limit: 5, Window: 15 * time.Minute}
+
+	PaymentCreationPolicy = Policy{Name: "payment_creation", Limit: 20, Window: 15 * time.Minute}
 )
 
 func HashedSubject(subjectValue string) string {
@@ -46,6 +48,14 @@ func NewMiddlewareFactory(limiter *SlidingWindowLimiter, logger *slog.Logger) *M
 func (factory *MiddlewareFactory) PerClientIP(policy Policy) gin.HandlerFunc {
 	return func(context *gin.Context) {
 		if factory.AllowOrReject(context, policy, context.ClientIP()) {
+			context.Next()
+		}
+	}
+}
+
+func (factory *MiddlewareFactory) PerSubject(policy Policy, subjectOf func(*gin.Context) string) gin.HandlerFunc {
+	return func(context *gin.Context) {
+		if factory.AllowOrReject(context, policy, subjectOf(context)) {
 			context.Next()
 		}
 	}

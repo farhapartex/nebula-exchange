@@ -46,3 +46,9 @@ RETURNING id;
 
 -- name: FindPasswordHashByID :one
 SELECT password_hash FROM users WHERE id = $1;
+
+-- name: ChangeStatus :one
+UPDATE users
+SET status = sqlc.arg(new_status), updated_at = sqlc.arg(updated_at)::timestamptz
+WHERE id = sqlc.arg(id) AND status = sqlc.arg(expected_status)
+RETURNING id;

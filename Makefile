@@ -3,7 +3,7 @@
 ANVIL_PORT ?= 8545
 COMPOSE := docker compose --env-file .env
 
-.PHONY: help docker-up docker-down docker-logs docker-ps chain backend-build backend-test backend-lint migrate-up migrate-down migrate-version migrate-force migrate-create sqlc-generate contracts-build contracts-test contracts-fmt dev-activate-user dev-reset-rate-limits dev-set-status dev-credit-nc dev-grant-item
+.PHONY: help docker-up docker-down docker-logs docker-ps chain backend-build backend-test backend-lint migrate-up migrate-down migrate-version migrate-force migrate-create sqlc-generate contracts-build contracts-test contracts-fmt dev-activate-user dev-reset-rate-limits dev-set-status dev-credit-nc dev-grant-item dev-complete-payment
 
 help:
 	@echo "Available commands:"
@@ -29,6 +29,7 @@ help:
 	@echo "  make dev-set-status email=E status=S       Set an account status"
 	@echo "  make dev-credit-nc email=E amount=A [bucket=B]  Credit test NC through the ledger"
 	@echo "  make dev-grant-item email=E item=I [quantity=Q] Grant test items through the ledger"
+	@echo "  make dev-complete-payment id=PAYMENT_ID     Simulate a successful card checkout"
 
 docker-up:
 	$(COMPOSE) up -d --build
@@ -105,3 +106,7 @@ dev-credit-nc:
 dev-grant-item:
 	@test -n "$(email)" -a -n "$(item)" || (echo "usage: make dev-grant-item email=pilot@nebula.test item=401 [quantity=10]" && exit 1)
 	$(DEVTOOL) grant-item --email '$(email)' --item '$(item)' --quantity '$(or $(quantity),1)'
+
+dev-complete-payment:
+	@test -n "$(id)" || (echo "usage: make dev-complete-payment id=PAYMENT_ID" && exit 1)
+	$(DEVTOOL) complete-payment --id '$(id)'

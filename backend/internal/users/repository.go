@@ -174,3 +174,16 @@ func (repository *Repository) UpdateUsername(ctx context.Context, database users
 func (repository *Repository) FindPasswordHash(ctx context.Context, database usersstore.DBTX, userID uuid.UUID) (string, error) {
 	return usersstore.New(database).FindPasswordHashByID(ctx, userID)
 }
+
+func (repository *Repository) ChangeStatus(ctx context.Context, database usersstore.DBTX, userID uuid.UUID, expectedStatus, newStatus Status, changedAt time.Time) (bool, error) {
+	_, err := usersstore.New(database).ChangeStatus(ctx, usersstore.ChangeStatusParams{
+		ID:             userID,
+		ExpectedStatus: string(expectedStatus),
+		NewStatus:      string(newStatus),
+		UpdatedAt:      changedAt,
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, nil
+	}
+	return err == nil, err
+}
