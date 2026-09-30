@@ -1,6 +1,9 @@
 import Link from "next/link";
 
-import { notificationAppearanceByKind } from "@/features/notifications/notification-appearance";
+import {
+  fallbackNotificationAppearance,
+  notificationAppearanceByKind,
+} from "@/features/notifications/notification-appearance";
 import type { GameNotification } from "@/features/notifications/notification-types";
 import { cn } from "@/utils/class-names";
 import { formatRelativeTime } from "@/utils/time/relative-time";
@@ -11,7 +14,7 @@ type NotificationListItemProps = {
 };
 
 export function NotificationListItem({ notification, onOpen }: NotificationListItemProps) {
-  const appearance = notificationAppearanceByKind[notification.kind];
+  const appearance = notificationAppearanceByKind[notification.kind] ?? fallbackNotificationAppearance;
   const KindIcon = appearance.icon;
 
   return (

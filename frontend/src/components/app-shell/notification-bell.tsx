@@ -6,32 +6,39 @@ import { Bell, BellOff, CheckCheck } from "lucide-react";
 import { Popover } from "radix-ui";
 
 import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/features/auth/session/use-auth";
 import { NotificationListItem } from "@/features/notifications/notification-list-item";
-import type { GameNotification } from "@/features/notifications/notification-types";
-import { createPlaceholderNotifications } from "@/features/notifications/placeholder-notifications";
-
-const maximumNotificationsInDropdown = 5;
+import {
+  useMarkNotificationsRead,
+  useRecentNotifications,
+  useUnreadNotificationCount,
+} from "@/features/notifications/use-notifications";
 
 export function NotificationBell() {
+  const { status } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
-  const [notifications, setNotifications] = useState<GameNotification[]>(createPlaceholderNotifications);
+  const unreadCountQuery = useUnreadNotificationCount();
+  const recentQuery = useRecentNotifications(isOpen);
+  const markReadMutation = useMarkNotificationsRead();
 
-  const unreadCount = notifications.filter((notification) => !notification.isRead).length;
-  const recentNotifications = notifications.slice(0, maximumNotificationsInDropdown);
+  if (status !== "authenticated") {
+    return null;
+  }
+
+  const unreadCount = unreadCountQuery.data ?? 0;
+  const recentNotifications = recentQuery.data ?? [];
 
   function markNotificationRead(notificationId: string) {
-    setNotifications((currentNotifications) =>
-      currentNotifications.map((notification) =>
-        notification.id === notificationId ? { ...notification, isRead: true } : notification,
-      ),
-    );
+    const openedNotification = recentNotifications.find((notification) => notification.id === notificationId);
+    if (openedNotification && !openedNotification.isRead) {
+      markReadMutation.mutate({ ids: [notificationId] });
+    }
     setIsOpen(false);
   }
 
   function markAllNotificationsRead() {
-    setNotifications((currentNotifications) =>
-      currentNotifications.map((notification) => ({ ...notification, isRead: true })),
-    );
+    markReadMutation.mutate({ all: true });
   }
 
   return (
@@ -43,7 +50,7 @@ export function NotificationBell() {
         <Bell className="size-5" />
         {unreadCount > 0 && (
           <span className="absolute top-1 right-1 flex min-w-4 items-center justify-center rounded-full bg-down px-1 text-[0.625rem] leading-4 font-semibold text-white">
-            {unreadCount}
+            {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </Popover.Trigger>
@@ -70,7 +77,12 @@ export function NotificationBell() {
             </button>
           </div>
 
-          {recentNotifications.length > 0 ? (
+          {recentQuery.isPending ? (
+            <div className="space-y-2 p-3">
+              <Skeleton className="h-12 rounded-lg" />
+              <Skeleton className="h-12 rounded-lg" />
+            </div>
+          ) : recentNotifications.length > 0 ? (
             <ul className="max-h-[min(26rem,60vh)] space-y-0.5 overflow-y-auto p-1.5">
               {recentNotifications.map((notification) => (
                 <NotificationListItem key={notification.id} notification={notification} onOpen={markNotificationRead} />

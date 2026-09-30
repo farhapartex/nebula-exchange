@@ -1,6 +1,7 @@
 export type NotificationKind =
   | "payment_succeeded"
   | "payment_failed"
+  | "payment_needs_attention"
   | "mission_completed"
   | "craft_completed"
   | "order_filled"

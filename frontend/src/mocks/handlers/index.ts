@@ -13,6 +13,7 @@ import { settingsHandlers } from "@/mocks/handlers/settings-handlers";
 import { shopHandlers } from "@/mocks/handlers/shop-handlers";
 import { onboardingHandlers } from "@/mocks/handlers/onboarding-handlers";
 import { workshopHandlers } from "@/mocks/handlers/workshop-handlers";
+import { notificationsHandlers } from "@/mocks/handlers/notifications-handlers";
 
 export const mockRequestHandlers = [
   ...healthHandlers,
@@ -29,5 +30,6 @@ export const mockRequestHandlers = [
   ...shopHandlers,
   ...onboardingHandlers,
   ...workshopHandlers,
+  ...notificationsHandlers,
   ...devShowcaseHandlers,
 ];
