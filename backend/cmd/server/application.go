@@ -188,6 +188,7 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 	jobScheduler := scheduler.New(databasePool, appLogger, scheduler.Options{InitialDelay: time.Minute})
 	jobScheduler.Register(maintenance.NewCleanupJob(databasePool, appLogger, time.Now))
 	jobScheduler.Register(ledger.NewCheckJob(databasePool, appLogger))
+	jobScheduler.Register(payments.NewExpiryJob(databasePool, appLogger, time.Now))
 
 	return application{
 		router:          router,
