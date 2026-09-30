@@ -1,9 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation } from "@tanstack/react-query";
-import { CreditCard, Lock, Wallet } from "lucide-react";
+import { Lock } from "lucide-react";
 
 import { PageContainer } from "@/components/layout/page-container";
 import { NcAmount } from "@/components/money/nc-amount";
@@ -12,38 +10,27 @@ import { fetchCurrentUser } from "@/features/auth/api/session-api";
 import { useAuth } from "@/features/auth/session/use-auth";
 import { entryFeeInMicroUnits } from "@/features/onboarding/starter-pack";
 import { StarterPackPreview } from "@/features/onboarding/starter-pack-preview";
-import { createPayment } from "@/features/payments/api/payments-api";
-import { createIdempotencyKey } from "@/lib/api/api-client";
+import { PaymentMethodPicker } from "@/features/payments/components/payment-method-picker";
+import { describePaymentChoices } from "@/features/payments/payment-method-rules";
+import { useCardCheckout } from "@/features/payments/use-card-checkout";
 import { isApiError } from "@/lib/api/api-error";
-import { cn } from "@/utils/class-names";
+
+const entryFeeChoices = describePaymentChoices("entry_fee", BigInt(entryFeeInMicroUnits), 0n);
 
 export function EntryFeeView() {
   const router = useRouter();
   const { replaceUser } = useAuth();
-  const [idempotencyKey] = useState(createIdempotencyKey);
-  const [isRedirecting, setIsRedirecting] = useState(false);
-
-  const payMutation = useMutation({
-    mutationFn: () => createPayment({ purpose: "ENTRY_FEE", method: "card" }, idempotencyKey),
-    meta: { showsThrottlingInline: true },
-    onSuccess: (payment) => {
-      if (payment.checkout_url) {
-        setIsRedirecting(true);
-        window.location.assign(payment.checkout_url);
-      }
-    },
-    onError: async (error) => {
-      if (isApiError(error) && error.code === "CONFLICT") {
-        replaceUser(await fetchCurrentUser());
-        router.replace("/hangar");
-      }
-    },
+  const { startCheckout, isStartingCheckout, checkoutError } = useCardCheckout(async (error) => {
+    if (isApiError(error) && error.code === "CONFLICT") {
+      replaceUser(await fetchCurrentUser());
+      router.replace("/hangar");
+    }
   });
 
   const errorMessage =
-    payMutation.error && isApiError(payMutation.error) && payMutation.error.code !== "CONFLICT"
-      ? payMutation.error.message
-      : payMutation.error
+    checkoutError && isApiError(checkoutError) && checkoutError.code !== "CONFLICT"
+      ? checkoutError.message
+      : checkoutError
         ? "We couldn't start the payment. Please try again."
         : null;
 
@@ -60,28 +47,7 @@ export function EntryFeeView() {
       </div>
 
       <div className="mt-6 rounded-2xl border border-border bg-surface/70 p-5">
-        <p className="mb-3 text-sm font-medium text-foreground">Pay with</p>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div
-            className={cn(
-              "flex items-start gap-3 rounded-xl border border-accent/60 bg-accent/10 p-3",
-              "shadow-[0_0_20px_-10px] shadow-accent",
-            )}
-          >
-            <CreditCard className="mt-0.5 size-5 text-accent-soft" aria-hidden="true" />
-            <div>
-              <p className="text-sm font-medium text-foreground">Card</p>
-              <p className="text-xs text-muted">Secure checkout by Stripe.</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3 rounded-xl border border-border bg-background/40 p-3 opacity-60">
-            <Wallet className="mt-0.5 size-5 text-muted" aria-hidden="true" />
-            <div>
-              <p className="text-sm font-medium text-foreground">USDC on Base</p>
-              <p className="text-xs text-muted">Link a wallet first. Coming with wallet support.</p>
-            </div>
-          </div>
-        </div>
+        <PaymentMethodPicker choices={entryFeeChoices} value="card" onValueChange={() => undefined} />
 
         {errorMessage && (
           <p
@@ -95,8 +61,8 @@ export function EntryFeeView() {
         <Button
           size="lg"
           className="mt-5 w-full"
-          isLoading={payMutation.isPending || isRedirecting}
-          onClick={() => payMutation.mutate()}
+          isLoading={isStartingCheckout}
+          onClick={() => startCheckout({ purpose: "ENTRY_FEE" })}
         >
           <Lock className="size-4" aria-hidden="true" />
           Pay <NcAmount amount={entryFeeInMicroUnits} /> by card

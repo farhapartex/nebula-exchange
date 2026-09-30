@@ -10,6 +10,7 @@ import { FormShowcase } from "@/features/ui-showcase/form-showcase";
 import { ItemShowcase } from "@/features/ui-showcase/item-showcase";
 import { MoneyShowcase } from "@/features/ui-showcase/money-showcase";
 import { OverlayShowcase } from "@/features/ui-showcase/overlay-showcase";
+import { PaymentMethodShowcase } from "@/features/ui-showcase/payment-method-showcase";
 import { SessionShowcase } from "@/features/ui-showcase/session-showcase";
 import { TabsShowcase } from "@/features/ui-showcase/tabs-showcase";
 
@@ -46,6 +47,9 @@ export default function UiShowcasePage() {
         <MoneyShowcase />
         <ApiShowcase />
         <SessionShowcase />
+        <div className="lg:col-span-2">
+          <PaymentMethodShowcase />
+        </div>
       </div>
     </PageContainer>
   );

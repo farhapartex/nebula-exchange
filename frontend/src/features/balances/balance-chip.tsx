@@ -8,7 +8,7 @@ import { Popover } from "radix-ui";
 import { NcAmount } from "@/components/money/nc-amount";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/session/use-auth";
-import { bucketDescriptions } from "@/features/balances/bucket-descriptions";
+import { BucketBalanceList } from "@/features/balances/bucket-balance-list";
 import { useBalances } from "@/features/balances/use-balances";
 import { cn } from "@/utils/class-names";
 
@@ -51,34 +51,7 @@ export function BalanceChip() {
             </p>
           </div>
 
-          <ul className="space-y-0.5 p-1.5">
-            {balanceSummary.buckets.map((bucketBalance) => {
-              const bucketDescription = bucketDescriptions[bucketBalance.bucket];
-              const isNegative = BigInt(bucketBalance.available) < 0n;
-              return (
-                <li
-                  key={bucketBalance.bucket}
-                  className="flex items-start justify-between gap-3 rounded-lg px-2.5 py-2"
-                >
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground">{bucketDescription.label}</p>
-                    <p className="text-xs text-muted">{bucketDescription.explanation}</p>
-                  </div>
-                  <div className="shrink-0 text-right text-sm">
-                    <NcAmount
-                      amount={bucketBalance.available}
-                      className={cn(isNegative ? "text-down" : "text-foreground")}
-                    />
-                    {BigInt(bucketBalance.held) > 0n && (
-                      <p className="text-xs text-muted">
-                        + <NcAmount amount={bucketBalance.held} /> held
-                      </p>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+          <BucketBalanceList buckets={balanceSummary.buckets} className="p-1.5" />
 
           <dl className="space-y-1.5 border-t border-border px-4 py-3 text-sm">
             <div className="flex items-center justify-between gap-3">
