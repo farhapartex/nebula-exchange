@@ -10,6 +10,8 @@ import { passwordResetHandlers } from "@/mocks/handlers/password-reset-handlers"
 import { paymentsHandlers } from "@/mocks/handlers/payments-handlers";
 import { sessionHandlers } from "@/mocks/handlers/session-handlers";
 import { settingsHandlers } from "@/mocks/handlers/settings-handlers";
+import { shopHandlers } from "@/mocks/handlers/shop-handlers";
+import { onboardingHandlers } from "@/mocks/handlers/onboarding-handlers";
 
 export const mockRequestHandlers = [
   ...healthHandlers,
@@ -23,5 +25,7 @@ export const mockRequestHandlers = [
   ...inventoryHandlers,
   ...ledgerHistoryHandlers,
   ...paymentsHandlers,
+  ...shopHandlers,
+  ...onboardingHandlers,
   ...devShowcaseHandlers,
 ];

@@ -29,12 +29,12 @@ export function PaymentMethodPicker({
   label = "Pay with",
 }: PaymentMethodPickerProps) {
   return (
-    <fieldset>
+    <fieldset className="@container">
       <legend className="mb-3 text-sm font-medium text-foreground">{label}</legend>
       <RadioGroup.Root
         value={value ?? undefined}
         onValueChange={(nextChoice) => onValueChange(nextChoice as PaymentChoice)}
-        className={cn("grid gap-3", choices.length === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2")}
+        className={cn("grid gap-3", choices.length === 3 ? "@2xl:grid-cols-3" : "@md:grid-cols-2")}
       >
         {choices.map((availability) => {
           const presentation = choicePresentation[availability.choice];

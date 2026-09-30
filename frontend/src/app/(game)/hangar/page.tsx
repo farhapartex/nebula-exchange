@@ -1,11 +1,16 @@
 import type { Metadata } from "next";
 
-import { SectionPlaceholder } from "@/components/app-shell/section-placeholder";
+import { PageContainer } from "@/components/layout/page-container";
+import { HangarView } from "@/features/hangar/hangar-view";
 
 export const metadata: Metadata = {
   title: "Hangar",
 };
 
 export default function HangarPage() {
-  return <SectionPlaceholder section="hangar" />;
+  return (
+    <PageContainer className="py-8 sm:py-10">
+      <HangarView />
+    </PageContainer>
+  );
 }

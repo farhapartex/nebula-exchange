@@ -11,6 +11,7 @@ const pendingPayment: Payment = {
   amount: "5000000",
   credited: null,
   sku: null,
+  quantity: 1,
   purpose_status: "PENDING",
   purpose_failure_code: null,
   checkout_url: null,

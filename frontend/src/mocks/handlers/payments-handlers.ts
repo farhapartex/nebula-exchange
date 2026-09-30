@@ -21,7 +21,8 @@ function priceOf(createRequest: CreatePaymentRequest): string {
   if (createRequest.purpose === "TOPUP") {
     return `${createRequest.amount_nc ?? "0"}000000`;
   }
-  return mockPriceBySku[createRequest.sku ?? ""] ?? "0";
+  const unitPrice = BigInt(mockPriceBySku[createRequest.sku ?? ""] ?? "0");
+  return (unitPrice * BigInt(createRequest.quantity ?? 1)).toString();
 }
 
 function settleWhenDue(payment: Payment): Payment {
@@ -57,6 +58,7 @@ export const paymentsHandlers = [
       amount: priceOf(createRequest),
       credited: null,
       sku: createRequest.sku ?? null,
+      quantity: createRequest.quantity ?? 1,
       purpose_status: "PENDING",
       purpose_failure_code: null,
       checkout_url: `${window.location.origin}/payment/result?id=${paymentID}`,

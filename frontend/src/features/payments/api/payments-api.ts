@@ -14,6 +14,7 @@ export type Payment = {
   amount: string;
   credited: string | null;
   sku: string | null;
+  quantity: number;
   purpose_status: PurposeStatus;
   purpose_failure_code: string | null;
   checkout_url: string | null;
@@ -27,6 +28,7 @@ export type CreatePaymentRequest = {
   method: PaymentMethod;
   amount_nc?: string;
   sku?: string;
+  quantity?: number;
 };
 
 export const paymentQueryKey = (paymentID: string) => ["payments", paymentID] as const;
