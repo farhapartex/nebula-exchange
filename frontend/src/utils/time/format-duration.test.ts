@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { describeWaitTime, formatCountdown, formatDurationShort } from "@/utils/time/format-duration";
+import {
+  describeWaitTime,
+  formatClockCountdown,
+  formatCountdown,
+  formatDurationShort,
+} from "@/utils/time/format-duration";
 
 describe("formatCountdown", () => {
   it("formats minutes and seconds", () => {
@@ -32,5 +37,14 @@ describe("formatDurationShort", () => {
     expect(formatDurationShort(3600)).toBe("1 h");
     expect(formatDurationShort(5400)).toBe("1 h 30 min");
     expect(formatDurationShort(14400)).toBe("4 h");
+  });
+});
+
+describe("formatClockCountdown", () => {
+  it("adds hours only when needed", () => {
+    expect(formatClockCountdown(59)).toBe("0:59");
+    expect(formatClockCountdown(900)).toBe("15:00");
+    expect(formatClockCountdown(14_399)).toBe("3:59:59");
+    expect(formatClockCountdown(-5)).toBe("0:00");
   });
 });

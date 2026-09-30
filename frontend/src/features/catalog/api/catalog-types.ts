@@ -59,6 +59,14 @@ export type Zone = {
   minimum_drill_tier: number;
   allowed_ship_item_ids: number[];
   loot: LootEntry[];
+  unlock?: ZoneUnlock | null;
+};
+
+export type ZoneUnlock = {
+  is_unlocked: boolean;
+  has_required_drill: boolean;
+  has_allowed_ship: boolean;
+  has_enough_fuel: boolean;
 };
 
 export type ShopItem = {

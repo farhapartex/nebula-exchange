@@ -25,3 +25,15 @@ export function formatDurationShort(totalSeconds: number): string {
   }
   return minutes === 0 ? `${hours} h` : `${hours} h ${minutes} min`;
 }
+
+export function formatClockCountdown(totalSeconds: number): string {
+  const clampedSeconds = Math.max(Math.ceil(totalSeconds), 0);
+  const hours = Math.floor(clampedSeconds / 3600);
+  const minutes = Math.floor((clampedSeconds % 3600) / 60);
+  const seconds = clampedSeconds % 60;
+  const paddedSeconds = seconds.toString().padStart(2, "0");
+  if (hours === 0) {
+    return `${minutes}:${paddedSeconds}`;
+  }
+  return `${hours}:${minutes.toString().padStart(2, "0")}:${paddedSeconds}`;
+}

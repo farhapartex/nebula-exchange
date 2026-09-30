@@ -11,6 +11,7 @@ import {
   fetchUpgrades,
   fetchZones,
 } from "@/features/catalog/api/catalog-api";
+import { useAuth } from "@/features/auth/session/use-auth";
 import type { CatalogItem } from "@/features/catalog/api/catalog-types";
 
 const catalogStaleTimeInMilliseconds = 5 * 60_000;
@@ -54,7 +55,12 @@ export function useUpgrades() {
 }
 
 export function useZones() {
-  return useQuery({ queryKey: catalogQueryKeys.zones, queryFn: fetchZones, staleTime: catalogStaleTimeInMilliseconds });
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: [...catalogQueryKeys.zones, user?.id ?? "guest"],
+    queryFn: fetchZones,
+    staleTime: user ? 0 : catalogStaleTimeInMilliseconds,
+  });
 }
 
 export function useShopItems() {
