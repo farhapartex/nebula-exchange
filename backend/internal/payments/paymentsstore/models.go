@@ -130,6 +130,25 @@ type LootTable struct {
 	ChanceBasisPoints int32
 }
 
+type Mission struct {
+	ID           uuid.UUID
+	UserID       uuid.UUID
+	ZoneID       string
+	ShipItemID   int32
+	DrillItemID  int32
+	Status       string
+	FuelSpent    int32
+	ShipHoldID   uuid.UUID
+	DrillHoldID  uuid.UUID
+	ZoneSnapshot []byte
+	Loot         []byte
+	StartedAt    time.Time
+	EndsAt       time.Time
+	ResolvedAt   *time.Time
+	CollectedAt  *time.Time
+	AbortedAt    *time.Time
+}
+
 type PasswordResetToken struct {
 	ID        uuid.UUID
 	UserID    uuid.UUID

@@ -2,13 +2,12 @@
 // versions:
 //   sqlc v1.31.1
 
-package ledgerstore
+package missionsstore
 
 import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type AccountActivationToken struct {
@@ -69,7 +68,7 @@ type Item struct {
 	RarityRank    int32
 	IsTradeable   bool
 	IsAuctionOnly bool
-	MaxSupply     pgtype.Int8
+	MaxSupply     *int64
 	Description   string
 	Attributes    []byte
 	CreatedAt     time.Time
@@ -167,7 +166,7 @@ type Payment struct {
 	Status             string
 	AmountMicro        int64
 	Sku                *string
-	CreditedMicro      pgtype.Int8
+	CreditedMicro      *int64
 	PurposeStatus      string
 	PurposeFailureCode *string
 	ProviderSessionID  *string
@@ -227,7 +226,7 @@ type Upgrade struct {
 	FromItemID    int32
 	ToItemID      int32
 	CraftFeeMicro int64
-	BuyPriceMicro pgtype.Int8
+	BuyPriceMicro *int64
 	IsEnabled     bool
 }
 
@@ -252,7 +251,7 @@ type User struct {
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
 	TotpEnabledAt    *time.Time
-	TotpLastUsedStep pgtype.Int8
+	TotpLastUsedStep *int64
 }
 
 type Zone struct {

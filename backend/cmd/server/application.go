@@ -28,6 +28,7 @@ import (
 	"nebula-exchange/backend/internal/ledger"
 	"nebula-exchange/backend/internal/ledgerhistory"
 	"nebula-exchange/backend/internal/maintenance"
+	"nebula-exchange/backend/internal/missions"
 	"nebula-exchange/backend/internal/notify/email"
 	"nebula-exchange/backend/internal/notify/email/outbox"
 	"nebula-exchange/backend/internal/onboarding"
@@ -145,7 +146,8 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 		IdempotencyStore: idempotency.NewPostgresStore(databasePool),
 	},
 		health.NewHandler(),
-		catalog.NewHandler(catalogService),
+		catalog.NewHandler(catalogService, missions.NewZoneAvailability(databasePool, catalogService)),
+		missions.NewHandler(missions.NewService(databasePool, catalogService, time.Now), accountGuard.RequireStatus(users.StatusActive)),
 		signup.NewHandler(signupService, rateLimits.PerClientIP(ratelimit.SignupPolicy)),
 		login.NewHandler(loginService, cookieSettings, time.Now, rateLimits.PerClientIP(ratelimit.LoginPolicy)),
 		users.NewMeHandler(databasePool, userRepository),
@@ -193,6 +195,7 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 	jobScheduler.Register(maintenance.NewCleanupJob(databasePool, appLogger, time.Now))
 	jobScheduler.Register(ledger.NewCheckJob(databasePool, appLogger))
 	jobScheduler.Register(payments.NewExpiryJob(databasePool, appLogger, time.Now))
+	jobScheduler.Register(missions.NewResolverJob(databasePool, appLogger, missions.CryptoRandom, time.Now))
 
 	return application{
 		router:          router,

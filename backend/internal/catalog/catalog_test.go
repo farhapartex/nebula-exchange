@@ -30,7 +30,7 @@ func newCatalogRouter(t *testing.T) http.Handler {
 	pool := databasetest.NewPool(t)
 	testLogger := logger.NewWithWriter(&bytes.Buffer{}, slog.LevelError, true)
 	service := catalog.NewService(catalog.NewLoader(pool), time.Minute, time.Now)
-	return httpserver.NewRouter(httpserver.RouterOptions{Logger: testLogger}, catalog.NewHandler(service))
+	return httpserver.NewRouter(httpserver.RouterOptions{Logger: testLogger}, catalog.NewHandler(service, nil))
 }
 
 func getJSON(t *testing.T, router http.Handler, path string, destination any) int {

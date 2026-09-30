@@ -6,17 +6,20 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"nebula-exchange/backend/internal/auth/authentication"
 	"nebula-exchange/backend/internal/platform/apierror"
 	"nebula-exchange/backend/internal/platform/httpserver/request"
 	"nebula-exchange/backend/internal/platform/httpserver/response"
+	"nebula-exchange/backend/internal/platform/pagination"
 )
 
 type Handler struct {
-	service *Service
+	service          *Service
+	zoneAvailability ZoneAvailability
 }
 
-func NewHandler(service *Service) *Handler {
-	return &Handler{service: service}
+func NewHandler(service *Service, zoneAvailability ZoneAvailability) *Handler {
+	return &Handler{service: service, zoneAvailability: zoneAvailability}
 }
 
 func (handler *Handler) RegisterRoutes(router gin.IRouter) {
@@ -66,9 +69,38 @@ func (handler *Handler) listUpgrades(context *gin.Context) {
 }
 
 func (handler *Handler) listZones(context *gin.Context) {
-	writeCatalogList(context, handler.service, func(snapshot Snapshot) []Zone { return snapshot.Zones }, func(zone Zone) string {
-		return zone.ID
-	})
+	pageRequest, err := request.PaginationFromQuery(context)
+	if err != nil {
+		response.WriteError(context, err)
+		return
+	}
+	snapshot, err := handler.service.Snapshot(context.Request.Context())
+	if err != nil {
+		response.WriteError(context, err)
+		return
+	}
+	zonePage, err := paginateInOrder(snapshot.Zones, pageRequest, func(zone Zone) string { return zone.ID })
+	if err != nil {
+		response.WriteError(context, err)
+		return
+	}
+
+	var unlocks map[string]ZoneUnlock
+	if userID, isSignedIn := authentication.UserIDFrom(context); isSignedIn && handler.zoneAvailability != nil {
+		if unlocks, err = handler.zoneAvailability.ForPlayer(context.Request.Context(), userID, zonePage.Items); err != nil {
+			response.WriteError(context, err)
+			return
+		}
+	}
+	playerZones := make([]PlayerZone, 0, len(zonePage.Items))
+	for _, zone := range zonePage.Items {
+		playerZone := PlayerZone{Zone: zone}
+		if unlock, isKnown := unlocks[zone.ID]; isKnown {
+			playerZone.Unlock = &unlock
+		}
+		playerZones = append(playerZones, playerZone)
+	}
+	response.WriteList(context, http.StatusOK, pagination.Page[PlayerZone]{Items: playerZones, Info: zonePage.Info})
 }
 
 func (handler *Handler) listShopItems(context *gin.Context) {
