@@ -22,11 +22,12 @@ import (
 )
 
 type CreateRequest struct {
-	Purpose  purpose.Kind
-	Method   Method
-	AmountNC string
-	SKU      string
-	Quantity int
+	Purpose   purpose.Kind
+	Method    Method
+	AmountNC  string
+	SKU       string
+	UpgradeID string
+	Quantity  int
 }
 
 type Dependencies struct {
@@ -49,6 +50,7 @@ func NewService(dependencies Dependencies) *Service {
 type pricedPayment struct {
 	amount      money.Micro
 	sku         *string
+	upgradeID   *string
 	quantity    int
 	description string
 }
@@ -97,6 +99,7 @@ func (service *Service) Create(ctx context.Context, userID uuid.UUID, createRequ
 		Method:            string(createRequest.Method),
 		AmountMicro:       int64(priced.amount),
 		Sku:               priced.sku,
+		UpgradeID:         priced.upgradeID,
 		Quantity:          int32(priced.quantity),
 		ProviderSessionID: &session.ProviderSessionID,
 		CheckoutUrl:       &session.URL,
@@ -155,8 +158,20 @@ func (service *Service) price(ctx context.Context, userID uuid.UUID, createReque
 			quantity:    quantity,
 			description: fmt.Sprintf("%d × %s", quantity, shopItem.Name),
 		}, nil
+	case purpose.KindUpgradePurchase:
+		snapshot, err := service.dependencies.Catalog.Snapshot(ctx)
+		if err != nil {
+			return pricedPayment{}, err
+		}
+		upgrade, isKnownUpgrade := snapshot.UpgradeByID(createRequest.UpgradeID)
+		if !isKnownUpgrade || upgrade.BuyPrice == nil {
+			return pricedPayment{}, apierror.ValidationFailed(map[string]string{"upgrade_id": "is not an upgrade you can buy"})
+		}
+		upgradeID := upgrade.ID
+		toItem, _ := snapshot.ItemByID(upgrade.ToItemID)
+		return pricedPayment{amount: *upgrade.BuyPrice, upgradeID: &upgradeID, quantity: 1, description: "Upgrade to " + toItem.Name}, nil
 	default:
-		return pricedPayment{}, apierror.ValidationFailed(map[string]string{"purpose": "must be ENTRY_FEE, TOPUP or SHOP_PURCHASE"})
+		return pricedPayment{}, apierror.ValidationFailed(map[string]string{"purpose": "must be ENTRY_FEE, TOPUP, SHOP_PURCHASE or UPGRADE_PURCHASE"})
 	}
 }
 

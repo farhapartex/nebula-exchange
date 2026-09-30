@@ -268,3 +268,33 @@ func TestCardAndBalancePurchasesProduceTheSameItems(t *testing.T) {
 	}
 	ledgertest.RequireIntegrity(t, harness.pool)
 }
+
+func TestUpgradePurchaseByCardSwapsTheTier(t *testing.T) {
+	harness := newPaymentsHarness(t)
+	player := harness.createPlayer(t, users.StatusActive)
+	ledgertest.Fund(t, harness.pool, ledger.PlayerItem(player, 301), 1)
+
+	upgradeOrder := harness.createPayment(t, player, `{"purpose":"UPGRADE_PURCHASE","method":"card","upgrade_id":"scout-to-hauler"}`)
+	if upgradeOrder.Amount != 6*money.MicroPerNC || upgradeOrder.UpgradeID == nil {
+		t.Fatalf("upgrade order %+v", upgradeOrder)
+	}
+	if outcome := harness.settle(t, upgradeOrder, "evt_upgrade"); !outcome.PurposeApplied {
+		t.Fatalf("outcome %+v", outcome)
+	}
+	if hauler := ledgertest.BalanceOf(t, harness.pool, ledger.PlayerItem(player, 302)); hauler.Available != 1 {
+		t.Fatalf("hauler %d", hauler.Available)
+	}
+
+	shiplessPlayer := harness.createPlayer(t, users.StatusActive)
+	shiplessOrder := harness.createPayment(t, shiplessPlayer, `{"purpose":"UPGRADE_PURCHASE","method":"card","upgrade_id":"scout-to-hauler"}`)
+	if outcome := harness.settle(t, shiplessOrder, "evt_shipless"); outcome.PurposeApplied || outcome.PurposeFailure != "INSUFFICIENT_ITEMS" {
+		t.Fatalf("no scout to upgrade: %+v", outcome)
+	}
+	if card := ledgertest.BalanceOf(t, harness.pool, ledger.PlayerNC(shiplessPlayer, ledger.BucketCard)); card.Available != 6*int64(money.MicroPerNC) {
+		t.Fatalf("NC must stay after a failed upgrade, got %d", card.Available)
+	}
+	if status, _ := harness.send(t, player, http.MethodPost, "/payments", `{"purpose":"UPGRADE_PURCHASE","method":"card","upgrade_id":"drill-t4-to-t5"}`); status != http.StatusUnprocessableEntity {
+		t.Fatalf("T5 can't be bought: %d", status)
+	}
+	ledgertest.RequireIntegrity(t, harness.pool)
+}

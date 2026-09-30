@@ -135,6 +135,9 @@ func (settler *Settler) applyPurpose(ctx context.Context, tx pgx.Tx, payment pay
 	if payment.Sku != nil {
 		purposePayment.SKU = *payment.Sku
 	}
+	if payment.UpgradeID != nil {
+		purposePayment.UpgradeID = *payment.UpgradeID
+	}
 
 	savepoint, err := tx.Begin(ctx)
 	if err != nil {

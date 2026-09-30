@@ -16,7 +16,7 @@ const claimPendingPayment = `-- name: ClaimPendingPayment :one
 UPDATE payments
 SET status = 'SUCCEEDED', credited_micro = $1, succeeded_at = $2, updated_at = $2
 WHERE id = $3 AND status = 'PENDING'
-RETURNING id, user_id, purpose, method, status, amount_micro, sku, credited_micro, purpose_status, purpose_failure_code, provider_session_id, checkout_url, expires_at, succeeded_at, created_at, updated_at, quantity
+RETURNING id, user_id, purpose, method, status, amount_micro, sku, credited_micro, purpose_status, purpose_failure_code, provider_session_id, checkout_url, expires_at, succeeded_at, created_at, updated_at, quantity, upgrade_id
 `
 
 type ClaimPendingPaymentParams struct {
@@ -46,6 +46,7 @@ func (q *Queries) ClaimPendingPayment(ctx context.Context, arg ClaimPendingPayme
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Quantity,
+		&i.UpgradeID,
 	)
 	return i, err
 }
@@ -78,7 +79,7 @@ func (q *Queries) ExpirePendingPayments(ctx context.Context, now time.Time) ([]u
 }
 
 const getPayment = `-- name: GetPayment :one
-SELECT id, user_id, purpose, method, status, amount_micro, sku, credited_micro, purpose_status, purpose_failure_code, provider_session_id, checkout_url, expires_at, succeeded_at, created_at, updated_at, quantity FROM payments WHERE id = $1
+SELECT id, user_id, purpose, method, status, amount_micro, sku, credited_micro, purpose_status, purpose_failure_code, provider_session_id, checkout_url, expires_at, succeeded_at, created_at, updated_at, quantity, upgrade_id FROM payments WHERE id = $1
 `
 
 func (q *Queries) GetPayment(ctx context.Context, id uuid.UUID) (Payment, error) {
@@ -102,12 +103,13 @@ func (q *Queries) GetPayment(ctx context.Context, id uuid.UUID) (Payment, error)
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Quantity,
+		&i.UpgradeID,
 	)
 	return i, err
 }
 
 const getPaymentForUser = `-- name: GetPaymentForUser :one
-SELECT id, user_id, purpose, method, status, amount_micro, sku, credited_micro, purpose_status, purpose_failure_code, provider_session_id, checkout_url, expires_at, succeeded_at, created_at, updated_at, quantity FROM payments WHERE id = $1 AND user_id = $2
+SELECT id, user_id, purpose, method, status, amount_micro, sku, credited_micro, purpose_status, purpose_failure_code, provider_session_id, checkout_url, expires_at, succeeded_at, created_at, updated_at, quantity, upgrade_id FROM payments WHERE id = $1 AND user_id = $2
 `
 
 type GetPaymentForUserParams struct {
@@ -136,6 +138,7 @@ func (q *Queries) GetPaymentForUser(ctx context.Context, arg GetPaymentForUserPa
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Quantity,
+		&i.UpgradeID,
 	)
 	return i, err
 }
@@ -167,12 +170,12 @@ func (q *Queries) InsertExternalEvent(ctx context.Context, arg InsertExternalEve
 }
 
 const insertPayment = `-- name: InsertPayment :one
-INSERT INTO payments (id, user_id, purpose, method, amount_micro, sku, quantity, provider_session_id, checkout_url, expires_at, created_at, updated_at)
+INSERT INTO payments (id, user_id, purpose, method, amount_micro, sku, upgrade_id, quantity, provider_session_id, checkout_url, expires_at, created_at, updated_at)
 VALUES (
-    $1, $2, $3, $4, $5, $6::text, $7,
-    $8::text, $9::text, $10, $11, $11
+    $1, $2, $3, $4, $5, $6::text, $7::text, $8,
+    $9::text, $10::text, $11, $12, $12
 )
-RETURNING id, user_id, purpose, method, status, amount_micro, sku, credited_micro, purpose_status, purpose_failure_code, provider_session_id, checkout_url, expires_at, succeeded_at, created_at, updated_at, quantity
+RETURNING id, user_id, purpose, method, status, amount_micro, sku, credited_micro, purpose_status, purpose_failure_code, provider_session_id, checkout_url, expires_at, succeeded_at, created_at, updated_at, quantity, upgrade_id
 `
 
 type InsertPaymentParams struct {
@@ -182,6 +185,7 @@ type InsertPaymentParams struct {
 	Method            string
 	AmountMicro       int64
 	Sku               *string
+	UpgradeID         *string
 	Quantity          int32
 	ProviderSessionID *string
 	CheckoutUrl       *string
@@ -197,6 +201,7 @@ func (q *Queries) InsertPayment(ctx context.Context, arg InsertPaymentParams) (P
 		arg.Method,
 		arg.AmountMicro,
 		arg.Sku,
+		arg.UpgradeID,
 		arg.Quantity,
 		arg.ProviderSessionID,
 		arg.CheckoutUrl,
@@ -222,12 +227,13 @@ func (q *Queries) InsertPayment(ctx context.Context, arg InsertPaymentParams) (P
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Quantity,
+		&i.UpgradeID,
 	)
 	return i, err
 }
 
 const listPaymentsForUser = `-- name: ListPaymentsForUser :many
-SELECT id, user_id, purpose, method, status, amount_micro, sku, credited_micro, purpose_status, purpose_failure_code, provider_session_id, checkout_url, expires_at, succeeded_at, created_at, updated_at, quantity FROM payments
+SELECT id, user_id, purpose, method, status, amount_micro, sku, credited_micro, purpose_status, purpose_failure_code, provider_session_id, checkout_url, expires_at, succeeded_at, created_at, updated_at, quantity, upgrade_id FROM payments
 WHERE user_id = $1
   AND ($2::uuid IS NULL OR id < $2::uuid)
 ORDER BY id DESC
@@ -267,6 +273,7 @@ func (q *Queries) ListPaymentsForUser(ctx context.Context, arg ListPaymentsForUs
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Quantity,
+			&i.UpgradeID,
 		); err != nil {
 			return nil, err
 		}

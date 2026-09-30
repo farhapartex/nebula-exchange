@@ -105,3 +105,21 @@ func (snapshot Snapshot) ShopItemBySKU(sku string) (ShopItem, bool) {
 	}
 	return ShopItem{}, false
 }
+
+func (snapshot Snapshot) RecipeByID(recipeID string) (Recipe, bool) {
+	for _, recipe := range snapshot.Recipes {
+		if recipe.ID == recipeID {
+			return recipe, true
+		}
+	}
+	return Recipe{}, false
+}
+
+func (snapshot Snapshot) UpgradeByID(upgradeID string) (Upgrade, bool) {
+	for _, upgrade := range snapshot.Upgrades {
+		if upgrade.ID == upgradeID {
+			return upgrade, true
+		}
+	}
+	return Upgrade{}, false
+}

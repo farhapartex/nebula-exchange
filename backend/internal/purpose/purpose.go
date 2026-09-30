@@ -16,17 +16,19 @@ import (
 type Kind string
 
 const (
-	KindEntryFee     Kind = "ENTRY_FEE"
-	KindTopup        Kind = "TOPUP"
-	KindShopPurchase Kind = "SHOP_PURCHASE"
+	KindEntryFee        Kind = "ENTRY_FEE"
+	KindTopup           Kind = "TOPUP"
+	KindShopPurchase    Kind = "SHOP_PURCHASE"
+	KindUpgradePurchase Kind = "UPGRADE_PURCHASE"
 )
 
 type Payment struct {
-	ID       uuid.UUID
-	UserID   uuid.UUID
-	Kind     Kind
-	SKU      string
-	Quantity int
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	Kind      Kind
+	SKU       string
+	UpgradeID string
+	Quantity  int
 }
 
 type Handler interface {
@@ -46,8 +48,12 @@ func FailureCodeOf(err error) (string, bool) {
 	if errors.As(err, &failure) {
 		return failure.Code, true
 	}
-	if ledger.IsInsufficientBalance(err) {
-		return "INSUFFICIENT_FUNDS", true
+	var insufficientBalance *ledger.InsufficientBalanceError
+	if errors.As(err, &insufficientBalance) {
+		if insufficientBalance.Asset.IsNC() {
+			return "INSUFFICIENT_FUNDS", true
+		}
+		return "INSUFFICIENT_ITEMS", true
 	}
 	return "", false
 }
@@ -74,8 +80,9 @@ func paymentReference(payment Payment) ledger.Reference {
 
 func NewDefaultRunner(userRepository *users.Repository, catalogService *catalog.Service, now func() time.Time) *Runner {
 	return NewRunner(map[Kind]Handler{
-		KindEntryFee:     NewEntryFeeHandler(userRepository, now),
-		KindTopup:        TopupHandler{},
-		KindShopPurchase: NewShopPurchaseHandler(catalogService, userRepository),
+		KindEntryFee:        NewEntryFeeHandler(userRepository, now),
+		KindTopup:           TopupHandler{},
+		KindShopPurchase:    NewShopPurchaseHandler(catalogService, userRepository),
+		KindUpgradePurchase: NewUpgradePurchaseHandler(catalogService, userRepository),
 	})
 }

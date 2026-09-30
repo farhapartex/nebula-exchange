@@ -1,7 +1,7 @@
 -- name: InsertPayment :one
-INSERT INTO payments (id, user_id, purpose, method, amount_micro, sku, quantity, provider_session_id, checkout_url, expires_at, created_at, updated_at)
+INSERT INTO payments (id, user_id, purpose, method, amount_micro, sku, upgrade_id, quantity, provider_session_id, checkout_url, expires_at, created_at, updated_at)
 VALUES (
-    @id, @user_id, @purpose, @method, @amount_micro, sqlc.narg(sku)::text, @quantity,
+    @id, @user_id, @purpose, @method, @amount_micro, sqlc.narg(sku)::text, sqlc.narg(upgrade_id)::text, @quantity,
     sqlc.narg(provider_session_id)::text, sqlc.narg(checkout_url)::text, @expires_at, @created_at, @created_at
 )
 RETURNING *;

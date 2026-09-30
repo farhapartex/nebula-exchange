@@ -19,6 +19,21 @@ type AccountActivationToken struct {
 	CreatedAt time.Time
 }
 
+type CraftJob struct {
+	ID             uuid.UUID
+	UserID         uuid.UUID
+	RecipeID       string
+	Quantity       int32
+	OutputItemID   int32
+	OutputQuantity int32
+	FeeMicro       int64
+	Inputs         []byte
+	Status         string
+	StartedAt      time.Time
+	EndsAt         time.Time
+	DeliveredAt    *time.Time
+}
+
 type EmailOutbox struct {
 	ID             uuid.UUID
 	Template       string
@@ -176,6 +191,7 @@ type Payment struct {
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
 	Quantity           int32
+	UpgradeID          *string
 }
 
 type Recipe struct {

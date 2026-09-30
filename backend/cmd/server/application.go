@@ -23,6 +23,7 @@ import (
 	"nebula-exchange/backend/internal/auth/twofactor"
 	"nebula-exchange/backend/internal/balances"
 	"nebula-exchange/backend/internal/catalog"
+	"nebula-exchange/backend/internal/crafting"
 	"nebula-exchange/backend/internal/health"
 	"nebula-exchange/backend/internal/inventory"
 	"nebula-exchange/backend/internal/ledger"
@@ -40,6 +41,7 @@ import (
 	"nebula-exchange/backend/internal/platform/scheduler"
 	"nebula-exchange/backend/internal/platform/secretbox"
 	"nebula-exchange/backend/internal/shop"
+	"nebula-exchange/backend/internal/upgrades"
 	"nebula-exchange/backend/internal/users"
 )
 
@@ -129,6 +131,7 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 	accountGuard := users.NewAccountGuard(databasePool, userRepository)
 
 	catalogService := catalog.NewService(catalog.NewLoader(databasePool), catalogCacheLifetime, time.Now)
+	craftingService := crafting.NewService(databasePool, catalogService, time.Now)
 	paymentService := payments.NewService(payments.Dependencies{
 		Pool:     databasePool,
 		Users:    userRepository,
@@ -155,6 +158,8 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 		inventory.NewHandler(inventory.NewReader(databasePool)),
 		onboarding.NewHandler(databasePool),
 		ledgerhistory.NewHandler(ledgerhistory.NewReader(databasePool)),
+		crafting.NewHandler(craftingService, accountGuard.RequireStatus(users.StatusActive)),
+		upgrades.NewHandler(upgrades.NewService(databasePool, catalogService), accountGuard.RequireStatus(users.StatusActive)),
 		shop.NewHandler(shop.NewService(databasePool, catalogService), accountGuard.RequireStatus(users.StatusActive)),
 		payments.NewHandler(
 			paymentService,
@@ -196,6 +201,7 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 	jobScheduler.Register(ledger.NewCheckJob(databasePool, appLogger))
 	jobScheduler.Register(payments.NewExpiryJob(databasePool, appLogger, time.Now))
 	jobScheduler.Register(missions.NewResolverJob(databasePool, appLogger, missions.CryptoRandom, time.Now))
+	jobScheduler.Register(crafting.NewResolverJob(craftingService, appLogger))
 
 	return application{
 		router:          router,
