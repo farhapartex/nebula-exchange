@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"nebula-exchange/backend/internal/ledger"
+	"nebula-exchange/backend/internal/notify/inapp"
 	"nebula-exchange/backend/internal/payments/paymentsstore"
 	"nebula-exchange/backend/internal/platform/money"
 	"nebula-exchange/backend/internal/purpose"
@@ -39,14 +40,15 @@ type SettlementOutcome struct {
 }
 
 type Settler struct {
-	pool    *pgxpool.Pool
-	purpose *purpose.Runner
-	logger  *slog.Logger
-	now     func() time.Time
+	pool     *pgxpool.Pool
+	purpose  *purpose.Runner
+	notifier *inapp.Notifier
+	logger   *slog.Logger
+	now      func() time.Time
 }
 
-func NewSettler(pool *pgxpool.Pool, purposeRunner *purpose.Runner, logger *slog.Logger, now func() time.Time) *Settler {
-	return &Settler{pool: pool, purpose: purposeRunner, logger: logger, now: now}
+func NewSettler(pool *pgxpool.Pool, purposeRunner *purpose.Runner, notifier *inapp.Notifier, logger *slog.Logger, now func() time.Time) *Settler {
+	return &Settler{pool: pool, purpose: purposeRunner, notifier: notifier, logger: logger, now: now}
 }
 
 func (settler *Settler) Settle(ctx context.Context, request SettlementRequest) (SettlementOutcome, error) {
@@ -105,6 +107,11 @@ func (settler *Settler) Settle(ctx context.Context, request SettlementRequest) (
 			PurposeFailureCode: failureCode,
 		}); err != nil {
 			return fmt.Errorf("record purpose outcome: %w", err)
+		}
+		if settler.notifier != nil {
+			if err := settler.notifier.Notify(ctx, tx, paymentNotice(claimedPayment, request.Credited, purposeFailure)); err != nil {
+				return fmt.Errorf("notify payment: %w", err)
+			}
 		}
 		return queries.MarkExternalEventProcessed(ctx, request.Event.ID)
 	})

@@ -20,6 +20,9 @@ import (
 	"nebula-exchange/backend/internal/catalog"
 	"nebula-exchange/backend/internal/ledger"
 	"nebula-exchange/backend/internal/ledger/ledgertest"
+	"nebula-exchange/backend/internal/notify/email"
+	"nebula-exchange/backend/internal/notify/email/outbox"
+	"nebula-exchange/backend/internal/notify/inapp"
 	"nebula-exchange/backend/internal/payments"
 	"nebula-exchange/backend/internal/platform/database/databasetest"
 	"nebula-exchange/backend/internal/platform/httpserver"
@@ -37,6 +40,20 @@ type paymentsHarness struct {
 }
 
 func allowEverything(context *gin.Context) { context.Next() }
+
+func newTestNotifier(t *testing.T, userRepository *users.Repository) *inapp.Notifier {
+	t.Helper()
+	emailTemplates, err := email.NewTemplateRenderer()
+	if err != nil {
+		t.Fatalf("templates: %v", err)
+	}
+	return inapp.NewNotifier(inapp.Dependencies{
+		Users:           userRepository,
+		EmailTemplates:  emailTemplates,
+		EmailQueue:      outbox.NewQueue(),
+		FrontendBaseURL: "http://localhost:3000",
+	})
+}
 
 func newPaymentsHarness(t *testing.T) *paymentsHarness {
 	t.Helper()
@@ -60,7 +77,7 @@ func newPaymentsHarness(t *testing.T) *paymentsHarness {
 		pool:         pool,
 		router:       router,
 		accessTokens: accessTokens,
-		settler:      payments.NewSettler(pool, purpose.NewDefaultRunner(userRepository, catalogService, time.Now), testLogger, time.Now),
+		settler:      payments.NewSettler(pool, purpose.NewDefaultRunner(userRepository, catalogService, time.Now), newTestNotifier(t, userRepository), testLogger, time.Now),
 	}
 }
 
@@ -156,6 +173,13 @@ func TestEntryFeeActivatesTheAccountAndGrantsTheStarterPackOnce(t *testing.T) {
 		if holding := ledgertest.BalanceOf(t, harness.pool, ledger.PlayerItem(player, itemID)); holding.Available != expected {
 			t.Fatalf("item %d: %d, want %d", itemID, holding.Available, expected)
 		}
+	}
+
+	var paymentNotices, paymentEmails int
+	harness.pool.QueryRow(context.Background(), "SELECT count(*) FROM notifications WHERE user_id = $1 AND kind = 'payment_succeeded'", player).Scan(&paymentNotices)
+	harness.pool.QueryRow(context.Background(), "SELECT count(*) FROM email_outbox WHERE template = 'game_notice' AND subject LIKE 'Welcome aboard%'").Scan(&paymentEmails)
+	if paymentNotices != 1 || paymentEmails != 1 {
+		t.Fatalf("payment notices %d, emails %d, want 1 each", paymentNotices, paymentEmails)
 	}
 
 	_, fetched := harness.send(t, player, http.MethodGet, "/payments/"+entryFee.ID.String(), "")

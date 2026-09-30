@@ -20,6 +20,7 @@ import (
 	"nebula-exchange/backend/internal/crafting"
 	"nebula-exchange/backend/internal/ledger"
 	"nebula-exchange/backend/internal/ledger/ledgertest"
+	"nebula-exchange/backend/internal/notify/inapp"
 	"nebula-exchange/backend/internal/platform/database/databasetest"
 	"nebula-exchange/backend/internal/platform/httpserver"
 	"nebula-exchange/backend/internal/platform/logger"
@@ -48,7 +49,7 @@ func TestCraftingBurnsInputsNowAndDeliversOutputsLater(t *testing.T) {
 	clock := &testClock{currentTime: time.Now()}
 	accessTokens, _ := accesstoken.NewManager("crafting-test-secret-with-at-least-32-chars", accesstoken.DefaultLifetime, time.Now)
 	testLogger := logger.NewWithWriter(&bytes.Buffer{}, slog.LevelError, true)
-	service := crafting.NewService(pool, catalog.NewService(catalog.NewLoader(pool), time.Minute, time.Now), clock.now)
+	service := crafting.NewService(pool, catalog.NewService(catalog.NewLoader(pool), time.Minute, time.Now), inapp.NewNotifier(inapp.Dependencies{Users: users.NewRepository()}), clock.now)
 	router := httpserver.NewRouter(
 		httpserver.RouterOptions{Logger: testLogger, IdentifyUser: authentication.IdentifyUser(accessTokens)},
 		crafting.NewHandler(service, users.NewAccountGuard(pool, users.NewRepository()).RequireStatus(users.StatusActive)),
@@ -132,6 +133,11 @@ func TestCraftingBurnsInputsNowAndDeliversOutputsLater(t *testing.T) {
 	}
 	if status, decoded := send(poorCrafter, http.MethodPost, "/crafts", `{"recipe_id":"warp-core","quantity":1}`); status != http.StatusUnprocessableEntity {
 		t.Fatalf("unknown recipe: %d %v", status, decoded)
+	}
+	var craftNotices int
+	pool.QueryRow(context.Background(), "SELECT count(*) FROM notifications WHERE user_id = $1 AND kind = 'craft_completed'", crafter).Scan(&craftNotices)
+	if craftNotices != 1 {
+		t.Fatalf("craft notifications %d, want 1", craftNotices)
 	}
 	ledgertest.RequireIntegrity(t, pool)
 }

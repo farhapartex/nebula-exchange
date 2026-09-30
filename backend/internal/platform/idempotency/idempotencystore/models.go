@@ -162,6 +162,17 @@ type Mission struct {
 	AbortedAt    pgtype.Timestamptz
 }
 
+type Notification struct {
+	ID        pgtype.UUID
+	UserID    pgtype.UUID
+	Kind      string
+	Title     string
+	Body      string
+	Link      string
+	CreatedAt pgtype.Timestamptz
+	ReadAt    pgtype.Timestamptz
+}
+
 type PasswordResetToken struct {
 	ID        pgtype.UUID
 	UserID    pgtype.UUID

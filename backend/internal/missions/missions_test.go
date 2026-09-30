@@ -21,6 +21,7 @@ import (
 	"nebula-exchange/backend/internal/ledger"
 	"nebula-exchange/backend/internal/ledger/ledgertest"
 	"nebula-exchange/backend/internal/missions"
+	"nebula-exchange/backend/internal/notify/inapp"
 	"nebula-exchange/backend/internal/platform/database/databasetest"
 	"nebula-exchange/backend/internal/platform/httpserver"
 	"nebula-exchange/backend/internal/platform/logger"
@@ -76,7 +77,7 @@ func newMissionsHarness(t *testing.T) *missionsHarness {
 		router:       router,
 		accessTokens: accessTokens,
 		clock:        clock,
-		resolver:     missions.NewResolverJob(pool, testLogger, func(int) int { return 0 }, clock.now),
+		resolver:     missions.NewResolverJob(pool, inapp.NewNotifier(inapp.Dependencies{Users: users.NewRepository()}), testLogger, func(int) int { return 0 }, clock.now),
 	}
 }
 

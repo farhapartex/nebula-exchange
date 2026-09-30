@@ -32,6 +32,7 @@ import (
 	"nebula-exchange/backend/internal/missions"
 	"nebula-exchange/backend/internal/notify/email"
 	"nebula-exchange/backend/internal/notify/email/outbox"
+	"nebula-exchange/backend/internal/notify/inapp"
 	"nebula-exchange/backend/internal/onboarding"
 	"nebula-exchange/backend/internal/payments"
 	"nebula-exchange/backend/internal/platform/config"
@@ -131,7 +132,13 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 	accountGuard := users.NewAccountGuard(databasePool, userRepository)
 
 	catalogService := catalog.NewService(catalog.NewLoader(databasePool), catalogCacheLifetime, time.Now)
-	craftingService := crafting.NewService(databasePool, catalogService, time.Now)
+	gameNotifier := inapp.NewNotifier(inapp.Dependencies{
+		Users:           userRepository,
+		EmailTemplates:  emailTemplates,
+		EmailQueue:      outbox.NewQueue(),
+		FrontendBaseURL: appConfig.FrontendBaseURL,
+	})
+	craftingService := crafting.NewService(databasePool, catalogService, gameNotifier, time.Now)
 	paymentService := payments.NewService(payments.Dependencies{
 		Pool:     databasePool,
 		Users:    userRepository,
@@ -157,6 +164,7 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 		balances.NewHandler(balances.NewReader(databasePool)),
 		inventory.NewHandler(inventory.NewReader(databasePool)),
 		onboarding.NewHandler(databasePool),
+		inapp.NewHandler(databasePool, time.Now),
 		ledgerhistory.NewHandler(ledgerhistory.NewReader(databasePool)),
 		crafting.NewHandler(craftingService, accountGuard.RequireStatus(users.StatusActive)),
 		upgrades.NewHandler(upgrades.NewService(databasePool, catalogService), accountGuard.RequireStatus(users.StatusActive)),
@@ -200,7 +208,7 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 	jobScheduler.Register(maintenance.NewCleanupJob(databasePool, appLogger, time.Now))
 	jobScheduler.Register(ledger.NewCheckJob(databasePool, appLogger))
 	jobScheduler.Register(payments.NewExpiryJob(databasePool, appLogger, time.Now))
-	jobScheduler.Register(missions.NewResolverJob(databasePool, appLogger, missions.CryptoRandom, time.Now))
+	jobScheduler.Register(missions.NewResolverJob(databasePool, gameNotifier, appLogger, missions.CryptoRandom, time.Now))
 	jobScheduler.Register(crafting.NewResolverJob(craftingService, appLogger))
 
 	return application{

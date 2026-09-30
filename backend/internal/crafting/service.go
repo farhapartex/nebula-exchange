@@ -15,19 +15,21 @@ import (
 	"nebula-exchange/backend/internal/catalog"
 	"nebula-exchange/backend/internal/crafting/craftingstore"
 	"nebula-exchange/backend/internal/ledger"
+	"nebula-exchange/backend/internal/notify/inapp"
 	"nebula-exchange/backend/internal/platform/apierror"
 	"nebula-exchange/backend/internal/platform/money"
 	"nebula-exchange/backend/internal/platform/pagination"
 )
 
 type Service struct {
-	pool    *pgxpool.Pool
-	catalog *catalog.Service
-	now     func() time.Time
+	pool     *pgxpool.Pool
+	catalog  *catalog.Service
+	notifier *inapp.Notifier
+	now      func() time.Time
 }
 
-func NewService(pool *pgxpool.Pool, catalogService *catalog.Service, now func() time.Time) *Service {
-	return &Service{pool: pool, catalog: catalogService, now: now}
+func NewService(pool *pgxpool.Pool, catalogService *catalog.Service, notifier *inapp.Notifier, now func() time.Time) *Service {
+	return &Service{pool: pool, catalog: catalogService, notifier: notifier, now: now}
 }
 
 func (service *Service) Start(ctx context.Context, userID uuid.UUID, recipeID string, quantity int) (CraftJob, error) {
@@ -122,7 +124,7 @@ func (service *Service) Deliver(ctx context.Context, craftJobID uuid.UUID) (bool
 			return err
 		}
 		isDelivered = true
-		return nil
+		return service.notifyDelivery(ctx, tx, deliveredJob)
 	})
 	return isDelivered, err
 }
@@ -153,5 +155,23 @@ func (service *Service) List(ctx context.Context, userID uuid.UUID, status strin
 	}
 	return pagination.BuildPage(craftJobs, pageRequest, func(craftJob CraftJob) ListCursor {
 		return ListCursor{BeforeID: craftJob.ID}
+	})
+}
+
+func (service *Service) notifyDelivery(ctx context.Context, tx pgx.Tx, deliveredJob craftingstore.CraftJob) error {
+	if service.notifier == nil {
+		return nil
+	}
+	catalogSnapshot, err := service.catalog.Snapshot(ctx)
+	if err != nil {
+		return err
+	}
+	outputItem, _ := catalogSnapshot.ItemByID(int(deliveredJob.OutputItemID))
+	return service.notifier.Notify(ctx, tx, inapp.Notice{
+		UserID: deliveredJob.UserID,
+		Kind:   inapp.KindCraftCompleted,
+		Title:  fmt.Sprintf("%d × %s crafted", deliveredJob.OutputQuantity, outputItem.Name),
+		Body:   "your craft is finished and in your inventory. The workshop is free again.",
+		Link:   "/workshop",
 	})
 }

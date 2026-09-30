@@ -14,6 +14,9 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"nebula-exchange/backend/internal/catalog"
+	"nebula-exchange/backend/internal/notify/email"
+	"nebula-exchange/backend/internal/notify/email/outbox"
+	"nebula-exchange/backend/internal/notify/inapp"
 	"nebula-exchange/backend/internal/payments"
 	"nebula-exchange/backend/internal/platform/money"
 	"nebula-exchange/backend/internal/purpose"
@@ -40,7 +43,18 @@ func completePayment(ctx context.Context, pool *pgxpool.Pool, arguments []string
 
 	catalogService := catalog.NewService(catalog.NewLoader(pool), time.Minute, time.Now)
 	toolLogger := slog.New(slog.NewTextHandler(os.Stderr, nil))
-	settler := payments.NewSettler(pool, purpose.NewDefaultRunner(users.NewRepository(), catalogService, time.Now), toolLogger, time.Now)
+	emailTemplates, err := email.NewTemplateRenderer()
+	if err != nil {
+		return err
+	}
+	userRepository := users.NewRepository()
+	notifier := inapp.NewNotifier(inapp.Dependencies{
+		Users:           userRepository,
+		EmailTemplates:  emailTemplates,
+		EmailQueue:      outbox.NewQueue(),
+		FrontendBaseURL: frontendBaseURL(),
+	})
+	settler := payments.NewSettler(pool, purpose.NewDefaultRunner(userRepository, catalogService, time.Now), notifier, toolLogger, time.Now)
 	outcome, err := settler.Settle(ctx, payments.SettlementRequest{
 		PaymentID: paymentID,
 		Credited:  money.Micro(amountMicro),
@@ -56,4 +70,11 @@ func completePayment(ctx context.Context, pool *pgxpool.Pool, arguments []string
 	}
 	fmt.Printf("payment %s: %+v\n", paymentID, outcome)
 	return nil
+}
+
+func frontendBaseURL() string {
+	if configuredURL := os.Getenv("FRONTEND_BASE_URL"); configuredURL != "" {
+		return configuredURL
+	}
+	return "http://localhost:3000"
 }

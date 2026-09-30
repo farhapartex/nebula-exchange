@@ -2,13 +2,12 @@
 // versions:
 //   sqlc v1.31.1
 
-package activationstore
+package inappstore
 
 import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type AccountActivationToken struct {
@@ -48,7 +47,7 @@ type EmailOutbox struct {
 	MaxAttempts    int32
 	NextAttemptAt  time.Time
 	ClaimedUntil   *time.Time
-	LastError      pgtype.Text
+	LastError      *string
 	SentAt         *time.Time
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
@@ -68,8 +67,8 @@ type IdempotencyKey struct {
 	IdempotencyKey      string
 	RequestHash         []byte
 	Status              string
-	ResponseStatusCode  pgtype.Int4
-	ResponseContentType pgtype.Text
+	ResponseStatusCode  *int32
+	ResponseContentType *string
 	ResponseBody        []byte
 	CreatedAt           time.Time
 	CompletedAt         *time.Time
@@ -80,11 +79,11 @@ type Item struct {
 	Slug          string
 	Name          string
 	Category      string
-	Tier          pgtype.Int4
+	Tier          *int32
 	RarityRank    int32
 	IsTradeable   bool
 	IsAuctionOnly bool
-	MaxSupply     pgtype.Int8
+	MaxSupply     *int64
 	Description   string
 	Attributes    []byte
 	CreatedAt     time.Time
@@ -94,9 +93,9 @@ type Item struct {
 type LedgerAccount struct {
 	ID            int64
 	UserID        *uuid.UUID
-	SystemAccount pgtype.Text
-	ItemID        pgtype.Int4
-	Bucket        pgtype.Text
+	SystemAccount *string
+	ItemID        *int32
+	Bucket        *string
 	CreatedAt     time.Time
 }
 
@@ -192,18 +191,18 @@ type Payment struct {
 	Method             string
 	Status             string
 	AmountMicro        int64
-	Sku                pgtype.Text
-	CreditedMicro      pgtype.Int8
+	Sku                *string
+	CreditedMicro      *int64
 	PurposeStatus      string
-	PurposeFailureCode pgtype.Text
-	ProviderSessionID  pgtype.Text
-	CheckoutUrl        pgtype.Text
+	PurposeFailureCode *string
+	ProviderSessionID  *string
+	CheckoutUrl        *string
 	ExpiresAt          time.Time
 	SucceededAt        *time.Time
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
 	Quantity           int32
-	UpgradeID          pgtype.Text
+	UpgradeID          *string
 }
 
 type Recipe struct {
@@ -254,7 +253,7 @@ type Upgrade struct {
 	FromItemID    int32
 	ToItemID      int32
 	CraftFeeMicro int64
-	BuyPriceMicro pgtype.Int8
+	BuyPriceMicro *int64
 	IsEnabled     bool
 }
 
@@ -279,7 +278,7 @@ type User struct {
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
 	TotpEnabledAt    *time.Time
-	TotpLastUsedStep pgtype.Int8
+	TotpLastUsedStep *int64
 }
 
 type Zone struct {
