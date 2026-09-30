@@ -19,6 +19,7 @@ type PaymentMethodPickerProps = {
   onValueChange: (choice: PaymentChoice) => void;
   availableBalance?: string | null;
   label?: string;
+  isCompact?: boolean;
 };
 
 export function PaymentMethodPicker({
@@ -27,6 +28,7 @@ export function PaymentMethodPicker({
   onValueChange,
   availableBalance,
   label = "Pay with",
+  isCompact = false,
 }: PaymentMethodPickerProps) {
   return (
     <fieldset className="@container">
@@ -34,7 +36,10 @@ export function PaymentMethodPicker({
       <RadioGroup.Root
         value={value ?? undefined}
         onValueChange={(nextChoice) => onValueChange(nextChoice as PaymentChoice)}
-        className={cn("grid gap-3", choices.length === 3 ? "@2xl:grid-cols-3" : "@md:grid-cols-2")}
+        className={cn(
+          "grid gap-3",
+          isCompact ? "grid-cols-3 gap-2" : choices.length === 3 ? "@2xl:grid-cols-3" : "@md:grid-cols-2",
+        )}
       >
         {choices.map((availability) => {
           const presentation = choicePresentation[availability.choice];
@@ -45,7 +50,8 @@ export function PaymentMethodPicker({
               value={availability.choice}
               disabled={!availability.isAllowed}
               className={cn(
-                "flex items-start gap-3 rounded-xl border p-3 text-left transition-colors",
+                "flex items-start gap-3 rounded-xl border text-left transition-colors",
+                isCompact ? "flex-col gap-1.5 p-2.5" : "p-3",
                 "focus-visible:ring-2 focus-visible:ring-highlight focus-visible:outline-none",
                 "border-border bg-background/40 hover:border-border-strong",
                 "data-[state=checked]:border-accent/60 data-[state=checked]:bg-accent/10 data-[state=checked]:shadow-[0_0_20px_-10px] data-[state=checked]:shadow-accent",
@@ -61,7 +67,7 @@ export function PaymentMethodPicker({
               />
               <span className="min-w-0">
                 <span className="block text-sm font-medium text-foreground">{presentation.label}</span>
-                <span className="block text-xs text-muted">
+                <span className={cn("block text-xs text-muted", isCompact && availability.isAllowed && "hidden")}>
                   {availability.unavailableReason ??
                     (availability.choice === "balance" && availableBalance ? (
                       <>

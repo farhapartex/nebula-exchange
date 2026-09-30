@@ -5,6 +5,7 @@ export const paymentPurposeLabels: Record<PaymentPurpose, string> = {
   ENTRY_FEE: "Entry fee",
   TOPUP: "Top-up",
   SHOP_PURCHASE: "Shop purchase",
+  UPGRADE_PURCHASE: "Upgrade",
 };
 
 export const paymentMethodLabels: Record<PaymentMethod, string> = {

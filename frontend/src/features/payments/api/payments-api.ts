@@ -1,7 +1,7 @@
 import { requestData, requestList } from "@/lib/api/api-client";
 import type { PaginationParameters } from "@/lib/api/api-types";
 
-export type PaymentPurpose = "ENTRY_FEE" | "TOPUP" | "SHOP_PURCHASE";
+export type PaymentPurpose = "ENTRY_FEE" | "TOPUP" | "SHOP_PURCHASE" | "UPGRADE_PURCHASE";
 export type PaymentMethod = "card" | "crypto";
 export type PaymentStatus = "PENDING" | "SUCCEEDED" | "FAILED" | "EXPIRED" | "REFUNDED" | "DISPUTED";
 export type PurposeStatus = "PENDING" | "APPLIED" | "FAILED";
@@ -14,6 +14,7 @@ export type Payment = {
   amount: string;
   credited: string | null;
   sku: string | null;
+  upgrade_id: string | null;
   quantity: number;
   purpose_status: PurposeStatus;
   purpose_failure_code: string | null;
@@ -28,6 +29,7 @@ export type CreatePaymentRequest = {
   method: PaymentMethod;
   amount_nc?: string;
   sku?: string;
+  upgrade_id?: string;
   quantity?: number;
 };
 

@@ -12,6 +12,7 @@ import { sessionHandlers } from "@/mocks/handlers/session-handlers";
 import { settingsHandlers } from "@/mocks/handlers/settings-handlers";
 import { shopHandlers } from "@/mocks/handlers/shop-handlers";
 import { onboardingHandlers } from "@/mocks/handlers/onboarding-handlers";
+import { workshopHandlers } from "@/mocks/handlers/workshop-handlers";
 
 export const mockRequestHandlers = [
   ...healthHandlers,
@@ -27,5 +28,6 @@ export const mockRequestHandlers = [
   ...paymentsHandlers,
   ...shopHandlers,
   ...onboardingHandlers,
+  ...workshopHandlers,
   ...devShowcaseHandlers,
 ];

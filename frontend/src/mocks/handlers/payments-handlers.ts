@@ -58,6 +58,7 @@ export const paymentsHandlers = [
       amount: priceOf(createRequest),
       credited: null,
       sku: createRequest.sku ?? null,
+      upgrade_id: createRequest.upgrade_id ?? null,
       quantity: createRequest.quantity ?? 1,
       purpose_status: "PENDING",
       purpose_failure_code: null,

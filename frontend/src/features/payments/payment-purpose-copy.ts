@@ -23,6 +23,13 @@ export const purposeCopy: Record<PaymentPurpose, PurposeCopy> = {
     continueLabel: "Open wallet",
     retryHref: "/wallet",
   },
+  UPGRADE_PURCHASE: {
+    successTitle: "Upgrade complete",
+    successDescription: "Your new tier is in your inventory.",
+    continueHref: "/workshop",
+    continueLabel: "Back to the workshop",
+    retryHref: "/workshop",
+  },
   SHOP_PURCHASE: {
     successTitle: "Purchase complete",
     successDescription: "Your items are in your inventory.",
@@ -37,4 +44,6 @@ export const purposeFailureMessages: Record<string, string> = {
   ACCOUNT_NOT_ACTIVE: "Your account can't make purchases right now, so the NC stayed in your balance.",
   INSUFFICIENT_FUNDS: "The payment arrived but didn't cover the price, so the NC stayed in your balance.",
   SKU_UNAVAILABLE: "That item is no longer sold, so the NC stayed in your balance.",
+  INSUFFICIENT_ITEMS: "The item to upgrade wasn't free (sold or out on a mission), so the NC stayed in your balance.",
+  UPGRADE_UNAVAILABLE: "That upgrade is no longer sold, so the NC stayed in your balance.",
 };

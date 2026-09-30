@@ -69,7 +69,10 @@ export function ZoneCard({ zone, itemsByID, isAtMissionLimit, onLaunch }: ZoneCa
 
       {unlock && isLocked && (
         <ul className="space-y-1">
-          <RequirementCheck label={`A free drill, Tier ${zone.minimum_drill_tier} or better`} isMet={unlock.has_required_drill} />
+          <RequirementCheck
+            label={`A free drill, Tier ${zone.minimum_drill_tier} or better`}
+            isMet={unlock.has_required_drill}
+          />
           <RequirementCheck label="A free ship that can fly here" isMet={unlock.has_allowed_ship} />
           <RequirementCheck label={`${zone.fuel_cost} Fuel Cells`} isMet={unlock.has_enough_fuel} />
         </ul>
