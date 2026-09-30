@@ -3,7 +3,7 @@
 ANVIL_PORT ?= 8545
 COMPOSE := docker compose --env-file .env
 
-.PHONY: help docker-up docker-down docker-logs docker-ps chain backend-build backend-test backend-lint migrate-up migrate-down migrate-version migrate-force migrate-create sqlc-generate contracts-build contracts-test contracts-fmt dev-activate-user dev-reset-rate-limits dev-set-status dev-credit-nc dev-grant-item dev-complete-payment
+.PHONY: help docker-up docker-down docker-logs docker-ps chain backend-build backend-test backend-lint migrate-up migrate-down migrate-version migrate-force migrate-create sqlc-generate contracts-build contracts-test contracts-fmt dev-activate-user dev-reset-rate-limits dev-set-status dev-credit-nc dev-grant-item dev-complete-payment dev-finish-missions
 
 help:
 	@echo "Available commands:"
@@ -30,6 +30,7 @@ help:
 	@echo "  make dev-credit-nc email=E amount=A [bucket=B]  Credit test NC through the ledger"
 	@echo "  make dev-grant-item email=E item=I [quantity=Q] Grant test items through the ledger"
 	@echo "  make dev-complete-payment id=PAYMENT_ID     Simulate a successful card checkout"
+	@echo "  make dev-finish-missions email=E           End a player's running missions now"
 
 docker-up:
 	$(COMPOSE) up -d --build
@@ -110,3 +111,7 @@ dev-grant-item:
 dev-complete-payment:
 	@test -n "$(id)" || (echo "usage: make dev-complete-payment id=PAYMENT_ID" && exit 1)
 	$(DEVTOOL) complete-payment --id '$(id)'
+
+dev-finish-missions:
+	@test -n "$(email)" || (echo "usage: make dev-finish-missions email=pilot@nebula.test" && exit 1)
+	$(COMPOSE) exec -T postgres psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 -c "UPDATE missions SET ends_at = now(), started_at = LEAST(started_at, now() - interval '1 second') WHERE status = 'RUNNING' AND user_id = (SELECT id FROM users WHERE lower(email) = lower('$(email)')) RETURNING id, zone_id;"
