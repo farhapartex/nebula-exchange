@@ -102,7 +102,7 @@ func (scheduler *Scheduler) RunOnce(ctx context.Context, job Job) bool {
 		jobLogger.Error("job failed", slog.String("error", err.Error()), slog.Duration("duration", time.Since(startedAt)))
 		return true
 	}
-	jobLogger.Info("job finished", slog.Duration("duration", time.Since(startedAt)))
+	jobLogger.Debug("job finished", slog.Duration("duration", time.Since(startedAt)))
 	return true
 }
 
