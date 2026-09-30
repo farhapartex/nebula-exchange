@@ -4,7 +4,7 @@ import type { AuthStatus } from "@/features/auth/session/auth-context";
 export const entryFeePath = "/onboarding/pay";
 
 const publicGamePaths = ["/exchange", "/auctions", "/items"];
-const pendingPaymentPaths = [...publicGamePaths, "/settings", entryFeePath];
+const pendingPaymentPaths = [...publicGamePaths, "/settings", entryFeePath, "/payment"];
 
 export type GameRouteDecision = { kind: "allow" } | { kind: "wait" } | { kind: "redirect"; destination: string };
 

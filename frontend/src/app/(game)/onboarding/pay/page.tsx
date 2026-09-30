@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 
-import { EntryFeePlaceholder } from "@/features/onboarding/entry-fee-placeholder";
+import { EntryFeeView } from "@/features/onboarding/entry-fee-view";
 
 export const metadata: Metadata = {
   title: "Entry fee",
 };
 
 export default function EntryFeePage() {
-  return <EntryFeePlaceholder />;
+  return <EntryFeeView />;
 }

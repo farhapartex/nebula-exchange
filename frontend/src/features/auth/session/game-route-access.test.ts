@@ -27,6 +27,7 @@ describe("decideGameRouteAccess", () => {
       destination: "/onboarding/pay",
     });
     expect(decideGameRouteAccess("/settings", "authenticated", "PENDING_PAYMENT")).toEqual({ kind: "allow" });
+    expect(decideGameRouteAccess("/payment/result", "authenticated", "PENDING_PAYMENT")).toEqual({ kind: "allow" });
     expect(decideGameRouteAccess("/onboarding/pay", "authenticated", "PENDING_PAYMENT")).toEqual({ kind: "allow" });
   });
 
