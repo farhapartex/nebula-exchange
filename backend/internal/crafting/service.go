@@ -171,7 +171,7 @@ func (service *Service) notifyDelivery(ctx context.Context, tx pgx.Tx, delivered
 		UserID: deliveredJob.UserID,
 		Kind:   inapp.KindCraftCompleted,
 		Title:  fmt.Sprintf("%d × %s crafted", deliveredJob.OutputQuantity, outputItem.Name),
-		Body:   "your craft is finished and in your inventory. The workshop is free again.",
+		Body:   "Your craft is finished and in your inventory. The workshop is free again.",
 		Link:   "/workshop",
 	})
 }

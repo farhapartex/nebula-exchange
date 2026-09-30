@@ -2,6 +2,8 @@ NEBULA EXCHANGE
 
 {{.Title}}
 
-Hi {{.Username}}, {{.Body}}
+Hi {{.Username}},
+
+{{.Body}}
 
 Open Nebula Exchange: {{.Link}}

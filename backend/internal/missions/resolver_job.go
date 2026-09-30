@@ -81,7 +81,7 @@ func (job *ResolverJob) completeAndNotify(ctx context.Context, dueMission missio
 			UserID: dueMission.UserID,
 			Kind:   inapp.KindMissionCompleted,
 			Title:  snapshot.ZoneName + " mission is back",
-			Body:   "your ship returned with its haul. Collect the loot to unlock your ship and drill.",
+			Body:   "Your ship returned with its haul. Collect the loot to unlock your ship and drill.",
 			Link:   "/missions",
 		})
 	})

@@ -32,11 +32,11 @@ func paymentNotice(payment paymentsstore.Payment, credited money.Micro, purposeF
 	if purposeFailure != "" {
 		notice.Kind = inapp.KindPaymentNeedsCare
 		notice.Title = "Payment received, NC kept in your balance"
-		notice.Body = fmt.Sprintf("we received %s NC, but it couldn't be used for this order (%s). The NC is in your balance.", formatNC(credited), purposeFailure)
+		notice.Body = fmt.Sprintf("We received %s NC, but it couldn't be used for this order (%s). The NC is in your balance.", formatNC(credited), purposeFailure)
 		return notice
 	}
 	notice.Kind = inapp.KindPaymentSucceeded
 	notice.Title = successTitles[purpose.Kind(payment.Purpose)]
-	notice.Body = fmt.Sprintf("your payment of %s NC went through.", formatNC(credited))
+	notice.Body = fmt.Sprintf("Your payment of %s NC went through.", formatNC(credited))
 	return notice
 }
