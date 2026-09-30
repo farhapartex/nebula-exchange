@@ -48,3 +48,15 @@ type Journal struct {
 	Metadata  map[string]any
 	Legs      []Leg
 }
+
+var knownJournalTypes = map[JournalType]bool{
+	JournalEntryFee: true, JournalTopupCard: true, JournalTopupCrypto: true, JournalShopPurchase: true,
+	JournalStarterPack: true, JournalMissionFuel: true, JournalMissionLoot: true, JournalCraftStart: true,
+	JournalCraftOutput: true, JournalUpgrade: true, JournalTradeFill: true, JournalAuctionSettle: true,
+	JournalWithdrawal: true, JournalDeposit: true, JournalEarnedSettle: true, JournalRefund: true,
+	JournalDisputeDebit: true, JournalAdminAdjustment: true, JournalDevCredit: true,
+}
+
+func IsKnownJournalType(journalType string) bool {
+	return knownJournalTypes[JournalType(journalType)]
+}

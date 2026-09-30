@@ -7,6 +7,7 @@ package ledgerstore
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -348,6 +349,155 @@ func (q *Queries) ListAccountsByID(ctx context.Context, accountIds []int64) ([]L
 			&i.ItemID,
 			&i.Bucket,
 			&i.NegativeAvailablePolicy,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPlayerInventory = `-- name: ListPlayerInventory :many
+SELECT a.item_id::integer AS item_id, b.available, b.held
+FROM ledger_accounts a
+JOIN ledger_balances b ON b.account_id = a.id
+WHERE a.user_id = $1
+  AND a.item_id IS NOT NULL
+  AND (b.available <> 0 OR b.held <> 0)
+  AND a.item_id > $2::integer
+ORDER BY a.item_id
+LIMIT $3
+`
+
+type ListPlayerInventoryParams struct {
+	UserID      *uuid.UUID
+	AfterItemID int32
+	RowLimit    int32
+}
+
+type ListPlayerInventoryRow struct {
+	ItemID    int32
+	Available int64
+	Held      int64
+}
+
+func (q *Queries) ListPlayerInventory(ctx context.Context, arg ListPlayerInventoryParams) ([]ListPlayerInventoryRow, error) {
+	rows, err := q.db.Query(ctx, listPlayerInventory, arg.UserID, arg.AfterItemID, arg.RowLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListPlayerInventoryRow
+	for rows.Next() {
+		var i ListPlayerInventoryRow
+		if err := rows.Scan(&i.ItemID, &i.Available, &i.Held); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPlayerJournalEntries = `-- name: ListPlayerJournalEntries :many
+SELECT e.journal_id, a.item_id, a.bucket, SUM(e.amount)::bigint AS amount
+FROM ledger_entries e
+JOIN ledger_accounts a ON a.id = e.account_id
+WHERE e.journal_id = ANY($1::uuid[]) AND a.user_id = $2
+GROUP BY e.journal_id, a.item_id, a.bucket
+HAVING SUM(e.amount) <> 0
+ORDER BY e.journal_id, a.item_id NULLS FIRST, a.bucket
+`
+
+type ListPlayerJournalEntriesParams struct {
+	JournalIds []uuid.UUID
+	UserID     *uuid.UUID
+}
+
+type ListPlayerJournalEntriesRow struct {
+	JournalID uuid.UUID
+	ItemID    *int32
+	Bucket    *string
+	Amount    int64
+}
+
+func (q *Queries) ListPlayerJournalEntries(ctx context.Context, arg ListPlayerJournalEntriesParams) ([]ListPlayerJournalEntriesRow, error) {
+	rows, err := q.db.Query(ctx, listPlayerJournalEntries, arg.JournalIds, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListPlayerJournalEntriesRow
+	for rows.Next() {
+		var i ListPlayerJournalEntriesRow
+		if err := rows.Scan(
+			&i.JournalID,
+			&i.ItemID,
+			&i.Bucket,
+			&i.Amount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPlayerJournals = `-- name: ListPlayerJournals :many
+SELECT DISTINCT j.id, j.type, j.ref_type, j.ref_id, j.created_at
+FROM ledger_accounts a
+JOIN ledger_entries e ON e.account_id = a.id
+JOIN ledger_journals j ON j.id = e.journal_id
+WHERE a.user_id = $1
+  AND ($2::uuid IS NULL OR j.id < $2::uuid)
+  AND ($3::text IS NULL OR j.type = $3::text)
+ORDER BY j.id DESC
+LIMIT $4
+`
+
+type ListPlayerJournalsParams struct {
+	UserID          *uuid.UUID
+	BeforeJournalID *uuid.UUID
+	JournalType     *string
+	RowLimit        int32
+}
+
+type ListPlayerJournalsRow struct {
+	ID        uuid.UUID
+	Type      string
+	RefType   string
+	RefID     string
+	CreatedAt time.Time
+}
+
+func (q *Queries) ListPlayerJournals(ctx context.Context, arg ListPlayerJournalsParams) ([]ListPlayerJournalsRow, error) {
+	rows, err := q.db.Query(ctx, listPlayerJournals,
+		arg.UserID,
+		arg.BeforeJournalID,
+		arg.JournalType,
+		arg.RowLimit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListPlayerJournalsRow
+	for rows.Next() {
+		var i ListPlayerJournalsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Type,
+			&i.RefType,
+			&i.RefID,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}

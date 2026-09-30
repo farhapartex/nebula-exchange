@@ -50,7 +50,7 @@ func (handler *Handler) getItem(context *gin.Context) {
 		response.WriteError(context, apierror.NotFound("This item does not exist"))
 		return
 	}
-	response.WriteData(context, http.StatusOK, item)
+	response.WriteData(context, http.StatusOK, ItemDetail{Item: item, Usage: snapshot.UsageOf(itemID)})
 }
 
 func (handler *Handler) listRecipes(context *gin.Context) {

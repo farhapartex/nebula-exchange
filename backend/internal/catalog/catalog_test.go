@@ -204,3 +204,32 @@ func TestSnapshotIsCachedAndServedStaleWhenReloadFails(t *testing.T) {
 		t.Fatal("with nothing cached the load error must surface")
 	}
 }
+
+func TestItemDetailExplainsWhereAnItemComesFromAndGoes(t *testing.T) {
+	router := newCatalogRouter(t)
+
+	var crystal struct {
+		Data catalog.ItemDetail `json:"data"`
+	}
+	getJSON(t, router, "/items/3", &crystal)
+	usage := crystal.Data.Usage
+	if len(usage.InputToRecipes) != 2 || len(usage.DroppedInZones) != 2 || len(usage.CraftedBy) != 0 {
+		t.Fatalf("crystal usage %+v", usage)
+	}
+
+	var powerCore struct {
+		Data catalog.ItemDetail `json:"data"`
+	}
+	getJSON(t, router, "/items/103", &powerCore)
+	if len(powerCore.Data.Usage.CraftedBy) != 1 || len(powerCore.Data.Usage.InputToUpgrades) != 5 || len(powerCore.Data.Usage.InputToRecipes) != 1 {
+		t.Fatalf("power core usage %+v", powerCore.Data.Usage)
+	}
+
+	var scout struct {
+		Data catalog.ItemDetail `json:"data"`
+	}
+	getJSON(t, router, "/items/301", &scout)
+	if len(scout.Data.Usage.UpgradesInto) != 2 || len(scout.Data.Usage.SoldAsSKUs) != 2 {
+		t.Fatalf("scout usage %+v", scout.Data.Usage)
+	}
+}

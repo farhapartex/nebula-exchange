@@ -117,3 +117,34 @@ LEFT JOIN (
 ) hold_totals ON hold_totals.account_id = b.account_id
 WHERE b.held <> COALESCE(hold_totals.total, 0)
 LIMIT 50;
+
+-- name: ListPlayerInventory :many
+SELECT a.item_id::integer AS item_id, b.available, b.held
+FROM ledger_accounts a
+JOIN ledger_balances b ON b.account_id = a.id
+WHERE a.user_id = @user_id
+  AND a.item_id IS NOT NULL
+  AND (b.available <> 0 OR b.held <> 0)
+  AND a.item_id > @after_item_id::integer
+ORDER BY a.item_id
+LIMIT @row_limit;
+
+-- name: ListPlayerJournals :many
+SELECT DISTINCT j.id, j.type, j.ref_type, j.ref_id, j.created_at
+FROM ledger_accounts a
+JOIN ledger_entries e ON e.account_id = a.id
+JOIN ledger_journals j ON j.id = e.journal_id
+WHERE a.user_id = @user_id
+  AND (sqlc.narg(before_journal_id)::uuid IS NULL OR j.id < sqlc.narg(before_journal_id)::uuid)
+  AND (sqlc.narg(journal_type)::text IS NULL OR j.type = sqlc.narg(journal_type)::text)
+ORDER BY j.id DESC
+LIMIT @row_limit;
+
+-- name: ListPlayerJournalEntries :many
+SELECT e.journal_id, a.item_id, a.bucket, SUM(e.amount)::bigint AS amount
+FROM ledger_entries e
+JOIN ledger_accounts a ON a.id = e.account_id
+WHERE e.journal_id = ANY(@journal_ids::uuid[]) AND a.user_id = @user_id
+GROUP BY e.journal_id, a.item_id, a.bucket
+HAVING SUM(e.amount) <> 0
+ORDER BY e.journal_id, a.item_id NULLS FIRST, a.bucket;

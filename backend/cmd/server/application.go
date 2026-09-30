@@ -24,7 +24,9 @@ import (
 	"nebula-exchange/backend/internal/balances"
 	"nebula-exchange/backend/internal/catalog"
 	"nebula-exchange/backend/internal/health"
+	"nebula-exchange/backend/internal/inventory"
 	"nebula-exchange/backend/internal/ledger"
+	"nebula-exchange/backend/internal/ledgerhistory"
 	"nebula-exchange/backend/internal/maintenance"
 	"nebula-exchange/backend/internal/notify/email"
 	"nebula-exchange/backend/internal/notify/email/outbox"
@@ -138,6 +140,8 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 		login.NewHandler(loginService, cookieSettings, time.Now, rateLimits.PerClientIP(ratelimit.LoginPolicy)),
 		users.NewMeHandler(databasePool, userRepository),
 		balances.NewHandler(balances.NewReader(databasePool)),
+		inventory.NewHandler(inventory.NewReader(databasePool)),
+		ledgerhistory.NewHandler(ledgerhistory.NewReader(databasePool)),
 		activation.NewHandler(activation.NewService(databasePool, userRepository, time.Now)),
 		activation.NewResendHandler(
 			activation.NewResender(databasePool, userRepository, activationIssuer, activationMailer, time.Now),
