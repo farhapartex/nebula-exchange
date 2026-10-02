@@ -233,3 +233,35 @@ func (service *Service) List(ctx context.Context, userID uuid.UUID, pageRequest 
 		return ListCursor{BeforeID: payment.ID}
 	})
 }
+
+func (service *Service) Cancel(ctx context.Context, userID, paymentID uuid.UUID) (Payment, error) {
+	pendingPayment, err := service.Get(ctx, userID, paymentID)
+	if err != nil {
+		return Payment{}, err
+	}
+	if pendingPayment.Status != StatusPending {
+		return pendingPayment, nil
+	}
+	paymentRow, err := service.queries.GetPaymentForUser(ctx, paymentsstore.GetPaymentForUserParams{ID: paymentID, UserID: userID})
+	if err != nil {
+		return Payment{}, fmt.Errorf("load payment: %w", err)
+	}
+	if paymentRow.ProviderSessionID != nil {
+		cancelErr := service.dependencies.Checkout.CancelSession(ctx, *paymentRow.ProviderSessionID)
+		if errors.Is(cancelErr, ErrCheckoutAlreadyPaid) {
+			return Payment{}, apierror.Conflict("This payment was already completed").WithDetails(map[string]string{"status": "PAID"})
+		}
+		if cancelErr != nil {
+			return Payment{}, fmt.Errorf("cancel checkout session: %w", cancelErr)
+		}
+	}
+	failedAt := service.dependencies.Now()
+	failedRow, err := service.queries.FailPendingPayment(ctx, paymentsstore.FailPendingPaymentParams{ID: paymentID, UserID: userID, FailedAt: failedAt})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return service.Get(ctx, userID, paymentID)
+	}
+	if err != nil {
+		return Payment{}, fmt.Errorf("fail payment: %w", err)
+	}
+	return paymentFromRow(failedRow), nil
+}

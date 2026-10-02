@@ -37,6 +37,7 @@ func (handler *Handler) RegisterRoutes(router gin.IRouter) {
 	paymentRoutes.POST("", handler.rateLimit, handler.accountGuard, handler.createPayment)
 	paymentRoutes.GET("", handler.listPayments)
 	paymentRoutes.GET("/:paymentID", handler.getPayment)
+	paymentRoutes.POST("/:paymentID/cancellations", handler.cancelPayment)
 }
 
 func (handler *Handler) createPayment(context *gin.Context) {
@@ -69,6 +70,21 @@ func (handler *Handler) getPayment(context *gin.Context) {
 	}
 	userID, _ := authentication.UserIDFrom(context)
 	payment, err := handler.service.Get(context.Request.Context(), userID, paymentID)
+	if err != nil {
+		response.WriteError(context, err)
+		return
+	}
+	response.WriteData(context, http.StatusOK, payment)
+}
+
+func (handler *Handler) cancelPayment(context *gin.Context) {
+	paymentID, err := uuid.Parse(context.Param("paymentID"))
+	if err != nil {
+		response.WriteError(context, apierror.NotFound("This payment does not exist"))
+		return
+	}
+	userID, _ := authentication.UserIDFrom(context)
+	payment, err := handler.service.Cancel(context.Request.Context(), userID, paymentID)
 	if err != nil {
 		response.WriteError(context, err)
 		return

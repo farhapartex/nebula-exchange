@@ -13,7 +13,9 @@ import (
 
 type Querier interface {
 	ClaimPendingPayment(ctx context.Context, arg ClaimPendingPaymentParams) (Payment, error)
+	ExpirePendingPayment(ctx context.Context, arg ExpirePendingPaymentParams) (uuid.UUID, error)
 	ExpirePendingPayments(ctx context.Context, now time.Time) ([]uuid.UUID, error)
+	FailPendingPayment(ctx context.Context, arg FailPendingPaymentParams) (Payment, error)
 	GetPayment(ctx context.Context, id uuid.UUID) (Payment, error)
 	GetPaymentForUser(ctx context.Context, arg GetPaymentForUserParams) (Payment, error)
 	InsertExternalEvent(ctx context.Context, arg InsertExternalEventParams) (string, error)

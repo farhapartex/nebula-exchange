@@ -48,6 +48,27 @@ type Config struct {
 	Database        DatabaseConfig
 	Email           EmailConfig
 	Session         SessionConfig
+	Stripe          StripeConfig
+}
+
+type StripeConfig struct {
+	SecretKey     string
+	WebhookSecret string
+}
+
+func (stripeConfig StripeConfig) IsConfigured() bool {
+	return stripeConfig.SecretKey != ""
+}
+
+func loadStripeConfig() (StripeConfig, error) {
+	stripeConfig := StripeConfig{
+		SecretKey:     readString("STRIPE_SECRET_KEY", ""),
+		WebhookSecret: readString("STRIPE_WEBHOOK_SECRET", ""),
+	}
+	if stripeConfig.SecretKey != "" && stripeConfig.WebhookSecret == "" {
+		return StripeConfig{}, fmt.Errorf("STRIPE_WEBHOOK_SECRET is required when STRIPE_SECRET_KEY is set")
+	}
+	return stripeConfig, nil
 }
 
 func Load() (Config, error) {
@@ -93,6 +114,11 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	stripeConfig, err := loadStripeConfig()
+	if err != nil {
+		return Config{}, err
+	}
+
 	return Config{
 		Environment:     environment,
 		HTTPPort:        httpPort,
@@ -105,6 +131,7 @@ func Load() (Config, error) {
 		Database:        databaseConfig,
 		Email:           emailConfig,
 		Session:         sessionConfig,
+		Stripe:          stripeConfig,
 	}, nil
 }
 

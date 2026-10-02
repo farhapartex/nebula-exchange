@@ -41,6 +41,7 @@ import (
 	"nebula-exchange/backend/internal/platform/ratelimit"
 	"nebula-exchange/backend/internal/platform/scheduler"
 	"nebula-exchange/backend/internal/platform/secretbox"
+	"nebula-exchange/backend/internal/purpose"
 	"nebula-exchange/backend/internal/shop"
 	"nebula-exchange/backend/internal/upgrades"
 	"nebula-exchange/backend/internal/users"
@@ -147,6 +148,8 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 		Now:      time.Now,
 	})
 
+	paymentSettler := payments.NewSettler(databasePool, purpose.NewDefaultRunner(userRepository, catalogService, time.Now), gameNotifier, appLogger, time.Now)
+
 	router := httpserver.NewRouter(httpserver.RouterOptions{
 		Logger:           appLogger,
 		IsProduction:     appConfig.IsProduction(),
@@ -169,6 +172,7 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 		crafting.NewHandler(craftingService, accountGuard.RequireStatus(users.StatusActive)),
 		upgrades.NewHandler(upgrades.NewService(databasePool, catalogService), accountGuard.RequireStatus(users.StatusActive)),
 		shop.NewHandler(shop.NewService(databasePool, catalogService), accountGuard.RequireStatus(users.StatusActive)),
+		payments.NewStripeWebhookHandler(databasePool, paymentSettler, appConfig.Stripe.WebhookSecret, appLogger, time.Now),
 		payments.NewHandler(
 			paymentService,
 			accountGuard.RequireStatus(users.StatusActive, users.StatusPendingPayment),
@@ -219,6 +223,9 @@ func buildApplication(appConfig config.Config, appLogger *slog.Logger, databaseP
 }
 
 func cardCheckoutFor(appConfig config.Config) payments.CardCheckout {
+	if appConfig.Stripe.IsConfigured() {
+		return payments.NewStripeCheckout(appConfig.Stripe.SecretKey, appConfig.FrontendBaseURL, time.Now)
+	}
 	if appConfig.Environment == config.EnvironmentDevelopment {
 		return payments.NewDevelopmentCheckout(appConfig.FrontendBaseURL)
 	}

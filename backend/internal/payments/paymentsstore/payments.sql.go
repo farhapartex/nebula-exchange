@@ -51,9 +51,28 @@ func (q *Queries) ClaimPendingPayment(ctx context.Context, arg ClaimPendingPayme
 	return i, err
 }
 
+const expirePendingPayment = `-- name: ExpirePendingPayment :one
+UPDATE payments
+SET status = 'EXPIRED', purpose_status = 'FAILED', purpose_failure_code = 'CHECKOUT_EXPIRED', updated_at = $1
+WHERE id = $2 AND status = 'PENDING'
+RETURNING id
+`
+
+type ExpirePendingPaymentParams struct {
+	ExpiredAt time.Time
+	ID        uuid.UUID
+}
+
+func (q *Queries) ExpirePendingPayment(ctx context.Context, arg ExpirePendingPaymentParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, expirePendingPayment, arg.ExpiredAt, arg.ID)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
 const expirePendingPayments = `-- name: ExpirePendingPayments :many
 UPDATE payments
-SET status = 'EXPIRED', updated_at = $1
+SET status = 'EXPIRED', purpose_status = 'FAILED', purpose_failure_code = 'CHECKOUT_EXPIRED', updated_at = $1
 WHERE status = 'PENDING' AND expires_at <= $1
 RETURNING id
 `
@@ -76,6 +95,45 @@ func (q *Queries) ExpirePendingPayments(ctx context.Context, now time.Time) ([]u
 		return nil, err
 	}
 	return items, nil
+}
+
+const failPendingPayment = `-- name: FailPendingPayment :one
+UPDATE payments
+SET status = 'FAILED', purpose_status = 'FAILED', purpose_failure_code = 'CHECKOUT_CANCELLED', updated_at = $1
+WHERE id = $2 AND user_id = $3 AND status = 'PENDING'
+RETURNING id, user_id, purpose, method, status, amount_micro, sku, credited_micro, purpose_status, purpose_failure_code, provider_session_id, checkout_url, expires_at, succeeded_at, created_at, updated_at, quantity, upgrade_id
+`
+
+type FailPendingPaymentParams struct {
+	FailedAt time.Time
+	ID       uuid.UUID
+	UserID   uuid.UUID
+}
+
+func (q *Queries) FailPendingPayment(ctx context.Context, arg FailPendingPaymentParams) (Payment, error) {
+	row := q.db.QueryRow(ctx, failPendingPayment, arg.FailedAt, arg.ID, arg.UserID)
+	var i Payment
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Purpose,
+		&i.Method,
+		&i.Status,
+		&i.AmountMicro,
+		&i.Sku,
+		&i.CreditedMicro,
+		&i.PurposeStatus,
+		&i.PurposeFailureCode,
+		&i.ProviderSessionID,
+		&i.CheckoutUrl,
+		&i.ExpiresAt,
+		&i.SucceededAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Quantity,
+		&i.UpgradeID,
+	)
+	return i, err
 }
 
 const getPayment = `-- name: GetPayment :one

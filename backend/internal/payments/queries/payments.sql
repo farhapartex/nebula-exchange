@@ -41,7 +41,7 @@ WHERE id = @id;
 
 -- name: ExpirePendingPayments :many
 UPDATE payments
-SET status = 'EXPIRED', updated_at = @now
+SET status = 'EXPIRED', purpose_status = 'FAILED', purpose_failure_code = 'CHECKOUT_EXPIRED', updated_at = @now
 WHERE status = 'PENDING' AND expires_at <= @now
 RETURNING id;
 
@@ -53,3 +53,15 @@ RETURNING id;
 
 -- name: MarkExternalEventProcessed :exec
 UPDATE external_events SET processed_at = now() WHERE id = @id;
+
+-- name: FailPendingPayment :one
+UPDATE payments
+SET status = 'FAILED', purpose_status = 'FAILED', purpose_failure_code = 'CHECKOUT_CANCELLED', updated_at = @failed_at
+WHERE id = @id AND user_id = @user_id AND status = 'PENDING'
+RETURNING *;
+
+-- name: ExpirePendingPayment :one
+UPDATE payments
+SET status = 'EXPIRED', purpose_status = 'FAILED', purpose_failure_code = 'CHECKOUT_EXPIRED', updated_at = @expired_at
+WHERE id = @id AND status = 'PENDING'
+RETURNING id;

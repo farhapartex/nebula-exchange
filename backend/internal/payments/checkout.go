@@ -8,7 +8,10 @@ import (
 	"github.com/google/uuid"
 )
 
-var ErrCardPaymentsUnavailable = errors.New("card payments are not configured")
+var (
+	ErrCardPaymentsUnavailable = errors.New("card payments are not configured")
+	ErrCheckoutAlreadyPaid     = errors.New("checkout session was already paid")
+)
 
 type CheckoutSession struct {
 	ProviderSessionID string
@@ -23,6 +26,7 @@ type CheckoutRequest struct {
 
 type CardCheckout interface {
 	CreateSession(ctx context.Context, request CheckoutRequest) (CheckoutSession, error)
+	CancelSession(ctx context.Context, providerSessionID string) error
 }
 
 type DevelopmentCheckout struct {
@@ -38,7 +42,15 @@ func (checkout *DevelopmentCheckout) CreateSession(_ context.Context, request Ch
 	return CheckoutSession{ProviderSessionID: "development_" + request.PaymentID.String(), URL: resultURL}, nil
 }
 
+func (checkout *DevelopmentCheckout) CancelSession(context.Context, string) error {
+	return nil
+}
+
 type UnavailableCheckout struct{}
+
+func (UnavailableCheckout) CancelSession(context.Context, string) error {
+	return ErrCardPaymentsUnavailable
+}
 
 func (UnavailableCheckout) CreateSession(context.Context, CheckoutRequest) (CheckoutSession, error) {
 	return CheckoutSession{}, ErrCardPaymentsUnavailable
