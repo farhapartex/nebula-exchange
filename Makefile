@@ -3,7 +3,7 @@
 ANVIL_PORT ?= 8545
 COMPOSE := docker compose --env-file .env
 
-.PHONY: help docker-up docker-down docker-logs docker-ps chain backend-build backend-test backend-lint migrate-up migrate-down migrate-version migrate-force migrate-create sqlc-generate contracts-build contracts-test contracts-fmt dev-activate-user dev-reset-rate-limits dev-set-status dev-credit-nc dev-grant-item dev-complete-payment dev-finish-missions
+.PHONY: help docker-up docker-down docker-logs docker-ps chain backend-build backend-test backend-lint migrate-up migrate-down migrate-version migrate-force migrate-create sqlc-generate contracts-build contracts-test contracts-fmt dev-activate-user dev-reset-rate-limits dev-set-status dev-credit-nc dev-grant-item dev-complete-payment dev-finish-missions stripe-listen
 
 help:
 	@echo "Available commands:"
@@ -12,6 +12,7 @@ help:
 	@echo "  make docker-logs   Follow container logs"
 	@echo "  make docker-ps     Show container status"
 	@echo "  make chain         Start a local Anvil chain on the host"
+	@echo "  make stripe-listen  Forward Stripe test webhooks to the local backend"
 	@echo "  make backend-build Build the backend binary into backend/bin"
 	@echo "  make backend-test  Run backend tests with the race detector"
 	@echo "  make backend-lint  Check formatting and run go vet"
@@ -46,6 +47,9 @@ docker-ps:
 
 chain:
 	anvil --host 0.0.0.0 --port $(ANVIL_PORT) --chain-id 31337
+
+stripe-listen:
+	stripe listen --api-key $(STRIPE_SECRET_KEY) --events checkout.session.completed,checkout.session.expired,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed --forward-to localhost:8080/api/v1/webhooks/stripe
 
 backend-build:
 	cd backend && go build -o bin/server ./cmd/server
