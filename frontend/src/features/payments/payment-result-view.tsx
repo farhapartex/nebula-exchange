@@ -82,7 +82,10 @@ export function PaymentResultView() {
           completed: copy.successDescription,
           credited_only:
             purposeFailureMessages[payment?.purpose_failure_code ?? ""] ?? "The NC stayed in your balance.",
-          failed: "Nothing was charged. You can try again.",
+          failed:
+            payment?.status === "EXPIRED"
+              ? "The checkout timed out and nothing was charged. You can start a new payment."
+              : "Nothing was charged. You can try again.",
           timed_out: "Your card provider is taking longer than usual. We'll notify you as soon as it's confirmed.",
         }[outcome]
       }
@@ -114,11 +117,13 @@ export function PaymentResultView() {
           </Button>
         )}
       </div>
-      {process.env.NODE_ENV === "development" && payment?.status === "PENDING" && (
-        <p className="mt-4 rounded-lg border border-dashed border-border-strong px-3 py-2 font-mono text-xs text-subtle">
-          dev checkout: make dev-complete-payment id={payment.id}
-        </p>
-      )}
+      {process.env.NODE_ENV === "development" &&
+        payment?.status === "PENDING" &&
+        payment.checkout_url?.includes("/payment/result") && (
+          <p className="mt-4 rounded-lg border border-dashed border-border-strong px-3 py-2 font-mono text-xs text-subtle">
+            dev checkout: make dev-complete-payment id={payment.id}
+          </p>
+        )}
     </ResultCard>
   );
 }

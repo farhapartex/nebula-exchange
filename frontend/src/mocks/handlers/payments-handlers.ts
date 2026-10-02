@@ -77,6 +77,19 @@ export const paymentsHandlers = [
       ? mockDataResponse(settleWhenDue(payment))
       : mockErrorResponse(404, "NOT_FOUND", "This payment does not exist");
   }),
+  http.post(buildApiUrl("/payments/:paymentID/cancellations"), async ({ params }) => {
+    await simulateLatency(150);
+    const payment = mockPayments.get(String(params.paymentID));
+    if (!payment) {
+      return mockErrorResponse(404, "NOT_FOUND", "This payment does not exist");
+    }
+    const cancelledPayment: Payment =
+      payment.status === "PENDING"
+        ? { ...payment, status: "FAILED", purpose_status: "FAILED", purpose_failure_code: "CHECKOUT_CANCELLED" }
+        : payment;
+    mockPayments.set(cancelledPayment.id, cancelledPayment);
+    return mockDataResponse(cancelledPayment);
+  }),
   http.get(buildApiUrl("/payments"), async ({ request }) => {
     await simulateLatency();
     const newestFirst = [...mockPayments.values()].map(settleWhenDue).reverse();

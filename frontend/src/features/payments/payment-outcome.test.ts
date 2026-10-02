@@ -39,5 +39,6 @@ describe("describePaymentOutcome", () => {
   it("reports failed and expired payments", () => {
     expect(describePaymentOutcome({ ...pendingPayment, status: "EXPIRED" }, false)).toBe("failed");
     expect(describePaymentOutcome({ ...pendingPayment, status: "FAILED" }, false)).toBe("failed");
+    expect(isPaymentSettled({ ...pendingPayment, status: "EXPIRED" })).toBe(true);
   });
 });

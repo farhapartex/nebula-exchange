@@ -18,6 +18,11 @@ export function describePaymentOutcome(payment: Payment | undefined, hasPollingT
   return "processing";
 }
 
+const finalUnpaidStatuses = new Set<Payment["status"]>(["FAILED", "EXPIRED"]);
+
 export function isPaymentSettled(payment: Payment | undefined): boolean {
-  return payment !== undefined && payment.status !== "PENDING" && payment.purpose_status !== "PENDING";
+  if (payment === undefined || payment.status === "PENDING") {
+    return false;
+  }
+  return finalUnpaidStatuses.has(payment.status) || payment.purpose_status !== "PENDING";
 }

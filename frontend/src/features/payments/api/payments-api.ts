@@ -46,3 +46,7 @@ export function fetchPayment(paymentID: string): Promise<Payment> {
 export function listPayments(pagination: PaginationParameters) {
   return requestList<Payment>("/payments", pagination);
 }
+
+export function cancelPayment(paymentID: string): Promise<Payment> {
+  return requestData<Payment>(`/payments/${paymentID}/cancellations`, { method: "POST" });
+}
