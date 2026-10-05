@@ -10,6 +10,14 @@ import (
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/httpserver/response"
 )
 
+type CurrentPlayerResponse struct {
+	Name         string `json:"name"`
+	Email        string `json:"email"`
+	CurrentLevel int    `json:"current_level"`
+	TotalWin     int    `json:"total_win"`
+	TotalLose    int    `json:"total_lose"`
+}
+
 type ProfileHandler struct {
 	profileService service.ProfileService
 }
@@ -24,10 +32,16 @@ func (handler *ProfileHandler) RegisterRoutes(router gin.IRouter) {
 
 func (handler *ProfileHandler) getMe(context *gin.Context) {
 	userID, _ := authentication.UserIDFrom(context)
-	currentUser, err := handler.profileService.CurrentUser(context.Request.Context(), userID)
+	currentPlayer, err := handler.profileService.CurrentPlayer(context.Request.Context(), userID)
 	if err != nil {
 		response.WriteError(context, err)
 		return
 	}
-	response.WriteData(context, http.StatusOK, toUserProfileResponse(currentUser))
+	response.WriteData(context, http.StatusOK, CurrentPlayerResponse{
+		Name:         currentPlayer.Name,
+		Email:        currentPlayer.Email,
+		CurrentLevel: currentPlayer.CurrentLevel,
+		TotalWin:     currentPlayer.TotalWins,
+		TotalLose:    currentPlayer.TotalLosses,
+	})
 }

@@ -9,8 +9,16 @@ import (
 	"github.com/farhapartex/nebula-exchange/backend/internal/identity/repository"
 )
 
+type PlayerSummary struct {
+	Name         string
+	Email        string
+	CurrentLevel int
+	TotalWins    int
+	TotalLosses  int
+}
+
 type ProfileService interface {
-	CurrentUser(ctx context.Context, userID uuid.UUID) (models.User, error)
+	CurrentPlayer(ctx context.Context, userID uuid.UUID) (PlayerSummary, error)
 }
 
 type profileService struct {
@@ -21,13 +29,13 @@ func NewProfileService(users repository.UserRepository) ProfileService {
 	return &profileService{users: users}
 }
 
-func (profile *profileService) CurrentUser(ctx context.Context, userID uuid.UUID) (models.User, error) {
+func (profile *profileService) CurrentPlayer(ctx context.Context, userID uuid.UUID) (PlayerSummary, error) {
 	currentUser, isFound, err := profile.users.FindByID(ctx, userID)
 	if err != nil {
-		return models.User{}, err
+		return PlayerSummary{}, err
 	}
 	if !isFound || currentUser.Status == models.UserStatusBanned {
-		return models.User{}, ErrNotLoggedIn
+		return PlayerSummary{}, ErrNotLoggedIn
 	}
-	return currentUser, nil
+	return PlayerSummary{Name: currentUser.Username, Email: currentUser.Email}, nil
 }

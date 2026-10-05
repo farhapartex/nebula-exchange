@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"log/slog"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -199,8 +200,9 @@ func TestPlayerSignsUpActivatesLogsInAndReadsProfile(t *testing.T) {
 	harness.requireStatus(harness.send(http.MethodGet, "/me", nil, ""), http.StatusUnauthorized)
 	profileResponse := harness.send(http.MethodGet, "/me", nil, accessToken)
 	harness.requireStatus(profileResponse, http.StatusOK)
-	if profileResponse.data()["username"] != playerUsername || profileResponse.data()["is_active"] != true || profileResponse.data()["last_login_at"] == nil {
-		t.Fatalf("unexpected profile %v", profileResponse.data())
+	expectedProfile := map[string]any{"name": playerUsername, "email": playerEmail, "current_level": float64(0), "total_win": float64(0), "total_lose": float64(0)}
+	if !maps.Equal(profileResponse.data(), expectedProfile) {
+		t.Fatalf("got profile %v, want exactly %v", profileResponse.data(), expectedProfile)
 	}
 }
 
