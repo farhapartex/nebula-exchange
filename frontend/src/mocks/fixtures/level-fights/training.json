@@ -1,0 +1,222 @@
+{
+  "level_id": "training",
+  "time_limit_seconds": 120,
+  "arena": {
+    "name": "Training ground",
+    "width": 960,
+    "floor_y": 470,
+    "stage": {
+      "world_units_per_pixel": 0.0105,
+      "background_color": "#040909",
+      "fog": {
+        "color": "#061012",
+        "density": 0.05
+      },
+      "ambient_light": {
+        "color": "#13312f",
+        "intensity": 0.8
+      },
+      "rim_light": {
+        "color": "#2dd4bf",
+        "intensity": 1.6,
+        "position": [3, 4, -5]
+      },
+      "fire_lights": [
+        {
+          "position": [-3, 1.4, -1],
+          "color": "#5eead4",
+          "intensity": 7,
+          "distance": 10,
+          "flicker": 0.08
+        },
+        {
+          "position": [3.4, 1.6, -1.2],
+          "color": "#93c5fd",
+          "intensity": 6,
+          "distance": 10,
+          "flicker": 0.06
+        },
+        {
+          "position": [0, 0.6, 2.2],
+          "color": "#fef3c7",
+          "intensity": 3,
+          "distance": 7,
+          "flicker": 0.05
+        }
+      ],
+      "floor": {
+        "color": "#0b1513",
+        "depth": 16
+      },
+      "layers": [
+        {
+          "id": "rainy-village",
+          "image": "/story/1-1/01-edge-of-the-village.webp",
+          "crop": {
+            "x": 0,
+            "y": 0.05,
+            "width": 0.55,
+            "height": 0.6
+          },
+          "position": [-4, 5.07, -10],
+          "width": 7,
+          "brightness": 0.6,
+          "edge_fade": 0.22,
+          "is_lit": false
+        },
+        {
+          "id": "empty-room",
+          "image": "/story/1-1/02-no-one-left.webp",
+          "crop": {
+            "x": 0,
+            "y": 0.08,
+            "width": 1,
+            "height": 0.38
+          },
+          "position": [2.6, 2.34, -6],
+          "width": 8,
+          "brightness": 0.6,
+          "edge_fade": 0.2,
+          "is_lit": true
+        }
+      ],
+      "silhouettes": [
+        {
+          "id": "left-post",
+          "position": [-5, 2, 2.5],
+          "size": [0.45, 5],
+          "rotation_degrees": 2,
+          "color": "#030606"
+        },
+        {
+          "id": "roof-beam",
+          "position": [0, 4.2, 1.6],
+          "size": [13, 0.4],
+          "rotation_degrees": -1,
+          "color": "#040808"
+        }
+      ],
+      "smoke": {
+        "color": "#1f3a38",
+        "count": 6,
+        "opacity": 0.22
+      },
+      "embers": {
+        "count": 140,
+        "colors": ["#5eead4", "#a5f3fc", "#e2e8f0"]
+      },
+      "bloom": {
+        "strength": 0.7,
+        "radius": 0.5,
+        "threshold": 0.62
+      },
+      "grade": {
+        "vignette": 0.6,
+        "grain": 0.06,
+        "tint": "#14b8a6"
+      },
+      "camera": {
+        "field_of_view": 34,
+        "height": 1.25,
+        "look_height": 1.02,
+        "close_distance": 5.2,
+        "far_distance": 7.6,
+        "follow_speed": 2.6,
+        "knockout_zoom": 0.72
+      }
+    }
+  },
+  "player": {
+    "id": "boy",
+    "name": "The boy",
+    "title": "Nobody",
+    "stats": {
+      "max_health": 100,
+      "max_stamina": 100,
+      "stamina_regen_per_second": 22,
+      "walk_speed": 210,
+      "block_damage_reduction": 0.75,
+      "block_stamina_cost": 12,
+      "dodge_stamina_cost": 22,
+      "dodge_duration_ms": 280,
+      "dodge_distance": 130,
+      "punch": {
+        "damage": 8,
+        "stamina_cost": 7,
+        "range": 78,
+        "windup_ms": 90,
+        "active_ms": 80,
+        "recovery_ms": 170,
+        "knockback": 12,
+        "hit_stun_ms": 260
+      },
+      "kick": {
+        "damage": 14,
+        "stamina_cost": 15,
+        "range": 104,
+        "windup_ms": 200,
+        "active_ms": 100,
+        "recovery_ms": 280,
+        "knockback": 30,
+        "hit_stun_ms": 380
+      }
+    },
+    "look": {
+      "body_color": "#f5ede5",
+      "outline_color": "#f97316",
+      "height": 150,
+      "width": 44
+    }
+  },
+  "enemy": {
+    "id": "training-dummy",
+    "name": "Training dummy",
+    "title": "Straw and rope",
+    "stats": {
+      "max_health": 400,
+      "max_stamina": 90,
+      "stamina_regen_per_second": 16,
+      "walk_speed": 0,
+      "block_damage_reduction": 0.6,
+      "block_stamina_cost": 14,
+      "dodge_stamina_cost": 30,
+      "dodge_duration_ms": 320,
+      "dodge_distance": 110,
+      "punch": {
+        "damage": 9,
+        "stamina_cost": 9,
+        "range": 82,
+        "windup_ms": 260,
+        "active_ms": 90,
+        "recovery_ms": 260,
+        "knockback": 16,
+        "hit_stun_ms": 280
+      },
+      "kick": {
+        "damage": 15,
+        "stamina_cost": 16,
+        "range": 110,
+        "windup_ms": 380,
+        "active_ms": 110,
+        "recovery_ms": 340,
+        "knockback": 34,
+        "hit_stun_ms": 400
+      }
+    },
+    "look": {
+      "body_color": "#a16207",
+      "outline_color": "#fde68a",
+      "height": 160,
+      "width": 54
+    },
+    "brain": {
+      "aggression": 0,
+      "block_chance": 0.2,
+      "dodge_chance": 0,
+      "preferred_range": 90,
+      "reaction_ms": 700,
+      "punch_weight": 1,
+      "kick_weight": 0
+    }
+  }
+}

@@ -1,10 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Bebas_Neue, Geist, Geist_Mono } from "next/font/google";
+
+import { gameBrand } from "@/lib/brand/game-brand";
+
+import { Providers } from "./providers";
 
 import "./globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const bebasNeue = Bebas_Neue({
+  variable: "--font-bebas-neue",
+  weight: "400",
   subsets: ["latin"],
 });
 
@@ -14,20 +24,23 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  description: gameBrand.tagline,
   title: {
-    default: "Nebula Exchange",
-    template: "%s · Nebula Exchange",
+    default: gameBrand.title,
+    template: `%s · ${gameBrand.title}`,
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#05070f",
+  themeColor: "#0a0807",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col">{children}</body>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${bebasNeue.variable} h-full antialiased`}>
+      <body className="flex min-h-full flex-col">
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

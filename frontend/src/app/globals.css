@@ -1,20 +1,20 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #05070f;
-  --color-surface: #0b1020;
-  --color-surface-raised: #121a31;
-  --color-border: #1e2944;
-  --color-border-strong: #2c3a5e;
+  --color-background: #0a0807;
+  --color-surface: #15100d;
+  --color-surface-raised: #1f1814;
+  --color-border: #2c221c;
+  --color-border-strong: #43342b;
 
-  --color-foreground: #e7ecf7;
-  --color-muted: #8d98b3;
-  --color-subtle: #5d6883;
+  --color-foreground: #f5ede5;
+  --color-muted: #b5a598;
+  --color-subtle: #7c6b5f;
 
-  --color-accent: #8b5cf6;
-  --color-accent-strong: #7c3aed;
-  --color-accent-soft: #c4b5fd;
-  --color-highlight: #22d3ee;
+  --color-accent: #f97316;
+  --color-accent-strong: #ea580c;
+  --color-accent-soft: #fdba74;
+  --color-highlight: #2dd4bf;
 
   --color-up: #22c55e;
   --color-up-soft: #14532d;
@@ -25,11 +25,13 @@
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+  --font-display: var(--font-bebas-neue), Impact, "Arial Narrow", sans-serif;
 
   --animate-fade-in: fade-in 150ms ease-out;
   --animate-pop-in: pop-in 180ms cubic-bezier(0.16, 1, 0.3, 1);
   --animate-slide-in: slide-in 220ms cubic-bezier(0.16, 1, 0.3, 1);
   --animate-drawer-in: drawer-in 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-ember-rise: ember-rise 6s linear infinite;
 
   @keyframes fade-in {
     from {
@@ -56,6 +58,20 @@
       translate: 0 0.75rem;
     }
   }
+
+  @keyframes ember-rise {
+    0% {
+      opacity: 0;
+      translate: 0 0;
+    }
+    15% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      translate: 1.5rem -24rem;
+    }
+  }
 }
 
 @layer base {
@@ -66,14 +82,14 @@
   body {
     background-color: var(--color-background);
     background-image:
-      radial-gradient(60rem 40rem at 10% -10%, rgb(139 92 246 / 0.14), transparent 60%),
-      radial-gradient(50rem 35rem at 110% 10%, rgb(34 211 238 / 0.08), transparent 60%);
+      radial-gradient(60rem 40rem at 0% 110%, rgb(249 115 22 / 0.12), transparent 60%),
+      radial-gradient(50rem 35rem at 110% -10%, rgb(45 212 191 / 0.07), transparent 60%);
     background-attachment: fixed;
     color: var(--color-foreground);
     font-family: var(--font-sans);
   }
 
   ::selection {
-    background-color: rgb(139 92 246 / 0.4);
+    background-color: rgb(249 115 22 / 0.4);
   }
 }
