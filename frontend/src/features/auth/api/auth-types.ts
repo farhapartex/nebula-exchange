@@ -26,6 +26,14 @@ export type UserProfile = {
   last_login_at: string | null;
 };
 
+export type CurrentPlayer = {
+  name: string;
+  email: string;
+  current_level: number;
+  total_win: number;
+  total_lose: number;
+};
+
 export type LoginRequest = {
   email: string;
   password: string;
