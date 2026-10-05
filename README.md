@@ -88,6 +88,26 @@ make migrate-version
 - State-changing requests must send `X-Nebula-Client: web`. Webhooks are exempt.
 - Coin amounts are integers in micro-units (1 coin is 1,000,000) and travel as JSON strings.
 
+### Identity endpoints
+
+| Method and path | Purpose |
+| --- | --- |
+| `POST /auth/signup` | Create an unverified account and queue the activation email |
+| `GET /auth/activations/{token}` | Show which account an activation link belongs to |
+| `POST /auth/activations` | Activate the account. The player then logs in |
+| `POST /auth/login` | Return an access token and set the refresh cookie |
+| `POST /auth/refresh` | Rotate the refresh cookie and return a new access token |
+| `POST /auth/logout` | End the current session |
+| `GET /me` | The logged in player's profile |
+
+Access tokens last 15 minutes and are sent as `Authorization: Bearer`. The refresh token lives in an httpOnly cookie for 30 days and is replaced on every refresh. If an old refresh token is ever used again, every session in that login chain is ended.
+
+Emails are never sent inside a request. They are written to the `email_outbox` table in the same transaction as the change that caused them, and a background worker sends them with retries. In development they land in Mailpit.
+
+### Tests
+
+`make backend-test` runs every test. Tests that need a database create a fresh one on the Postgres from `make docker-up` and drop it afterwards. Without that database they are skipped; set `REQUIRE_DATABASE_TESTS=true` to make them fail instead.
+
 ## Database
 
 The table design is in `backend/docs/database-design.drawio`. Open it with draw.io or the draw.io extension for VS Code. Tables are grouped by the domains above.
