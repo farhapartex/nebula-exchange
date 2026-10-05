@@ -2,28 +2,29 @@ package health
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 
-	"nebula-exchange/backend/internal/platform/httpserver/response"
+	"github.com/farhapartex/nebula-exchange/backend/internal/platform/httpserver/response"
 )
 
-type Status struct {
-	Status    string    `json:"status"`
-	CheckedAt time.Time `json:"checked_at"`
+type Handler struct {
+	healthService Service
 }
 
-type Handler struct{}
-
-func NewHandler() *Handler {
-	return &Handler{}
+func NewHandler(healthService Service) *Handler {
+	return &Handler{healthService: healthService}
 }
 
 func (handler *Handler) RegisterRoutes(router gin.IRouter) {
-	router.GET("/health", handler.getHealth)
+	router.GET("/health", handler.showHealth)
 }
 
-func (handler *Handler) getHealth(context *gin.Context) {
-	response.WriteData(context, http.StatusOK, Status{Status: "ok", CheckedAt: time.Now().UTC()})
+func (handler *Handler) showHealth(context *gin.Context) {
+	report := handler.healthService.Check(context.Request.Context())
+	statusCode := http.StatusOK
+	if !report.IsHealthy() {
+		statusCode = http.StatusServiceUnavailable
+	}
+	response.WriteData(context, statusCode, report)
 }

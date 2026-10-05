@@ -3,8 +3,8 @@ package response
 import (
 	"github.com/gin-gonic/gin"
 
-	"nebula-exchange/backend/internal/platform/apierror"
-	"nebula-exchange/backend/internal/platform/pagination"
+	"github.com/farhapartex/nebula-exchange/backend/internal/platform/apierror"
+	"github.com/farhapartex/nebula-exchange/backend/internal/platform/pagination"
 )
 
 type DataEnvelope struct {

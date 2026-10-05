@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 
-	"nebula-exchange/backend/internal/platform/apierror"
+	"github.com/farhapartex/nebula-exchange/backend/internal/platform/apierror"
 )
 
 func BindJSON(context *gin.Context, destination any) error {

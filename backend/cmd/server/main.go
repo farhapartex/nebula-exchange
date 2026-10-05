@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 
-	"nebula-exchange/backend/internal/platform/config"
-	"nebula-exchange/backend/internal/platform/database"
-	"nebula-exchange/backend/internal/platform/httpserver"
-	"nebula-exchange/backend/internal/platform/logger"
-	"nebula-exchange/backend/internal/platform/redisclient"
+	"github.com/farhapartex/nebula-exchange/backend/internal/platform/config"
+	"github.com/farhapartex/nebula-exchange/backend/internal/platform/database"
+	"github.com/farhapartex/nebula-exchange/backend/internal/platform/httpserver"
+	"github.com/farhapartex/nebula-exchange/backend/internal/platform/logger"
+	"github.com/farhapartex/nebula-exchange/backend/internal/platform/redisclient"
 )
 
 func main() {
@@ -32,11 +31,11 @@ func run() error {
 	shutdownSignal, stopListening := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stopListening()
 
-	databasePool, err := database.NewPool(shutdownSignal, appConfig.Database)
+	gormDatabase, err := database.Open(shutdownSignal, appConfig.Database, appLogger)
 	if err != nil {
 		return fmt.Errorf("connect database: %w", err)
 	}
-	defer databasePool.Close()
+	defer database.Close(gormDatabase)
 
 	redisClient, err := redisclient.New(shutdownSignal, appConfig.RedisURL)
 	if err != nil {
@@ -44,25 +43,11 @@ func run() error {
 	}
 	defer redisClient.Close()
 
-	application, err := buildApplication(appConfig, appLogger, databasePool, redisClient)
+	router, err := buildRouter(appConfig, appLogger, gormDatabase, redisClient)
 	if err != nil {
-		return err
+		return fmt.Errorf("build router: %w", err)
 	}
 
-	var backgroundWorkers sync.WaitGroup
-	backgroundWorkers.Add(2)
-	go func() {
-		defer backgroundWorkers.Done()
-		application.emailDispatcher.Run(shutdownSignal)
-	}()
-	go func() {
-		defer backgroundWorkers.Done()
-		application.jobScheduler.Run(shutdownSignal)
-	}()
-
-	server := httpserver.New(appConfig.HTTPAddress(), application.router, appLogger)
-	serverError := server.Run(shutdownSignal, appConfig.ShutdownTimeout)
-	stopListening()
-	backgroundWorkers.Wait()
-	return serverError
+	server := httpserver.New(appConfig.HTTPAddress(), router, appLogger)
+	return server.Run(shutdownSignal, appConfig.ShutdownTimeout)
 }

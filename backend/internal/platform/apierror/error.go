@@ -50,6 +50,14 @@ func Conflict(message string) *Error {
 	return New(http.StatusConflict, CodeConflict, message)
 }
 
+func MethodNotAllowed() *Error {
+	return New(http.StatusMethodNotAllowed, CodeMethodNotAllowed, "Method not allowed")
+}
+
+func ServiceUnavailable(message string) *Error {
+	return New(http.StatusServiceUnavailable, CodeServiceUnavailable, message)
+}
+
 func Internal() *Error {
 	return New(http.StatusInternalServerError, CodeInternalError, "Something went wrong")
 }

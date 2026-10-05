@@ -9,8 +9,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"nebula-exchange/backend/internal/platform/apierror"
-	"nebula-exchange/backend/internal/platform/pagination"
+	"github.com/farhapartex/nebula-exchange/backend/internal/platform/apierror"
+	"github.com/farhapartex/nebula-exchange/backend/internal/platform/pagination"
 )
 
 func newRecordingContext() (*gin.Context, *httptest.ResponseRecorder) {

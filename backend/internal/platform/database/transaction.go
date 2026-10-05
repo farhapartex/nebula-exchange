@@ -2,28 +2,36 @@ package database
 
 import (
 	"context"
-	"errors"
-	"fmt"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"gorm.io/gorm"
 )
 
-func WithTransaction(ctx context.Context, pool *pgxpool.Pool, work func(transaction pgx.Tx) error) error {
-	transaction, err := pool.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("begin transaction: %w", err)
-	}
+type transactionContextKey struct{}
 
-	if err := work(transaction); err != nil {
-		if rollbackErr := transaction.Rollback(ctx); rollbackErr != nil && !errors.Is(rollbackErr, pgx.ErrTxClosed) {
-			return errors.Join(err, fmt.Errorf("rollback transaction: %w", rollbackErr))
-		}
-		return err
-	}
+type TransactionRunner interface {
+	WithinTransaction(ctx context.Context, work func(ctx context.Context) error) error
+}
 
-	if err := transaction.Commit(ctx); err != nil {
-		return fmt.Errorf("commit transaction: %w", err)
+type GormTransactionRunner struct {
+	database *gorm.DB
+}
+
+func NewTransactionRunner(database *gorm.DB) *GormTransactionRunner {
+	return &GormTransactionRunner{database: database}
+}
+
+func (runner *GormTransactionRunner) WithinTransaction(ctx context.Context, work func(ctx context.Context) error) error {
+	if _, isInsideTransaction := ctx.Value(transactionContextKey{}).(*gorm.DB); isInsideTransaction {
+		return work(ctx)
 	}
-	return nil
+	return runner.database.WithContext(ctx).Transaction(func(transaction *gorm.DB) error {
+		return work(context.WithValue(ctx, transactionContextKey{}, transaction))
+	})
+}
+
+func Session(ctx context.Context, database *gorm.DB) *gorm.DB {
+	if transaction, isInsideTransaction := ctx.Value(transactionContextKey{}).(*gorm.DB); isInsideTransaction {
+		return transaction.WithContext(ctx)
+	}
+	return database.WithContext(ctx)
 }

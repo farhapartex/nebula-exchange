@@ -1,9 +1,0 @@
-NEBULA EXCHANGE
-
-{{.Title}}
-
-Hi {{.Username}},
-
-{{.Body}}
-
-Open Nebula Exchange: {{.Link}}
