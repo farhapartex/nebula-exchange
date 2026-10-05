@@ -19,7 +19,6 @@ func Open(ctx context.Context, databaseConfig config.DatabaseConfig, logger *slo
 	database, err := gorm.Open(postgres.Open(databaseConfig.URL), &gorm.Config{
 		Logger:                 newQueryLogger(logger),
 		NowFunc:                func() time.Time { return time.Now().UTC() },
-		TranslateError:         true,
 		SkipDefaultTransaction: true,
 	})
 	if err != nil {

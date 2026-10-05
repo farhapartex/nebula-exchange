@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+const MinimumJWTSecretLength = 32
+
 const (
 	EnvironmentDevelopment = "development"
 	EnvironmentProduction  = "production"
@@ -21,6 +23,20 @@ type DatabaseConfig struct {
 	ConnectionMaxLifetime time.Duration
 }
 
+type EmailConfig struct {
+	SMTPHost     string
+	SMTPPort     int
+	SMTPUsername string
+	SMTPPassword string
+	FromAddress  string
+	FromName     string
+}
+
+type SessionConfig struct {
+	JWTSecret      string
+	IsCookieSecure bool
+}
+
 type Config struct {
 	Environment     string
 	HTTPPort        int
@@ -29,7 +45,10 @@ type Config struct {
 	AllowedOrigins  []string
 	TrustedProxies  []string
 	RedisURL        string
+	FrontendBaseURL string
 	Database        DatabaseConfig
+	Email           EmailConfig
+	Session         SessionConfig
 }
 
 func Load() (Config, error) {
@@ -63,6 +82,16 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	emailConfig, err := loadEmailConfig()
+	if err != nil {
+		return Config{}, err
+	}
+
+	sessionConfig, err := loadSessionConfig(environment)
+	if err != nil {
+		return Config{}, err
+	}
+
 	return Config{
 		Environment:     environment,
 		HTTPPort:        httpPort,
@@ -71,8 +100,38 @@ func Load() (Config, error) {
 		AllowedOrigins:  readList("FRONTEND_ORIGINS", []string{"http://localhost:3000"}),
 		TrustedProxies:  trustedProxies,
 		RedisURL:        readString("REDIS_URL", "redis://localhost:6379/0"),
+		FrontendBaseURL: readString("FRONTEND_BASE_URL", "http://localhost:3000"),
 		Database:        databaseConfig,
+		Email:           emailConfig,
+		Session:         sessionConfig,
 	}, nil
+}
+
+func loadEmailConfig() (EmailConfig, error) {
+	smtpPort, err := readInt("SMTP_PORT", 1025)
+	if err != nil {
+		return EmailConfig{}, err
+	}
+	return EmailConfig{
+		SMTPHost:     readString("SMTP_HOST", "localhost"),
+		SMTPPort:     smtpPort,
+		SMTPUsername: readString("SMTP_USERNAME", ""),
+		SMTPPassword: readString("SMTP_PASSWORD", ""),
+		FromAddress:  readString("EMAIL_FROM_ADDRESS", "no-reply@streetborn.test"),
+		FromName:     readString("EMAIL_FROM_NAME", "Street Born"),
+	}, nil
+}
+
+func loadSessionConfig(environment string) (SessionConfig, error) {
+	jwtSecret := readString("JWT_SECRET", "")
+	if len(jwtSecret) < MinimumJWTSecretLength {
+		return SessionConfig{}, fmt.Errorf("JWT_SECRET must be at least %d characters", MinimumJWTSecretLength)
+	}
+	isCookieSecure, err := readBool("COOKIE_SECURE", environment != EnvironmentDevelopment)
+	if err != nil {
+		return SessionConfig{}, err
+	}
+	return SessionConfig{JWTSecret: jwtSecret, IsCookieSecure: isCookieSecure}, nil
 }
 
 func LoadDatabaseConfig() (DatabaseConfig, error) {

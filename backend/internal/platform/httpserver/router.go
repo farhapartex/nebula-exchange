@@ -6,9 +6,11 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/apierror"
+	"github.com/farhapartex/nebula-exchange/backend/internal/platform/httpserver/authentication"
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/httpserver/middleware"
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/httpserver/request"
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/httpserver/response"
+	"github.com/farhapartex/nebula-exchange/backend/internal/platform/idempotency"
 )
 
 const (
@@ -25,6 +27,8 @@ type RouterOptions struct {
 	IsProduction   bool
 	AllowedOrigins []string
 	TrustedProxies []string
+	AccessTokens   authentication.AccessTokenVerifier
+	Idempotency    idempotency.Store
 }
 
 func NewRouter(options RouterOptions, registrars ...RouteRegistrar) (*gin.Engine, error) {
@@ -52,9 +56,15 @@ func NewRouter(options RouterOptions, registrars ...RouteRegistrar) (*gin.Engine
 		middleware.SecurityHeaders(options.IsProduction),
 	)
 	if len(options.AllowedOrigins) > 0 {
-		router.Use(middleware.CrossOrigin(options.AllowedOrigins))
+		router.Use(middleware.CrossOrigin(options.AllowedOrigins, idempotency.ReplayedHeader))
 	}
 	router.Use(middleware.RequireClientIdentification(webhookPathPrefix))
+	if options.AccessTokens != nil {
+		router.Use(authentication.IdentifyUser(options.AccessTokens))
+	}
+	if options.Idempotency != nil {
+		router.Use(idempotency.Middleware(options.Idempotency, options.Logger, idempotency.Options{}))
+	}
 
 	apiGroup := router.Group(APIBasePath)
 	for _, registrar := range registrars {
