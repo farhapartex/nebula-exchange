@@ -1,0 +1,33 @@
+package handler
+
+import (
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+
+	"github.com/farhapartex/nebula-exchange/backend/internal/identity/service"
+	"github.com/farhapartex/nebula-exchange/backend/internal/platform/httpserver/authentication"
+	"github.com/farhapartex/nebula-exchange/backend/internal/platform/httpserver/response"
+)
+
+type ProfileHandler struct {
+	profileService service.ProfileService
+}
+
+func NewProfileHandler(profileService service.ProfileService) *ProfileHandler {
+	return &ProfileHandler{profileService: profileService}
+}
+
+func (handler *ProfileHandler) RegisterRoutes(router gin.IRouter) {
+	router.GET("/me", authentication.RequireUser(), handler.getMe)
+}
+
+func (handler *ProfileHandler) getMe(context *gin.Context) {
+	userID, _ := authentication.UserIDFrom(context)
+	currentUser, err := handler.profileService.CurrentUser(context.Request.Context(), userID)
+	if err != nil {
+		response.WriteError(context, err)
+		return
+	}
+	response.WriteData(context, http.StatusOK, toUserProfileResponse(currentUser))
+}

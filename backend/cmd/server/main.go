@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/config"
@@ -43,11 +44,17 @@ func run() error {
 	}
 	defer redisClient.Close()
 
-	router, err := buildRouter(appConfig, appLogger, gormDatabase, redisClient)
+	app, err := buildApplication(shutdownSignal, appConfig, appLogger, gormDatabase, redisClient)
 	if err != nil {
-		return fmt.Errorf("build router: %w", err)
+		return fmt.Errorf("build application: %w", err)
 	}
 
-	server := httpserver.New(appConfig.HTTPAddress(), router, appLogger)
-	return server.Run(shutdownSignal, appConfig.ShutdownTimeout)
+	var backgroundWorkers sync.WaitGroup
+	backgroundWorkers.Go(func() { app.emailDispatcher.Run(shutdownSignal) })
+
+	server := httpserver.New(appConfig.HTTPAddress(), app.router, appLogger)
+	serverError := server.Run(shutdownSignal, appConfig.ShutdownTimeout)
+	stopListening()
+	backgroundWorkers.Wait()
+	return serverError
 }
