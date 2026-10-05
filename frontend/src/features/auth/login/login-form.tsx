@@ -10,13 +10,11 @@ import { useForm, useWatch } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
-import { isTwoFactorChallenge, type EstablishedSession, type TwoFactorChallenge } from "@/features/auth/api/auth-types";
 import { logIn } from "@/features/auth/api/session-api";
 import { LoginErrorBanner } from "@/features/auth/login/login-error-banner";
 import { LoginThrottleBanner } from "@/features/auth/login/login-throttle-banner";
 import { loginFieldNames, loginSchema, type LoginFormValues } from "@/features/auth/login/login-schema";
 import { SessionEndNotice } from "@/features/auth/login/session-end-notice";
-import { TwoFactorLoginStep } from "@/features/auth/login/two-factor-login-step";
 import { parseSessionEndReason } from "@/features/auth/session/session-end-reasons";
 import { useAuth } from "@/features/auth/session/use-auth";
 import { isApiError } from "@/lib/api/api-error";
@@ -38,8 +36,6 @@ export function LoginForm() {
   const { startSession } = useAuth();
 
   const [activeThrottle, setActiveThrottle] = useState<LoginThrottle | null>(null);
-  const [pendingChallenge, setPendingChallenge] = useState<TwoFactorChallenge | null>(null);
-  const [restartMessage, setRestartMessage] = useState<string | null>(null);
   const throttleCooldown = useCooldown(fallbackThrottleSeconds);
 
   const {
@@ -60,13 +56,9 @@ export function LoginForm() {
     mutationFn: (formValues: LoginFormValues) =>
       logIn({ email: formValues.email.trim(), password: formValues.password }),
     meta: { showsThrottlingInline: true },
-    onSuccess: (loginResponse) => {
-      setRestartMessage(null);
-      if (isTwoFactorChallenge(loginResponse)) {
-        setPendingChallenge(loginResponse);
-        return;
-      }
-      finishLogin(loginResponse);
+    onSuccess: (establishedSession) => {
+      startSession(establishedSession);
+      router.replace(safeInternalPath(searchParameters.get("next")) ?? defaultPathAfterLogin);
     },
     onError: (error, formValues) => {
       if (isApiError(error) && (error.code === "LOGIN_LOCKED" || error.code === "RATE_LIMITED")) {
@@ -78,11 +70,6 @@ export function LoginForm() {
     },
   });
 
-  function finishLogin(establishedSession: EstablishedSession) {
-    startSession(establishedSession);
-    router.replace(safeInternalPath(searchParameters.get("next")) ?? defaultPathAfterLogin);
-  }
-
   const isThrottleActive = activeThrottle !== null && throttleCooldown.isCoolingDown;
   const isTypedEmailThrottled =
     isThrottleActive &&
@@ -92,20 +79,6 @@ export function LoginForm() {
   const sessionEndReason = parseSessionEndReason(searchParameters.get("reason"));
   const shouldShowSessionEndNotice = sessionEndReason !== null && !loginMutation.isError;
 
-  if (pendingChallenge) {
-    return (
-      <TwoFactorLoginStep
-        challenge={pendingChallenge}
-        onSessionEstablished={finishLogin}
-        onRestart={(reasonMessage) => {
-          setPendingChallenge(null);
-          loginMutation.reset();
-          setRestartMessage(reasonMessage ?? null);
-        }}
-      />
-    );
-  }
-
   return (
     <form onSubmit={handleSubmit((formValues) => loginMutation.mutate(formValues))} noValidate className="space-y-5">
       <div>
@@ -113,13 +86,7 @@ export function LoginForm() {
         <p className="mt-1 text-sm text-muted">Log in to continue your story.</p>
       </div>
 
-      {shouldShowSessionEndNotice && !restartMessage && <SessionEndNotice reason={sessionEndReason} />}
-
-      {restartMessage && (
-        <p role="status" className="rounded-lg border border-info/40 bg-info/10 p-3 text-sm text-foreground">
-          {restartMessage}
-        </p>
-      )}
+      {shouldShowSessionEndNotice && <SessionEndNotice reason={sessionEndReason} />}
 
       {isTypedEmailThrottled && (
         <LoginThrottleBanner reason={activeThrottle.reason} remainingSeconds={throttleCooldown.remainingSeconds} />
