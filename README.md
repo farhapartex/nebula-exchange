@@ -50,11 +50,19 @@ The backend is a single Go service split by domain (a modular monolith). Each do
 | `tools` | Tool catalogue, owned tools, mastery, loadout |
 | `economy` | Coin wallet, ledger, coin packs, Stripe payments, player market |
 
-Inside a domain the code is layered the same way every time:
+Every domain uses the same folders:
 
-- `handler` reads the HTTP request, calls the service and writes the response. It holds no business rules.
+```
+internal/identity/
+  models/       GORM structs mapped to the domain's tables
+  repository/   Postgres access through GORM, behind interfaces
+  service/      every business rule, exposed through interfaces
+  handler/      HTTP handlers (the views): read the request, call the service, write the response
+```
+
+- `handler` holds no business rules. It only translates HTTP to service calls and back.
 - `service` holds every business rule. Handlers and other domains only ever see its interface.
-- `repository` talks to Postgres through GORM, behind an interface, so services can be tested without a database.
+- `repository` hides GORM behind an interface, so services can be tested without a database.
 
 Domains never reach into each other's tables. When one domain needs another, it calls that domain's service interface. Work that spans domains, such as buying a tool on the market (coins move and the tool changes owner), runs inside one database transaction through the shared `TransactionRunner`.
 
