@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS levels;
+DROP TYPE IF EXISTS level_kind;
