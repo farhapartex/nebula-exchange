@@ -45,6 +45,7 @@ func newIdempotencyTestHarness(t *testing.T, options idempotency.Options) *idemp
 		context.JSON(int(harness.nextStatusCode.Load()), gin.H{"data": gin.H{"call_number": callNumber}})
 	}
 	router.POST("/orders", handleOrder)
+	router.POST("/sessions", handleOrder)
 	router.GET("/orders", handleOrder)
 	harness.router = router
 	return harness
@@ -200,5 +201,19 @@ func TestMalformedKeyIsRejected(t *testing.T) {
 	requireStatus(t, rejectedResponse, http.StatusBadRequest)
 	if harness.handlerCallCount.Load() != 0 {
 		t.Fatal("handler should not run for a malformed key")
+	}
+}
+
+func TestExemptRoutesAreNeverReplayed(t *testing.T) {
+	harness := newIdempotencyTestHarness(t, idempotency.Options{ExemptRoutes: []string{"/sessions"}})
+
+	for attempt := 0; attempt < 2; attempt++ {
+		request := httptest.NewRequest(http.MethodPost, "/sessions", strings.NewReader(orderBody))
+		request.Header.Set(idempotency.KeyHeader, "session-key-0001")
+		harness.router.ServeHTTP(httptest.NewRecorder(), request)
+	}
+
+	if harness.handlerCallCount.Load() != 2 {
+		t.Fatalf("handler ran %d times, want 2 for an exempt route", harness.handlerCallCount.Load())
 	}
 }

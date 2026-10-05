@@ -53,6 +53,7 @@ func buildApplication(ctx context.Context, appConfig config.Config, appLogger *s
 			TrustedProxies: appConfig.TrustedProxies,
 			AccessTokens:   identityModule.AccessTokens,
 			Idempotency:    idempotency.NewGormStore(gormDatabase),
+			NonReplayable:  identityModule.NonReplayableRoutes(),
 		},
 		append([]httpserver.RouteRegistrar{health.NewHandler(buildHealthService(appLogger, gormDatabase, redisClient))}, identityModule.RouteRegistrars()...)...,
 	)

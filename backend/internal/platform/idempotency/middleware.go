@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -23,6 +24,7 @@ const (
 )
 
 type Options struct {
+	ExemptRoutes     []string
 	Retention        time.Duration
 	InProgressTTL    time.Duration
 	MaximumBodyBytes int64
@@ -65,7 +67,7 @@ func withDefaults(options Options) Options {
 
 func (idempotencyMiddleware *middleware) handle(context *gin.Context) {
 	key := context.GetHeader(KeyHeader)
-	if key == "" || !isStateChangingMethod(context.Request.Method) {
+	if key == "" || !isStateChangingMethod(context.Request.Method) || slices.Contains(idempotencyMiddleware.options.ExemptRoutes, context.FullPath()) {
 		context.Next()
 		return
 	}

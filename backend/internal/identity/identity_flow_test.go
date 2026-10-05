@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -17,6 +18,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/farhapartex/nebula-exchange/backend/internal/identity"
+	"github.com/farhapartex/nebula-exchange/backend/internal/identity/handler"
 	"github.com/farhapartex/nebula-exchange/backend/internal/identity/models"
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/config"
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/database/databasetest"
@@ -58,9 +60,10 @@ func newIdentityHarness(t *testing.T) *identityHarness {
 		t.Fatalf("build identity module: %v", err)
 	}
 	router, err := httpserver.NewRouter(httpserver.RouterOptions{
-		Logger:       quietLogger,
-		AccessTokens: identityModule.AccessTokens,
-		Idempotency:  idempotency.NewGormStore(testDatabase),
+		Logger:        quietLogger,
+		AccessTokens:  identityModule.AccessTokens,
+		Idempotency:   idempotency.NewGormStore(testDatabase),
+		NonReplayable: identityModule.NonReplayableRoutes(),
 	}, identityModule.RouteRegistrars()...)
 	if err != nil {
 		t.Fatalf("build router: %v", err)
@@ -95,6 +98,9 @@ func (harness *identityHarness) send(method, path string, body any, accessToken 
 	testRequest := httptest.NewRequest(method, "/api/v1"+path, requestBody)
 	testRequest.Header.Set("Content-Type", "application/json")
 	testRequest.Header.Set("X-Nebula-Client", "web")
+	if slices.Contains(handler.NonReplayableRoutes, path) {
+		testRequest.Header.Set("Idempotency-Key", "same-key-for-every-session-call")
+	}
 	if accessToken != "" {
 		testRequest.Header.Set("Authorization", "Bearer "+accessToken)
 	}

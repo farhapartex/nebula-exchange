@@ -11,6 +11,8 @@ import (
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/httpserver/response"
 )
 
+var NonReplayableRoutes = []string{"/auth/login", "/auth/refresh", "/auth/logout"}
+
 type loginRequest struct {
 	Email    string `json:"email" binding:"required,max=254"`
 	Password string `json:"password" binding:"required,max=128"`

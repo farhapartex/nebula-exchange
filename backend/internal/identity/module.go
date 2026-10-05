@@ -88,6 +88,10 @@ func NewModule(ctx context.Context, dependencies ModuleDependencies) (*Module, e
 	}, nil
 }
 
+func (module *Module) NonReplayableRoutes() []string {
+	return handler.NonReplayableRoutes
+}
+
 func (module *Module) RouteRegistrars() []httpserver.RouteRegistrar {
 	return module.registrars
 }

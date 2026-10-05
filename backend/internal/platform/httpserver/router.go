@@ -29,6 +29,7 @@ type RouterOptions struct {
 	TrustedProxies []string
 	AccessTokens   authentication.AccessTokenVerifier
 	Idempotency    idempotency.Store
+	NonReplayable  []string
 }
 
 func NewRouter(options RouterOptions, registrars ...RouteRegistrar) (*gin.Engine, error) {
@@ -63,7 +64,7 @@ func NewRouter(options RouterOptions, registrars ...RouteRegistrar) (*gin.Engine
 		router.Use(authentication.IdentifyUser(options.AccessTokens))
 	}
 	if options.Idempotency != nil {
-		router.Use(idempotency.Middleware(options.Idempotency, options.Logger, idempotency.Options{}))
+		router.Use(idempotency.Middleware(options.Idempotency, options.Logger, idempotency.Options{ExemptRoutes: withAPIBasePath(options.NonReplayable)}))
 	}
 
 	apiGroup := router.Group(APIBasePath)
@@ -71,4 +72,12 @@ func NewRouter(options RouterOptions, registrars ...RouteRegistrar) (*gin.Engine
 		registrar.RegisterRoutes(apiGroup)
 	}
 	return router, nil
+}
+
+func withAPIBasePath(routePaths []string) []string {
+	fullPaths := make([]string, len(routePaths))
+	for pathIndex, routePath := range routePaths {
+		fullPaths[pathIndex] = APIBasePath + routePath
+	}
+	return fullPaths
 }
