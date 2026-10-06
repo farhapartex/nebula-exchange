@@ -123,12 +123,22 @@ Images live in a private MinIO bucket. `image` is a presigned link that works fo
 | --- | --- |
 | `GET /levels/{level_id}/fight-setup` | Everything the fight screen needs: time limit, arena and stage, the player's fighter and the enemy of the first wave |
 | `POST /fight-sessions` | Body `{"level": "1-1"}`. Called when the player presses Play on the last story slide. Records that the level was started but not finished |
+| `POST /fight-sessions/{id}/results` | Body `{"outcome": "WON", "duration_ms": 40000, "damage_dealt": 95, "damage_taken": 30}`. Sent once when the fight ends |
 
 The response has the fight `id`, `level`, `status` (`STARTED`), `started_at` and a server `seed` (as a string, because it does not fit in a JavaScript number). Rules:
 
 - Chapter 1 level 1 is always open. Every other level opens only after the level before it has been won, across chapters too. A locked level returns 403 `LEVEL_LOCKED`.
 - Pressing Play again on a level with an unfinished fight marks that fight `ABANDONED` and starts a new one. There is never more than one open fight per player and level.
 - Every start adds one attempt to the player's progress for that level.
+
+How a result is handled:
+
+- The frontend reports what happened. The server decides whether it is believable and works out the stars itself. Rewards are always worked out on the server.
+- A fight can only be won by knocking the enemy out. When time runs out it is a loss, whatever the health bars show.
+- A win adds 1 to `total_win`, marks the level completed (which unlocks the next level) and keeps the best stars. A loss adds 1 to `total_lose`. Quitting or closing the tab changes nothing.
+- Stars come from the level's time slots, counted in fight time, so pauses do not count. Level 1: 3 stars within 45 seconds, 2 within 70, 1 within 90.
+- A report is rejected (`FIGHT_RESULT_REJECTED`, nothing counted, reason stored on the fight) when, for example, the enemy was not knocked out in a win, the fight is longer than the time limit or than the real time since it started, the damage is more than the fighters can deal in that time, or the fight was paused for more than 10 minutes in total.
+- A fight takes one result. A second one returns 409.
 
 The player's fighter comes from their `fighter_profiles` row. A player gets that row the first time they press Play, copied from the default fighter template (the boy). Until then the fight setup and `/me` use the template itself, so `current_level` starts at the template's starting level, which is 1.
 
@@ -166,4 +176,6 @@ These were agreed before the backend was started. Anything not listed here is st
 
 **Accounts.** Signup sends an activation link. Activation makes the account active and the player can start Chapter 1 right away. There is no onboarding payment.
 
-**Fair play.** The server gives every fight a random seed when it starts and checks that the reported result is believable (time taken, damage dealt and taken, moves used). The input log of every fight is stored, so a full server-side replay check can be added later without changing the data.
+**Fair play.** The server gives every fight a random seed when it starts and checks that the reported result is believable (time taken, damage dealt and taken). Next, the engine will use that seed and record an input log, so a full server-side replay check can be added later without changing the data.
+
+**Fight results.** Knock the enemy out to win; running out of time is a loss. Wins and losses are counted for the player, a loss can be replayed straight away, and quitting is not counted. Pauses can add up to at most 10 minutes per fight. Stars depend on how fast the fight was won (level 1: 45, 70 and 90 seconds for 3, 2 and 1 stars). Rewards stay at 0 until the economy is designed.
