@@ -30,6 +30,7 @@ type LevelCatalog interface {
 	Placements(ctx context.Context) (map[string]LevelPlacement, error)
 	OrderedPlacements(ctx context.Context) ([]LevelPlacement, error)
 	FightContent(ctx context.Context, levelID string) (FightContent, error)
+	ChaptersOnSale(ctx context.Context) ([]ChapterForSale, error)
 }
 
 type levelCatalog struct {
@@ -78,7 +79,7 @@ func (catalog *levelCatalog) OrderedPlacements(ctx context.Context) ([]LevelPlac
 			ChapterNumber:    level.Chapter.Number,
 			ChapterTitle:     level.Chapter.Title,
 			IsChapterFree:    level.Chapter.IsFree,
-			ChapterPrice:     level.Chapter.PriceCoins,
+			ChapterPrice:     level.Chapter.PriceCents,
 			IsLevelFree:      level.IsFree,
 			LevelNumber:      *level.Number,
 			Title:            level.Title,

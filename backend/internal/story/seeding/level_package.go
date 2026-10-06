@@ -23,7 +23,7 @@ type ChapterContent struct {
 	Title       string `json:"title"`
 	Summary     string `json:"summary"`
 	IsFree      bool   `json:"is_free"`
-	PriceCoins  *int64 `json:"price_coins"`
+	PriceCents  *int64 `json:"price_cents"`
 	IsPublished bool   `json:"is_published"`
 }
 

@@ -209,7 +209,7 @@ func TestPlayerSignsUpActivatesLogsInAndReadsProfile(t *testing.T) {
 	harness.requireStatus(harness.send(http.MethodGet, "/me", nil, ""), http.StatusUnauthorized)
 	profileResponse := harness.send(http.MethodGet, "/me", nil, accessToken)
 	harness.requireStatus(profileResponse, http.StatusOK)
-	expectedProfile := map[string]any{"name": playerUsername, "email": playerEmail, "current_level": float64(1), "current_level_price": nil, "is_current_level_paid": false, "story_level": float64(0), "total_win": float64(0), "total_lose": float64(0), "current_level_win": float64(0), "current_level_lose": float64(0)}
+	expectedProfile := map[string]any{"name": playerUsername, "email": playerEmail, "current_level": float64(1), "current_level_price": nil, "is_current_level_paid": false, "story_level": float64(0), "total_win": float64(0), "total_lose": float64(0), "current_level_win": float64(0), "current_level_lose": float64(0), "paid_chapters": float64(0), "unpaid_chapters": float64(0)}
 	if !maps.Equal(profileResponse.data(), expectedProfile) {
 		t.Fatalf("got profile %v, want exactly %v", profileResponse.data(), expectedProfile)
 	}

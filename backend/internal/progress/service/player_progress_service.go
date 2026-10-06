@@ -40,6 +40,8 @@ type PlayerProgress struct {
 	TotalLosses        int
 	CurrentLevelWins   int
 	CurrentLevelLosses int
+	PaidChapters       int
+	UnpaidChapters     int
 	NextLevel          NextLevel
 }
 
@@ -97,6 +99,10 @@ func (progress *playerProgressService) PlayerProgress(ctx context.Context, userI
 	if err != nil {
 		return PlayerProgress{}, err
 	}
+	paidChapters, unpaidChapters, err := progress.chapterPurchaseCounts(ctx, owned)
+	if err != nil {
+		return PlayerProgress{}, err
+	}
 	return PlayerProgress{
 		CurrentLevel:       nextLevel.ChapterNumber,
 		CurrentLevelPrice:  nextLevel.ChapterPrice,
@@ -106,6 +112,8 @@ func (progress *playerProgressService) PlayerProgress(ctx context.Context, userI
 		TotalLosses:        totalLosses,
 		CurrentLevelWins:   currentLevelWins,
 		CurrentLevelLosses: currentLevelLosses,
+		PaidChapters:       paidChapters,
+		UnpaidChapters:     unpaidChapters,
 		NextLevel:          nextLevel,
 	}, nil
 }
@@ -177,4 +185,22 @@ func chapterSummary(orderedPlacements []storyservice.LevelPlacement, progressByL
 		}
 	}
 	return chapterLevelIDs, highestWonLevel
+}
+
+func (progress *playerProgressService) chapterPurchaseCounts(ctx context.Context, owned ownedChapters) (int, int, error) {
+	chaptersOnSale, err := progress.levels.ChaptersOnSale(ctx)
+	if err != nil {
+		return 0, 0, err
+	}
+	paidChapters, unpaidChapters := 0, 0
+	for _, chapter := range chaptersOnSale {
+		switch {
+		case chapter.IsFree:
+		case owned[chapter.ID]:
+			paidChapters++
+		default:
+			unpaidChapters++
+		}
+	}
+	return paidChapters, unpaidChapters, nil
 }

@@ -5,7 +5,7 @@
     "title": "The night they came",
     "summary": "Bandits burn the village. A hungry boy has to survive the night.",
     "is_free": false,
-    "price_coins": 499000000,
+    "price_cents": 499,
     "is_published": true
   },
   "arena": {

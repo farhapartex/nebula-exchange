@@ -487,7 +487,7 @@ func TestNextLevelFollowsTheChapterAndCountsWinsPerChapter(t *testing.T) {
 func TestAPaidChapterIsShownAsLockedAndCannotBeStarted(t *testing.T) {
 	harness := newProgressHarness(t)
 	err := harness.database.Model(&storymodels.Chapter{}).Where(map[string]any{"id": "2"}).
-		Updates(map[string]any{"is_free": false, "price_coins": int64(50_000_000)}).Error
+		Updates(map[string]any{"is_free": false, "price_cents": int64(50_000_000)}).Error
 	if err != nil {
 		t.Fatalf("make chapter 2 paid: %v", err)
 	}
@@ -507,7 +507,7 @@ func TestAPaidChapterIsShownAsLockedAndCannotBeStarted(t *testing.T) {
 func TestOnlyTheFreeLevelOfAPaidChapterCanBePlayedUntilTheChapterIsUnlocked(t *testing.T) {
 	harness := newProgressHarness(t)
 	if err := harness.database.Model(&storymodels.Chapter{}).Where(map[string]any{"id": "1"}).
-		Updates(map[string]any{"is_free": false, "price_coins": int64(499_000_000)}).Error; err != nil {
+		Updates(map[string]any{"is_free": false, "price_cents": int64(499)}).Error; err != nil {
 		t.Fatalf("make chapter 1 paid: %v", err)
 	}
 	if err := harness.database.Model(&storymodels.Level{}).Where(map[string]any{"id": "1-1"}).Update("is_free", true).Error; err != nil {
@@ -515,12 +515,12 @@ func TestOnlyTheFreeLevelOfAPaidChapterCanBePlayedUntilTheChapterIsUnlocked(t *t
 	}
 
 	newPlayer := harness.progressOf()
-	if newPlayer.CurrentLevelPrice == nil || *newPlayer.CurrentLevelPrice != 499_000_000 || newPlayer.IsCurrentLevelPaid {
+	if newPlayer.CurrentLevelPrice == nil || *newPlayer.CurrentLevelPrice != 499 || newPlayer.IsCurrentLevelPaid || newPlayer.PaidChapters != 0 || newPlayer.UnpaidChapters != 1 {
 		t.Fatalf("a new player must see chapter 1 as unpaid with its price, got %+v", newPlayer)
 	}
 	firstLevel := harness.getNextLevel()
 	firstChapter := firstLevel["chapter"].(map[string]any)
-	if firstLevel["status"] != "AVAILABLE" || firstChapter["price"] != "499000000" || firstChapter["is_paid"] != false {
+	if firstLevel["status"] != "AVAILABLE" || firstChapter["price"] != "499" || firstChapter["is_paid"] != false {
 		t.Fatalf("the free first level must be playable in an unpaid chapter, got %v", firstLevel)
 	}
 
@@ -537,7 +537,7 @@ func TestOnlyTheFreeLevelOfAPaidChapterCanBePlayedUntilTheChapterIsUnlocked(t *t
 	if err := harness.database.Create(unlock).Error; err != nil {
 		t.Fatalf("unlock chapter 1: %v", err)
 	}
-	if paidPlayer := harness.progressOf(); !paidPlayer.IsCurrentLevelPaid {
+	if paidPlayer := harness.progressOf(); !paidPlayer.IsCurrentLevelPaid || paidPlayer.PaidChapters != 1 || paidPlayer.UnpaidChapters != 0 {
 		t.Fatalf("an unlocked chapter must count as paid, got %+v", paidPlayer)
 	}
 	if unlockedLevel := harness.getNextLevel(); unlockedLevel["status"] != "AVAILABLE" || unlockedLevel["chapter"].(map[string]any)["is_paid"] != true {

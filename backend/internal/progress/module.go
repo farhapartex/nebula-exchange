@@ -21,8 +21,9 @@ type ModuleDependencies struct {
 }
 
 type Module struct {
-	PlayerProgress service.PlayerProgressService
-	registrars     []httpserver.RouteRegistrar
+	PlayerProgress   service.PlayerProgressService
+	ChapterOwnership service.ChapterOwnershipService
+	registrars       []httpserver.RouteRegistrar
 }
 
 func NewModule(dependencies ModuleDependencies) *Module {
@@ -58,7 +59,8 @@ func NewModule(dependencies ModuleDependencies) *Module {
 		ChapterUnlocks: chapterUnlocks,
 	})
 	return &Module{
-		PlayerProgress: playerProgressService,
+		PlayerProgress:   playerProgressService,
+		ChapterOwnership: service.NewChapterOwnershipService(chapterUnlocks),
 		registrars: []httpserver.RouteRegistrar{
 			handler.NewFightSessionHandler(fightSessionService),
 			handler.NewFightSetupHandler(service.NewFightSetupService(dependencies.Levels, fighters)),

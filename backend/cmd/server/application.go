@@ -9,6 +9,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
+	"github.com/farhapartex/nebula-exchange/backend/internal/billing"
 	"github.com/farhapartex/nebula-exchange/backend/internal/health"
 	"github.com/farhapartex/nebula-exchange/backend/internal/identity"
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/config"
@@ -48,6 +49,12 @@ func buildApplication(ctx context.Context, appConfig config.Config, appLogger *s
 		Now:      time.Now,
 	})
 
+	billingModule := billing.NewModule(billing.ModuleDependencies{
+		Database:         gormDatabase,
+		Chapters:         storyModule.LevelCatalog,
+		ChapterOwnership: progressModule.ChapterOwnership,
+	})
+
 	identityModule, err := identity.NewModule(ctx, identity.ModuleDependencies{
 		Database:        gormDatabase,
 		EmailEnqueuer:   outbox.NewEnqueuer(emailOutbox, time.Now),
@@ -65,6 +72,7 @@ func buildApplication(ctx context.Context, appConfig config.Config, appLogger *s
 	routeRegistrars = append(routeRegistrars, identityModule.RouteRegistrars()...)
 	routeRegistrars = append(routeRegistrars, storyModule.RouteRegistrars()...)
 	routeRegistrars = append(routeRegistrars, progressModule.RouteRegistrars()...)
+	routeRegistrars = append(routeRegistrars, billingModule.RouteRegistrars()...)
 
 	router, err := httpserver.NewRouter(
 		httpserver.RouterOptions{

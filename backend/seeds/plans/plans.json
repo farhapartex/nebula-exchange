@@ -1,0 +1,32 @@
+[
+  {
+    "id": "single-chapter",
+    "kind": "SINGLE_CHAPTER",
+    "name": "Chapter by chapter",
+    "description": "Unlock the next chapter of the story.",
+    "discount_tiers": [],
+    "sort_order": 1,
+    "is_active": true
+  },
+  {
+    "id": "chapter-bundle",
+    "kind": "CHAPTER_BUNDLE",
+    "name": "A number of chapters",
+    "description": "Choose how many of the next chapters to unlock. More chapters, bigger discount.",
+    "discount_tiers": [
+      { "min_chapters": 2, "percent": 5 },
+      { "min_chapters": 3, "percent": 10 }
+    ],
+    "sort_order": 2,
+    "is_active": true
+  },
+  {
+    "id": "all-chapters",
+    "kind": "ALL_CHAPTERS",
+    "name": "All chapters",
+    "description": "Unlock every chapter that is out now.",
+    "discount_tiers": [{ "min_chapters": 2, "percent": 20 }],
+    "sort_order": 3,
+    "is_active": true
+  }
+]

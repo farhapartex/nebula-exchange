@@ -75,7 +75,7 @@ func TestContentRulesAreEnforcedByTheDatabase(t *testing.T) {
 
 	invalidRecords := map[string]any{
 		"paid chapter without a price": &models.Chapter{ID: "2", Number: 2, Title: "Paid", Summary: "x", IsFree: false},
-		"free chapter with a price":    &models.Chapter{ID: "3", Number: 3, Title: "Free", Summary: "x", IsFree: true, PriceCoins: func() *int64 { price := int64(1); return &price }()},
+		"free chapter with a price":    &models.Chapter{ID: "3", Number: 3, Title: "Free", Summary: "x", IsFree: true, PriceCents: func() *int64 { price := int64(1); return &price }()},
 		"training level in a chapter":  &models.Level{ID: "training", ChapterID: textPointer("1"), Number: numberPointer(9), Kind: models.LevelKindTraining, Title: "Training", Teaser: "x", ArenaID: "burning-house", TimeLimitSeconds: 60, Difficulty: database.JSONDocument(`{}`), StarRules: database.JSONDocument(`[]`)},
 		"duplicate level number":       &models.Level{ID: "1-1b", ChapterID: textPointer("1"), Number: numberPointer(1), Kind: models.LevelKindStory, Title: "Again", Teaser: "x", ArenaID: "burning-house", TimeLimitSeconds: 60, Difficulty: database.JSONDocument(`{}`), StarRules: database.JSONDocument(`[]`)},
 		"second call to action":        &models.StorySlide{ID: uuid.New(), LevelID: "1-1", Position: 3, Kind: models.SlideKindCallToAction, Heading: "Again", Body: "x", Palette: database.JSONDocument(`{}`), ButtonLabel: textPointer("Play")},

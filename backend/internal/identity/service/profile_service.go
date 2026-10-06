@@ -20,6 +20,8 @@ type PlayerSummary struct {
 	TotalLosses        int
 	CurrentLevelWins   int
 	CurrentLevelLosses int
+	PaidChapters       int
+	UnpaidChapters     int
 }
 
 type PlayerProgress struct {
@@ -31,6 +33,8 @@ type PlayerProgress struct {
 	TotalLosses        int
 	CurrentLevelWins   int
 	CurrentLevelLosses int
+	PaidChapters       int
+	UnpaidChapters     int
 }
 
 type PlayerProgressReader interface {
@@ -73,5 +77,7 @@ func (profile *profileService) CurrentPlayer(ctx context.Context, userID uuid.UU
 		TotalLosses:        playerProgress.TotalLosses,
 		CurrentLevelWins:   playerProgress.CurrentLevelWins,
 		CurrentLevelLosses: playerProgress.CurrentLevelLosses,
+		PaidChapters:       playerProgress.PaidChapters,
+		UnpaidChapters:     playerProgress.UnpaidChapters,
 	}, nil
 }

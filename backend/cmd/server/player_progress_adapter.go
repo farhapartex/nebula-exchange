@@ -27,5 +27,7 @@ func (adapter playerProgressAdapter) PlayerProgressOf(ctx context.Context, userI
 		TotalLosses:        playerProgress.TotalLosses,
 		CurrentLevelWins:   playerProgress.CurrentLevelWins,
 		CurrentLevelLosses: playerProgress.CurrentLevelLosses,
+		PaidChapters:       playerProgress.PaidChapters,
+		UnpaidChapters:     playerProgress.UnpaidChapters,
 	}, nil
 }

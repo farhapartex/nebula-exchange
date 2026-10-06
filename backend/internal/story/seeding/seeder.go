@@ -33,7 +33,7 @@ func (seeder *Seeder) SeedLevel(ctx context.Context, levelPackage LevelPackage) 
 		return err
 	}
 	return seeder.database.WithContext(ctx).Transaction(func(transaction *gorm.DB) error {
-		if err := upsert(transaction, chapterRecord(levelPackage.Chapter), "number", "title", "summary", "is_free", "price_coins", "is_published"); err != nil {
+		if err := upsert(transaction, chapterRecord(levelPackage.Chapter), "number", "title", "summary", "is_free", "price_cents", "is_published"); err != nil {
 			return fmt.Errorf("save chapter: %w", err)
 		}
 		if err := upsert(transaction, arenaRecord(levelPackage.Arena), "name", "width", "floor_y", "stage"); err != nil {
@@ -129,7 +129,7 @@ func chapterRecord(chapter ChapterContent) *models.Chapter {
 		Title:       chapter.Title,
 		Summary:     chapter.Summary,
 		IsFree:      chapter.IsFree,
-		PriceCoins:  chapter.PriceCoins,
+		PriceCents:  chapter.PriceCents,
 		IsPublished: chapter.IsPublished,
 	}
 }

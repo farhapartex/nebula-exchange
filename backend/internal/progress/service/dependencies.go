@@ -12,6 +12,7 @@ type LevelCatalog interface {
 	Placements(ctx context.Context) (map[string]storyservice.LevelPlacement, error)
 	OrderedPlacements(ctx context.Context) ([]storyservice.LevelPlacement, error)
 	FightContent(ctx context.Context, levelID string) (storyservice.FightContent, error)
+	ChaptersOnSale(ctx context.Context) ([]storyservice.ChapterForSale, error)
 }
 
 type TransactionRunner interface {

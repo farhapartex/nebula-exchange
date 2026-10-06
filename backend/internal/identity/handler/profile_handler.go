@@ -21,6 +21,8 @@ type CurrentPlayerResponse struct {
 	TotalLose          int     `json:"total_lose"`
 	CurrentLevelWin    int     `json:"current_level_win"`
 	CurrentLevelLose   int     `json:"current_level_lose"`
+	PaidChapters       int     `json:"paid_chapters"`
+	UnpaidChapters     int     `json:"unpaid_chapters"`
 }
 
 type ProfileHandler struct {
@@ -53,5 +55,7 @@ func (handler *ProfileHandler) getMe(context *gin.Context) {
 		TotalLose:          currentPlayer.TotalLosses,
 		CurrentLevelWin:    currentPlayer.CurrentLevelWins,
 		CurrentLevelLose:   currentPlayer.CurrentLevelLosses,
+		PaidChapters:       currentPlayer.PaidChapters,
+		UnpaidChapters:     currentPlayer.UnpaidChapters,
 	})
 }
