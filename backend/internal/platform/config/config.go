@@ -10,6 +10,8 @@ import (
 
 const MinimumJWTSecretLength = 32
 
+const defaultChainID = 31337
+
 const (
 	EnvironmentDevelopment = "development"
 	EnvironmentProduction  = "production"
@@ -71,6 +73,7 @@ type Config struct {
 	Session         SessionConfig
 	Storage         StorageConfig
 	Stripe          StripeConfig
+	ChainID         int64
 }
 
 func Load() (Config, error) {
@@ -119,6 +122,11 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	chainID, err := readInt("CHAIN_ID", defaultChainID)
+	if err != nil {
+		return Config{}, err
+	}
+
 	return Config{
 		Environment:     environment,
 		HTTPPort:        httpPort,
@@ -132,6 +140,7 @@ func Load() (Config, error) {
 		Email:           emailConfig,
 		Session:         sessionConfig,
 		Storage:         storageConfig,
+		ChainID:         int64(chainID),
 		Stripe: StripeConfig{
 			SecretKey:     readString("STRIPE_SECRET_KEY", ""),
 			WebhookSecret: readString("STRIPE_WEBHOOK_SECRET", ""),

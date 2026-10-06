@@ -21,6 +21,7 @@ import (
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/objectstorage"
 	"github.com/farhapartex/nebula-exchange/backend/internal/progress"
 	"github.com/farhapartex/nebula-exchange/backend/internal/story"
+	"github.com/farhapartex/nebula-exchange/backend/internal/wallet"
 )
 
 type application struct {
@@ -52,6 +53,16 @@ func buildApplication(ctx context.Context, appConfig config.Config, appLogger *s
 
 	paymentModule := payment.NewModule(buildPaymentDependencies(appConfig, appLogger, gormDatabase, storyModule, progressModule))
 
+	walletModule, err := wallet.NewModule(wallet.ModuleDependencies{
+		Database:        gormDatabase,
+		ChainID:         appConfig.ChainID,
+		FrontendBaseURL: appConfig.FrontendBaseURL,
+		Now:             time.Now,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	identityModule, err := identity.NewModule(ctx, identity.ModuleDependencies{
 		Database:        gormDatabase,
 		EmailEnqueuer:   outbox.NewEnqueuer(emailOutbox, time.Now),
@@ -70,6 +81,7 @@ func buildApplication(ctx context.Context, appConfig config.Config, appLogger *s
 	routeRegistrars = append(routeRegistrars, storyModule.RouteRegistrars()...)
 	routeRegistrars = append(routeRegistrars, progressModule.RouteRegistrars()...)
 	routeRegistrars = append(routeRegistrars, paymentModule.RouteRegistrars()...)
+	routeRegistrars = append(routeRegistrars, walletModule.RouteRegistrars()...)
 
 	router, err := httpserver.NewRouter(
 		httpserver.RouterOptions{
