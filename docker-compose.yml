@@ -111,9 +111,16 @@ services:
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
       CHAIN_ID: ${CHAIN_ID:-31337}
+      CHAIN_RPC_URL: ${CHAIN_RPC_URL:-http://host.docker.internal:8545}
+      CHAPTER_PAYMENT_VAULT_ADDRESS: ${CHAPTER_PAYMENT_VAULT_ADDRESS:-}
+      PAYMENT_SIGNER_PRIVATE_KEY: ${PAYMENT_SIGNER_PRIVATE_KEY:-}
+      CHAIN_REQUIRED_CONFIRMATIONS: ${CHAIN_REQUIRED_CONFIRMATIONS:-1}
+      CHAIN_POLL_INTERVAL: ${CHAIN_POLL_INTERVAL:-3s}
       <<: *storage-environment
     ports:
       - "${BACKEND_PORT:-8080}:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       migrate:
         condition: service_completed_successfully

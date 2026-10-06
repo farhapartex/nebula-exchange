@@ -7,7 +7,7 @@ LOCAL_NETWORK_CONFIG := ./config/networks/base-sepolia.json
 COMPOSE := docker compose --env-file .env
 MIGRATE := $(COMPOSE) run --rm migrate
 
-.PHONY: help docker-up docker-down docker-logs docker-ps backend-build backend-test backend-lint migrate-up migrate-down migrate-version migrate-create seed dev-unlock-chapter stripe-listen chain contracts-build contracts-test contracts-fmt contracts-test-fork contracts-deploy-local contracts-upgrade-local
+.PHONY: help docker-up docker-down docker-logs docker-ps backend-build backend-test backend-lint migrate-up migrate-down migrate-version migrate-create seed dev-unlock-chapter stripe-listen chain contracts-build contracts-test contracts-fmt contracts-test-fork contracts-deploy-local contracts-upgrade-local contracts-export-abi
 
 help:
 	@echo "Available commands:"
@@ -32,6 +32,7 @@ help:
 	@echo "  make contracts-test-fork      Run contract tests against the real Base Sepolia Chainlink feed and USDC"
 	@echo "  make contracts-deploy-local   Deploy the payment vault behind a proxy to the local chain and fund test USDC"
 	@echo "  make contracts-upgrade-local  Deploy a new vault implementation and upgrade the local proxy to it"
+	@echo "  make contracts-export-abi     Copy the vault ABI from the Foundry build into the frontend"
 
 docker-up:
 	$(COMPOSE) up -d --build
@@ -100,9 +101,17 @@ contracts-deploy-local:
 	@test -n "$(LOCAL_DEPLOYER_PRIVATE_KEY)" -a -n "$(PAYMENT_SIGNER_PRIVATE_KEY)" || (echo "LOCAL_DEPLOYER_PRIVATE_KEY and PAYMENT_SIGNER_PRIVATE_KEY must be set in .env" && exit 1)
 	@cd smart-contract && DEPLOYER_PRIVATE_KEY="$(LOCAL_DEPLOYER_PRIVATE_KEY)" PAYMENT_SIGNER_ADDRESS="$$(cast wallet address --private-key "$(PAYMENT_SIGNER_PRIVATE_KEY)")" NETWORK_CONFIG="$(LOCAL_NETWORK_CONFIG)" DEPLOYMENT_NAME=local forge script script/DeployChapterPaymentVault.s.sol --rpc-url $(LOCAL_RPC_URL) --broadcast
 	@cd smart-contract && ./script/fund-local-usdc.sh $(LOCAL_RPC_URL) "$$(jq -r .payment_token $(LOCAL_NETWORK_CONFIG))"
+	@./smart-contract/script/write-contract-addresses-to-env.sh smart-contract/deployments/local.json frontend/.env.local .env
 	@cat smart-contract/deployments/local.json
 
 contracts-upgrade-local:
 	@test -n "$(LOCAL_DEPLOYER_PRIVATE_KEY)" || (echo "LOCAL_DEPLOYER_PRIVATE_KEY must be set in .env" && exit 1)
 	@cd smart-contract && DEPLOYER_PRIVATE_KEY="$(LOCAL_DEPLOYER_PRIVATE_KEY)" DEPLOYMENT_NAME=local forge script script/UpgradeChapterPaymentVault.s.sol --rpc-url $(LOCAL_RPC_URL) --broadcast
 	@cat smart-contract/deployments/local.json
+
+contracts-export-abi:
+	@cd smart-contract && forge build
+	@mkdir -p frontend/src/lib/web3/abi
+	@printf 'export const chapterPaymentVaultAbi = %s as const;\n' "$$(jq -c .abi smart-contract/out/ChapterPaymentVault.sol/ChapterPaymentVault.json)" > frontend/src/lib/web3/abi/chapter-payment-vault-abi.ts
+	@cd frontend && npx prettier --write src/lib/web3/abi >/dev/null
+	@echo "wrote frontend/src/lib/web3/abi/chapter-payment-vault-abi.ts"
