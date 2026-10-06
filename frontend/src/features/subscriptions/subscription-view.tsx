@@ -16,7 +16,7 @@ import { useCheckoutConfirmation } from "@/features/subscriptions/use-checkout-c
 
 export function SubscriptionView() {
   const checkoutSessionID = useSearchParams().get(checkoutSessionQueryParameter);
-  const confirmationState = useCheckoutConfirmation(checkoutSessionID);
+  const checkoutConfirmation = useCheckoutConfirmation(checkoutSessionID);
   const subscriptionsQuery = useQuery({ queryKey: subscriptionsQueryKey, queryFn: fetchSubscriptions });
 
   return (
@@ -26,7 +26,12 @@ export function SubscriptionView() {
         <p className="mt-1 text-sm text-muted">Every chapter purchase you have made, newest first.</p>
       </div>
 
-      {confirmationState && <CheckoutConfirmationBanner confirmationState={confirmationState} />}
+      {checkoutConfirmation && (
+        <CheckoutConfirmationBanner
+          confirmationState={checkoutConfirmation.state}
+          networkProgress={checkoutConfirmation.networkProgress}
+        />
+      )}
 
       {subscriptionsQuery.isError ? (
         <ErrorState

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Coins } from "lucide-react";
 
+import { ConnectedWalletBadge } from "@/components/app-shell/connected-wallet-badge";
 import { ProfileMenu } from "@/components/app-shell/profile-menu";
 import { gameNavigationLinks } from "@/components/app-shell/game-navigation";
 import { GameLogo } from "@/components/brand/game-logo";
@@ -50,6 +51,7 @@ export function GameTopBar() {
           })}
         </nav>
         <div className="ml-auto flex items-center gap-3">
+          <ConnectedWalletBadge />
           <span className="flex h-9 items-center gap-2 rounded-lg border border-border-strong bg-surface-raised px-3 text-sm">
             <Coins className="size-4 text-amber-400" aria-hidden="true" />
             <span className="font-mono text-foreground tabular-nums">{fighterQuery.data?.coins ?? "—"}</span>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ChevronDown, LogOut, ReceiptText } from "lucide-react";
 import { DropdownMenu } from "radix-ui";
 
+import { ProfileMenuWallet } from "@/components/app-shell/profile-menu-wallet";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/session/use-auth";
 import { useLogOutAction } from "@/features/auth/session/use-log-out-action";
@@ -40,6 +41,7 @@ export function ProfileMenu() {
             <p className="text-sm font-medium text-foreground">{user.username}</p>
             <p className="truncate text-xs text-muted">{user.email}</p>
           </div>
+          <ProfileMenuWallet />
           <DropdownMenu.Separator className="my-1 h-px bg-border" />
           <DropdownMenu.Item
             asChild

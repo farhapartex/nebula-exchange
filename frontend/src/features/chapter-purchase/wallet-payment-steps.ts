@@ -1,6 +1,6 @@
-export type WalletPaymentStep = "PREPARING" | "APPROVING" | "PAYING" | "SUBMITTED";
+import type { WalletPaymentAsset } from "@/features/chapter-purchase/wallet-payment-asset";
 
-export const walletPaymentStepOrder: WalletPaymentStep[] = ["PREPARING", "APPROVING", "PAYING", "SUBMITTED"];
+export type WalletPaymentStep = "PREPARING" | "APPROVING" | "PAYING" | "SUBMITTED";
 
 export const walletPaymentStepLabels: Record<WalletPaymentStep, string> = {
   PREPARING: "Prepare the payment",
@@ -9,12 +9,17 @@ export const walletPaymentStepLabels: Record<WalletPaymentStep, string> = {
   SUBMITTED: "Wait for the network",
 };
 
+export function walletPaymentStepsFor(asset: WalletPaymentAsset): WalletPaymentStep[] {
+  return asset === "USDC" ? ["PREPARING", "APPROVING", "PAYING", "SUBMITTED"] : ["PREPARING", "PAYING", "SUBMITTED"];
+}
+
 export function walletPaymentStepState(
+  steps: WalletPaymentStep[],
   step: WalletPaymentStep,
   currentStep: WalletPaymentStep,
 ): "DONE" | "ACTIVE" | "WAITING" {
-  const stepIndex = walletPaymentStepOrder.indexOf(step);
-  const currentIndex = walletPaymentStepOrder.indexOf(currentStep);
+  const stepIndex = steps.indexOf(step);
+  const currentIndex = steps.indexOf(currentStep);
   if (stepIndex < currentIndex) {
     return "DONE";
   }

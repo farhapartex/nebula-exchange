@@ -13,7 +13,17 @@ const confirmationWaitLimitInMilliseconds = 60000;
 
 export type CheckoutConfirmationState = "CONFIRMING" | "PAID" | "EXPIRED" | "DELAYED" | "FAILED";
 
-export function useCheckoutConfirmation(checkoutSessionID: string | null): CheckoutConfirmationState | null {
+export type NetworkConfirmationProgress = {
+  confirmations: number;
+  requiredConfirmations: number;
+};
+
+export type CheckoutConfirmation = {
+  state: CheckoutConfirmationState;
+  networkProgress: NetworkConfirmationProgress | null;
+};
+
+export function useCheckoutConfirmation(checkoutSessionID: string | null): CheckoutConfirmation | null {
   const queryClient = useQueryClient();
   const [hasWaitedTooLong, setHasWaitedTooLong] = useState(false);
 
@@ -47,11 +57,20 @@ export function useCheckoutConfirmation(checkoutSessionID: string | null): Check
   if (checkoutSessionID === null) {
     return null;
   }
-  if (checkoutQuery.isError) {
-    return "FAILED";
+  const requiredConfirmations = checkoutQuery.data?.required_confirmations;
+  const networkProgress =
+    typeof requiredConfirmations === "number"
+      ? { confirmations: checkoutQuery.data?.confirmations ?? 0, requiredConfirmations }
+      : null;
+  return { state: confirmationStateOf(), networkProgress };
+
+  function confirmationStateOf(): CheckoutConfirmationState {
+    if (checkoutQuery.isError) {
+      return "FAILED";
+    }
+    if (checkoutStatus === "PAID" || checkoutStatus === "EXPIRED") {
+      return checkoutStatus;
+    }
+    return hasWaitedTooLong ? "DELAYED" : "CONFIRMING";
   }
-  if (checkoutStatus === "PAID" || checkoutStatus === "EXPIRED") {
-    return checkoutStatus;
-  }
-  return hasWaitedTooLong ? "DELAYED" : "CONFIRMING";
 }

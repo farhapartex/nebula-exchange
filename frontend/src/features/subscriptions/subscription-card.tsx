@@ -1,5 +1,6 @@
 import { HubPanel } from "@/features/fight-hub/hub-panel";
 import type { Subscription } from "@/features/subscriptions/api/subscription-api";
+import { SubscriptionPaymentDetails } from "@/features/subscriptions/subscription-payment-details";
 import { SubscriptionStatusBadge } from "@/features/subscriptions/subscription-status-badge";
 import { formatUsd } from "@/utils/money/format-usd";
 import { formatCalendarDate } from "@/utils/time/format-calendar-date";
@@ -42,6 +43,9 @@ export function SubscriptionCard({ subscription }: { subscription: Subscription 
           </li>
         ))}
       </ul>
+      <div className="mt-4 border-t border-border pt-3">
+        <SubscriptionPaymentDetails subscription={subscription} />
+      </div>
       {isReversed && (
         <p className="mt-4 text-sm text-muted">
           These chapters are locked again. Your wins and stars in them are kept.

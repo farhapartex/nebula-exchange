@@ -6,7 +6,10 @@ import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import type { CheckoutConfirmationState } from "@/features/subscriptions/use-checkout-confirmation";
+import type {
+  CheckoutConfirmationState,
+  NetworkConfirmationProgress,
+} from "@/features/subscriptions/use-checkout-confirmation";
 import { cn } from "@/utils/class-names";
 
 type BannerContent = {
@@ -49,8 +52,21 @@ const bannerContentByState: Record<CheckoutConfirmationState, BannerContent> = {
   },
 };
 
-export function CheckoutConfirmationBanner({ confirmationState }: { confirmationState: CheckoutConfirmationState }) {
+type CheckoutConfirmationBannerProps = {
+  confirmationState: CheckoutConfirmationState;
+  networkProgress: NetworkConfirmationProgress | null;
+};
+
+function describeNetworkProgress(networkProgress: NetworkConfirmationProgress): string {
+  return `Your payment is on the network. Confirmations: ${networkProgress.confirmations} of ${networkProgress.requiredConfirmations}.`;
+}
+
+export function CheckoutConfirmationBanner({ confirmationState, networkProgress }: CheckoutConfirmationBannerProps) {
   const bannerContent = bannerContentByState[confirmationState];
+  const message =
+    confirmationState === "CONFIRMING" && networkProgress
+      ? describeNetworkProgress(networkProgress)
+      : bannerContent.message;
   return (
     <div
       role="status"
@@ -59,7 +75,7 @@ export function CheckoutConfirmationBanner({ confirmationState }: { confirmation
       <span className="shrink-0">{bannerContent.icon}</span>
       <div className="min-w-0 flex-1">
         <p className="font-medium">{bannerContent.title}</p>
-        <p className="mt-0.5 text-sm text-muted">{bannerContent.message}</p>
+        <p className="mt-0.5 text-sm text-muted">{message}</p>
       </div>
       {confirmationState === "PAID" && (
         <Button asChild size="sm">

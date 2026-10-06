@@ -11,6 +11,8 @@ export type CreatedCheckoutSession = {
 export type CheckoutSessionState = {
   id: string;
   status: CheckoutSessionStatus;
+  confirmations?: number | null;
+  required_confirmations?: number | null;
 };
 
 export type PaymentMethod = "CARD" | "WALLET";
@@ -23,8 +25,9 @@ export type CheckoutSessionRequest = {
 export type CreatedWalletCheckout = {
   id: string;
   payment_reference: `0x${string}`;
-  amount_units: string;
-  token_address: `0x${string}`;
+  usd_cents: string;
+  deadline: string;
+  signature: `0x${string}`;
   vault_address: `0x${string}`;
   chain_id: number;
   expires_at: string;
@@ -46,4 +49,11 @@ export function createWalletCheckout(checkoutRequest: CheckoutSessionRequest): P
 
 export function fetchCheckoutSession(checkoutSessionID: string): Promise<CheckoutSessionState> {
   return requestData<CheckoutSessionState>(`/checkout-sessions/${encodeURIComponent(checkoutSessionID)}`);
+}
+
+export function reportWalletTransaction(checkoutSessionID: string, transactionHash: `0x${string}`) {
+  return requestData<CheckoutSessionState>(`/checkout-sessions/${encodeURIComponent(checkoutSessionID)}/transactions`, {
+    method: "POST",
+    body: { transaction_hash: transactionHash },
+  });
 }
