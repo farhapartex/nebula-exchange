@@ -7,6 +7,8 @@ export type NextLevel = {
   chapter: {
     number: number;
     title: string | null;
+    price: string | null;
+    is_paid: boolean;
   };
   level: {
     id: string;

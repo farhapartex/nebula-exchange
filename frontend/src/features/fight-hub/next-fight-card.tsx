@@ -11,6 +11,7 @@ import { ChapterPath } from "@/features/fight-hub/chapter-path";
 import { HubPanel } from "@/features/fight-hub/hub-panel";
 import { levelRoute, markLevelsByProgress } from "@/features/fight-hub/story-progress";
 import { useNextLevel, useStoryProgress } from "@/features/fight-hub/use-fight-hub";
+import { formatCoins } from "@/utils/money/format-coins";
 
 export function NextFightCard() {
   const nextLevel = useNextLevel().data;
@@ -74,9 +75,7 @@ function NextFightBox({ nextLevel }: { nextLevel: NextLevel }) {
           Next fight · Level {nextLevel.level.number}
         </p>
         <p className="mt-1 font-display text-3xl tracking-[0.03em] text-foreground">{nextLevel.level.title}</p>
-        <p className="mt-1 text-sm text-muted">
-          {isLocked ? `Unlock chapter ${nextLevel.chapter.number} to keep fighting.` : nextLevel.level.teaser}
-        </p>
+        <p className="mt-1 text-sm text-muted">{isLocked ? lockedChapterMessage(nextLevel) : nextLevel.level.teaser}</p>
       </div>
       {isLocked ? (
         <Button size="lg" variant="secondary" disabled className="px-8 font-display text-xl tracking-[0.1em]">
@@ -93,4 +92,12 @@ function NextFightBox({ nextLevel }: { nextLevel: NextLevel }) {
       )}
     </div>
   );
+}
+
+function lockedChapterMessage(nextLevel: NextLevel): string {
+  const chapterNumber = nextLevel.chapter.number;
+  if (!nextLevel.chapter.price) {
+    return `Unlock chapter ${chapterNumber} to keep fighting.`;
+  }
+  return `Buy chapter ${chapterNumber} for ${formatCoins(nextLevel.chapter.price)} coins to keep fighting.`;
 }
