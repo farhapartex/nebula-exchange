@@ -2,6 +2,7 @@ import { http } from "msw";
 
 import type { FighterProfile, LoadoutSlot, StoryChapter } from "@/features/fight-hub/api/fight-hub-types";
 import { buildApiUrl } from "@/lib/api/api-config";
+import { readMockCoinBalance } from "@/mocks/utils/mock-coin-balance";
 import { mockDataResponse, simulateLatency } from "@/mocks/utils/mock-responses";
 
 const mockFighter: FighterProfile = {
@@ -76,7 +77,7 @@ const mockLoadout: LoadoutSlot[] = [
 export const fightHubHandlers = [
   http.get(buildApiUrl("/me/fighter"), async () => {
     await simulateLatency();
-    return mockDataResponse(mockFighter);
+    return mockDataResponse({ ...mockFighter, coins: readMockCoinBalance() });
   }),
   http.get(buildApiUrl("/me/story"), async () => {
     await simulateLatency();

@@ -1,0 +1,414 @@
+[
+  {
+    "id": "listing-01",
+    "tool": {
+      "id": "tool-01",
+      "tool_type": {
+        "id": "iron-pipe",
+        "name": "Iron pipe",
+        "description": "A bent length of rusted pipe. Heavy, slow to swing, and it hurts.",
+        "category": "WEAPON",
+        "rarity": "COMMON",
+        "base_stats": {
+          "damage_bonus": 4,
+          "reach_bonus": 18,
+          "swing_speed_modifier": -0.05
+        },
+        "max_mastery_level": 10,
+        "image": null
+      },
+      "mastery_level": 7,
+      "fights_used": 98,
+      "hits_landed": 672
+    },
+    "seller": {
+      "username": "street_ace"
+    },
+    "price_coins": "860",
+    "listed_at": "2026-10-07T08:00:00Z",
+    "expires_at": "2026-10-14T08:00:00Z",
+    "is_own": false
+  },
+  {
+    "id": "listing-02",
+    "tool": {
+      "id": "tool-02",
+      "tool_type": {
+        "id": "iron-pipe",
+        "name": "Iron pipe",
+        "description": "A bent length of rusted pipe. Heavy, slow to swing, and it hurts.",
+        "category": "WEAPON",
+        "rarity": "COMMON",
+        "base_stats": {
+          "damage_bonus": 4,
+          "reach_bonus": 18,
+          "swing_speed_modifier": -0.05
+        },
+        "max_mastery_level": 10,
+        "image": null
+      },
+      "mastery_level": 3,
+      "fights_used": 43,
+      "hits_landed": 295
+    },
+    "seller": {
+      "username": "night_owl"
+    },
+    "price_coins": "420",
+    "listed_at": "2026-10-07T03:00:00Z",
+    "expires_at": "2026-10-14T03:00:00Z",
+    "is_own": false
+  },
+  {
+    "id": "listing-03",
+    "tool": {
+      "id": "tool-03",
+      "tool_type": {
+        "id": "scrap-shield",
+        "name": "Scrap shield",
+        "description": "A car door hammered flat and strapped to an arm. It takes the worst of a blow.",
+        "category": "GUARD",
+        "rarity": "COMMON",
+        "base_stats": {
+          "block_damage_reduction": 0.25,
+          "block_stamina_cost_reduction": 0.1
+        },
+        "max_mastery_level": 10,
+        "image": null
+      },
+      "mastery_level": 5,
+      "fights_used": 72,
+      "hits_landed": 494
+    },
+    "seller": {
+      "username": "rustfist"
+    },
+    "price_coins": "610",
+    "listed_at": "2026-10-06T22:00:00Z",
+    "expires_at": "2026-10-13T22:00:00Z",
+    "is_own": false
+  },
+  {
+    "id": "listing-04",
+    "tool": {
+      "id": "tool-04",
+      "tool_type": {
+        "id": "scrap-shield",
+        "name": "Scrap shield",
+        "description": "A car door hammered flat and strapped to an arm. It takes the worst of a blow.",
+        "category": "GUARD",
+        "rarity": "COMMON",
+        "base_stats": {
+          "block_damage_reduction": 0.25,
+          "block_stamina_cost_reduction": 0.1
+        },
+        "max_mastery_level": 10,
+        "image": null
+      },
+      "mastery_level": 2,
+      "fights_used": 31,
+      "hits_landed": 213
+    },
+    "seller": {
+      "username": "kid_lightning"
+    },
+    "price_coins": "300",
+    "listed_at": "2026-10-06T17:00:00Z",
+    "expires_at": "2026-10-13T17:00:00Z",
+    "is_own": false
+  },
+  {
+    "id": "listing-05",
+    "tool": {
+      "id": "tool-05",
+      "tool_type": {
+        "id": "iron-pipe",
+        "name": "Iron pipe",
+        "description": "A bent length of rusted pipe. Heavy, slow to swing, and it hurts.",
+        "category": "WEAPON",
+        "rarity": "COMMON",
+        "base_stats": {
+          "damage_bonus": 4,
+          "reach_bonus": 18,
+          "swing_speed_modifier": -0.05
+        },
+        "max_mastery_level": 10,
+        "image": null
+      },
+      "mastery_level": 10,
+      "fights_used": 144,
+      "hits_landed": 988
+    },
+    "seller": {
+      "username": "alley_cat"
+    },
+    "price_coins": "2100",
+    "listed_at": "2026-10-06T12:00:00Z",
+    "expires_at": "2026-10-13T12:00:00Z",
+    "is_own": false
+  },
+  {
+    "id": "listing-06",
+    "tool": {
+      "id": "tool-06",
+      "tool_type": {
+        "id": "bike-chain",
+        "name": "Bike chain",
+        "description": "Wrapped twice around the fist, swung like a whip when there is room.",
+        "category": "WEAPON",
+        "rarity": "UNCOMMON",
+        "base_stats": {
+          "damage_bonus": 6,
+          "reach_bonus": 26,
+          "swing_speed_modifier": 0.05
+        },
+        "max_mastery_level": 10,
+        "image": null
+      },
+      "mastery_level": 6,
+      "fights_used": 89,
+      "hits_landed": 611
+    },
+    "seller": {
+      "username": "bronze_jaw"
+    },
+    "price_coins": "1450",
+    "listed_at": "2026-10-06T07:00:00Z",
+    "expires_at": "2026-10-13T07:00:00Z",
+    "is_own": false
+  },
+  {
+    "id": "listing-07",
+    "tool": {
+      "id": "tool-07",
+      "tool_type": {
+        "id": "bike-chain",
+        "name": "Bike chain",
+        "description": "Wrapped twice around the fist, swung like a whip when there is room.",
+        "category": "WEAPON",
+        "rarity": "UNCOMMON",
+        "base_stats": {
+          "damage_bonus": 6,
+          "reach_bonus": 26,
+          "swing_speed_modifier": 0.05
+        },
+        "max_mastery_level": 10,
+        "image": null
+      },
+      "mastery_level": 2,
+      "fights_used": 34,
+      "hits_landed": 234
+    },
+    "seller": {
+      "username": "the_boy"
+    },
+    "price_coins": "780",
+    "listed_at": "2026-10-06T02:00:00Z",
+    "expires_at": "2026-10-13T02:00:00Z",
+    "is_own": true
+  },
+  {
+    "id": "listing-08",
+    "tool": {
+      "id": "tool-08",
+      "tool_type": {
+        "id": "riot-shield",
+        "name": "Riot shield",
+        "description": "Cracked polycarbonate, still good for one more riot.",
+        "category": "GUARD",
+        "rarity": "RARE",
+        "base_stats": {
+          "block_damage_reduction": 0.4,
+          "block_stamina_cost_reduction": 0.15
+        },
+        "max_mastery_level": 10,
+        "image": null
+      },
+      "mastery_level": 4,
+      "fights_used": 63,
+      "hits_landed": 433
+    },
+    "seller": {
+      "username": "street_ace"
+    },
+    "price_coins": "1900",
+    "listed_at": "2026-10-05T21:00:00Z",
+    "expires_at": "2026-10-12T21:00:00Z",
+    "is_own": false
+  },
+  {
+    "id": "listing-09",
+    "tool": {
+      "id": "tool-09",
+      "tool_type": {
+        "id": "riot-shield",
+        "name": "Riot shield",
+        "description": "Cracked polycarbonate, still good for one more riot.",
+        "category": "GUARD",
+        "rarity": "RARE",
+        "base_stats": {
+          "block_damage_reduction": 0.4,
+          "block_stamina_cost_reduction": 0.15
+        },
+        "max_mastery_level": 10,
+        "image": null
+      },
+      "mastery_level": 8,
+      "fights_used": 120,
+      "hits_landed": 824
+    },
+    "seller": {
+      "username": "night_owl"
+    },
+    "price_coins": "3400",
+    "listed_at": "2026-10-05T16:00:00Z",
+    "expires_at": "2026-10-12T16:00:00Z",
+    "is_own": false
+  },
+  {
+    "id": "listing-10",
+    "tool": {
+      "id": "tool-10",
+      "tool_type": {
+        "id": "brass-knuckles",
+        "name": "Brass knuckles",
+        "description": "Small, fast and mean. Every punch lands heavier.",
+        "category": "WEAPON",
+        "rarity": "EPIC",
+        "base_stats": {
+          "damage_bonus": 9,
+          "swing_speed_modifier": 0.12
+        },
+        "max_mastery_level": 10,
+        "image": null
+      },
+      "mastery_level": 3,
+      "fights_used": 51,
+      "hits_landed": 351
+    },
+    "seller": {
+      "username": "rustfist"
+    },
+    "price_coins": "3100",
+    "listed_at": "2026-10-05T11:00:00Z",
+    "expires_at": "2026-10-12T11:00:00Z",
+    "is_own": false
+  },
+  {
+    "id": "listing-11",
+    "tool": {
+      "id": "tool-11",
+      "tool_type": {
+        "id": "brass-knuckles",
+        "name": "Brass knuckles",
+        "description": "Small, fast and mean. Every punch lands heavier.",
+        "category": "WEAPON",
+        "rarity": "EPIC",
+        "base_stats": {
+          "damage_bonus": 9,
+          "swing_speed_modifier": 0.12
+        },
+        "max_mastery_level": 10,
+        "image": null
+      },
+      "mastery_level": 9,
+      "fights_used": 136,
+      "hits_landed": 934
+    },
+    "seller": {
+      "username": "kid_lightning"
+    },
+    "price_coins": "7800",
+    "listed_at": "2026-10-05T06:00:00Z",
+    "expires_at": "2026-10-12T06:00:00Z",
+    "is_own": false
+  },
+  {
+    "id": "listing-12",
+    "tool": {
+      "id": "tool-12",
+      "tool_type": {
+        "id": "kings-crowbar",
+        "name": "King's crowbar",
+        "description": "The old street king's crowbar. Nobody knows how many doors it opened.",
+        "category": "WEAPON",
+        "rarity": "LEGENDARY",
+        "base_stats": {
+          "damage_bonus": 14,
+          "reach_bonus": 22
+        },
+        "max_mastery_level": 10,
+        "image": null
+      },
+      "mastery_level": 5,
+      "fights_used": 81,
+      "hits_landed": 557
+    },
+    "seller": {
+      "username": "alley_cat"
+    },
+    "price_coins": "12500",
+    "listed_at": "2026-10-05T01:00:00Z",
+    "expires_at": "2026-10-12T01:00:00Z",
+    "is_own": false
+  },
+  {
+    "id": "listing-13",
+    "tool": {
+      "id": "tool-13",
+      "tool_type": {
+        "id": "scrap-shield",
+        "name": "Scrap shield",
+        "description": "A car door hammered flat and strapped to an arm. It takes the worst of a blow.",
+        "category": "GUARD",
+        "rarity": "COMMON",
+        "base_stats": {
+          "block_damage_reduction": 0.25,
+          "block_stamina_cost_reduction": 0.1
+        },
+        "max_mastery_level": 10,
+        "image": null
+      },
+      "mastery_level": 9,
+      "fights_used": 138,
+      "hits_landed": 948
+    },
+    "seller": {
+      "username": "bronze_jaw"
+    },
+    "price_coins": "1650",
+    "listed_at": "2026-10-04T20:00:00Z",
+    "expires_at": "2026-10-11T20:00:00Z",
+    "is_own": false
+  },
+  {
+    "id": "listing-14",
+    "tool": {
+      "id": "tool-14",
+      "tool_type": {
+        "id": "iron-pipe",
+        "name": "Iron pipe",
+        "description": "A bent length of rusted pipe. Heavy, slow to swing, and it hurts.",
+        "category": "WEAPON",
+        "rarity": "COMMON",
+        "base_stats": {
+          "damage_bonus": 4,
+          "reach_bonus": 18,
+          "swing_speed_modifier": -0.05
+        },
+        "max_mastery_level": 10,
+        "image": null
+      },
+      "mastery_level": 1,
+      "fights_used": 27,
+      "hits_landed": 187
+    },
+    "seller": {
+      "username": "the_boy"
+    },
+    "price_coins": "320",
+    "listed_at": "2026-10-04T15:00:00Z",
+    "expires_at": "2026-10-11T15:00:00Z",
+    "is_own": true
+  }
+]
