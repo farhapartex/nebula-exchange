@@ -1,10 +1,13 @@
 -include .env
 
 ANVIL_PORT ?= 8545
+BASE_SEPOLIA_RPC_URL ?= https://sepolia.base.org
+LOCAL_RPC_URL := http://localhost:$(ANVIL_PORT)
+LOCAL_NETWORK_CONFIG := ./config/networks/base-sepolia.json
 COMPOSE := docker compose --env-file .env
 MIGRATE := $(COMPOSE) run --rm migrate
 
-.PHONY: help docker-up docker-down docker-logs docker-ps backend-build backend-test backend-lint migrate-up migrate-down migrate-version migrate-create seed dev-unlock-chapter stripe-listen chain contracts-build contracts-test contracts-fmt contracts-deploy-local
+.PHONY: help docker-up docker-down docker-logs docker-ps backend-build backend-test backend-lint migrate-up migrate-down migrate-version migrate-create seed dev-unlock-chapter stripe-listen chain contracts-build contracts-test contracts-fmt contracts-test-fork contracts-deploy-local contracts-upgrade-local
 
 help:
 	@echo "Available commands:"
@@ -22,11 +25,13 @@ help:
 	@echo "  make seed                     Load fighters and story levels into Postgres and their images into MinIO"
 	@echo "  make dev-unlock-chapter email=E chapter=C  Give a player a chapter for free (development only)"
 	@echo "  make stripe-listen            Forward Stripe test webhooks to the local backend"
-	@echo "  make chain                    Start a local Anvil chain on the host"
+	@echo "  make chain                    Start a local Anvil chain on the host, forked from Base Sepolia"
 	@echo "  make contracts-build          Compile the smart contracts"
 	@echo "  make contracts-test           Run Foundry tests"
 	@echo "  make contracts-fmt            Format Solidity files"
-	@echo "  make contracts-deploy-local   Deploy the payment vault, test USDC and price feed to the local Anvil chain"
+	@echo "  make contracts-test-fork      Run contract tests against the real Base Sepolia Chainlink feed and USDC"
+	@echo "  make contracts-deploy-local   Deploy the payment vault behind a proxy to the local chain and fund test USDC"
+	@echo "  make contracts-upgrade-local  Deploy a new vault implementation and upgrade the local proxy to it"
 
 docker-up:
 	$(COMPOSE) up -d --build
@@ -77,7 +82,7 @@ stripe-listen:
 	@stripe listen --api-key "$(STRIPE_SECRET_KEY)" --forward-to localhost:$(or $(BACKEND_PORT),8080)/api/v1/webhooks/stripe --events checkout.session.completed,checkout.session.async_payment_succeeded,checkout.session.expired,charge.refunded,charge.dispute.created
 
 chain:
-	anvil --host 0.0.0.0 --port $(ANVIL_PORT) --chain-id 31337
+	@anvil --host 0.0.0.0 --port $(ANVIL_PORT) --chain-id 31337 --fork-url "$(BASE_SEPOLIA_RPC_URL)"
 
 contracts-build:
 	cd smart-contract && forge build
@@ -88,8 +93,16 @@ contracts-test:
 contracts-fmt:
 	cd smart-contract && forge fmt
 
+contracts-test-fork:
+	@cd smart-contract && BASE_SEPOLIA_RPC_URL="$(BASE_SEPOLIA_RPC_URL)" forge test --match-path test/ChapterPaymentVaultFork.t.sol
+
 contracts-deploy-local:
 	@test -n "$(LOCAL_DEPLOYER_PRIVATE_KEY)" -a -n "$(PAYMENT_SIGNER_PRIVATE_KEY)" || (echo "LOCAL_DEPLOYER_PRIVATE_KEY and PAYMENT_SIGNER_PRIVATE_KEY must be set in .env" && exit 1)
-	@mkdir -p smart-contract/deployments
-	@cd smart-contract && DEPLOYER_PRIVATE_KEY="$(LOCAL_DEPLOYER_PRIVATE_KEY)" PAYMENT_SIGNER_ADDRESS="$$(cast wallet address --private-key "$(PAYMENT_SIGNER_PRIVATE_KEY)")" forge script script/DeployLocalChapterPaymentVault.s.sol --rpc-url http://localhost:$(ANVIL_PORT) --broadcast
+	@cd smart-contract && DEPLOYER_PRIVATE_KEY="$(LOCAL_DEPLOYER_PRIVATE_KEY)" PAYMENT_SIGNER_ADDRESS="$$(cast wallet address --private-key "$(PAYMENT_SIGNER_PRIVATE_KEY)")" NETWORK_CONFIG="$(LOCAL_NETWORK_CONFIG)" DEPLOYMENT_NAME=local forge script script/DeployChapterPaymentVault.s.sol --rpc-url $(LOCAL_RPC_URL) --broadcast
+	@cd smart-contract && ./script/fund-local-usdc.sh $(LOCAL_RPC_URL) "$$(jq -r .payment_token $(LOCAL_NETWORK_CONFIG))"
+	@cat smart-contract/deployments/local.json
+
+contracts-upgrade-local:
+	@test -n "$(LOCAL_DEPLOYER_PRIVATE_KEY)" || (echo "LOCAL_DEPLOYER_PRIVATE_KEY must be set in .env" && exit 1)
+	@cd smart-contract && DEPLOYER_PRIVATE_KEY="$(LOCAL_DEPLOYER_PRIVATE_KEY)" DEPLOYMENT_NAME=local forge script script/UpgradeChapterPaymentVault.s.sol --rpc-url $(LOCAL_RPC_URL) --broadcast
 	@cat smart-contract/deployments/local.json
