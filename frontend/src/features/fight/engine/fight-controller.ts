@@ -11,6 +11,7 @@ export type FightSnapshot = {
   player: FighterHudState;
   enemy: FighterHudState;
   remainingSeconds: number;
+  elapsedMs: number;
   outcome: FightOutcome | null;
   isPaused: boolean;
   damageDealt: number;

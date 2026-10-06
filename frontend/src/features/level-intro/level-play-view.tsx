@@ -26,6 +26,7 @@ function FullScreenSpinner() {
 
 export function LevelPlayView({ levelID }: { levelID: string }) {
   const [playPhase, setPlayPhase] = useState<PlayPhase>("story");
+  const [fightSessionID, setFightSessionID] = useState<string | null>(null);
   const storyQuery = useQuery({
     queryKey: levelStoryQueryKey(levelID),
     queryFn: () => fetchLevelStory(levelID),
@@ -40,18 +41,35 @@ export function LevelPlayView({ levelID }: { levelID: string }) {
   const queryClient = useQueryClient();
   const startFightMutation = useMutation({
     mutationFn: () => startFightSession(levelID),
-    onSuccess: () => {
+    onSuccess: (startedFight) => {
       void queryClient.invalidateQueries({ queryKey: currentPlayerQueryKey });
+      setFightSessionID(startedFight.id);
       setPlayPhase("fighting");
     },
   });
+
+  async function startNewFight(): Promise<boolean> {
+    try {
+      await startFightMutation.mutateAsync();
+      return true;
+    } catch {
+      return false;
+    }
+  }
   const levelStory = storyQuery.data ? arrangeLevelStory(storyQuery.data) : null;
   const hasNoStory =
     (isApiError(storyQuery.error) && storyQuery.error.statusCode === 404) || (storyQuery.isSuccess && !levelStory);
 
   if (playPhase === "fighting" || hasNoStory) {
     if (fightQuery.data) {
-      return <FightArena setup={fightQuery.data} />;
+      return (
+        <FightArena
+          key={fightQuery.data.level_id}
+          setup={fightQuery.data}
+          fightSessionID={fightSessionID}
+          onRestartFight={fightSessionID ? startNewFight : undefined}
+        />
+      );
     }
     if (fightQuery.isError) {
       return <FightArenaPlaceholder />;

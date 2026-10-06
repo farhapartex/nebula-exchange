@@ -23,6 +23,7 @@ export function buildSnapshot(
       maxStamina: rules.enemy.max_stamina,
     },
     remainingSeconds: Math.max(0, Math.ceil((state.timeLimitMs - state.elapsedMs) / 1000)),
+    elapsedMs: Math.round(Math.min(state.elapsedMs, state.timeLimitMs)),
     outcome: state.outcome,
     isPaused,
     damageDealt,

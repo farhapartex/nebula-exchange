@@ -102,11 +102,11 @@ describe("fight simulation", () => {
     expect(stepFight(state, rules, { player: { ...idleIntent, attack: "punch" }, enemy: idleIntent }, 16)).toEqual([]);
   });
 
-  it("decides on health share when time runs out", () => {
+  it("counts running out of time as a loss even when the player has more health", () => {
     const state = closeQuarters();
     state.timeLimitMs = 100;
-    state.player.health = 40;
-    state.enemy.health = 60;
+    state.player.health = 90;
+    state.enemy.health = 10;
     run(state, idleIntent, idleIntent, 200);
     expect(state.outcome).toBe("lost");
   });

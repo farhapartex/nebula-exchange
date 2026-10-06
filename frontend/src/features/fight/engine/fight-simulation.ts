@@ -224,7 +224,7 @@ function keepApartAndInBounds(state: FightState): void {
   }
 }
 
-function decideOutcome(state: FightState, rules: FightRules, events: FightEvent[]): void {
+function decideOutcome(state: FightState, events: FightEvent[]): void {
   if (state.player.health <= 0 || state.enemy.health <= 0) {
     const loser: FighterRole = state.player.health <= 0 ? "player" : "enemy";
     startAction(state[loser], "knocked_out");
@@ -233,9 +233,7 @@ function decideOutcome(state: FightState, rules: FightRules, events: FightEvent[
     return;
   }
   if (state.elapsedMs >= state.timeLimitMs) {
-    const playerShare = state.player.health / rules.player.max_health;
-    const enemyShare = state.enemy.health / rules.enemy.max_health;
-    state.outcome = playerShare > enemyShare ? "won" : playerShare < enemyShare ? "lost" : "draw";
+    state.outcome = "lost";
     events.push({ kind: "time_up" });
   }
 }
@@ -261,6 +259,6 @@ export function stepFight(
   resolveAttack(state.player, rules.player, state.enemy, rules.enemy, "player", "enemy", events);
   resolveAttack(state.enemy, rules.enemy, state.player, rules.player, "enemy", "player", events);
   keepApartAndInBounds(state);
-  decideOutcome(state, rules, events);
+  decideOutcome(state, events);
   return events;
 }

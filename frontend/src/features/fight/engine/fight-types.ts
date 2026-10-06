@@ -26,7 +26,7 @@ export type FighterRuntime = {
   dodgeDirection: Facing;
 };
 
-export type FightOutcome = "won" | "lost" | "draw";
+export type FightOutcome = "won" | "lost";
 
 export type FightState = {
   player: FighterRuntime;

@@ -6,6 +6,7 @@ const snapshot: FightSnapshot = {
   player: { health: 100, maxHealth: 100, stamina: 100, maxStamina: 100 },
   enemy: { health: 100, maxHealth: 100, stamina: 100, maxStamina: 100 },
   remainingSeconds: 60,
+  elapsedMs: 30000,
   outcome: null,
   isPaused: false,
   damageDealt: 0,

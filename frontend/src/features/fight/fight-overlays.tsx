@@ -51,14 +51,20 @@ export function PauseOverlay({ onResume, onRestart }: { onResume: () => void; on
   );
 }
 
-export function ResultOverlay({ snapshot, onRetry }: { snapshot: FightSnapshot; onRetry: () => void }) {
+type ResultOverlayProps = {
+  snapshot: FightSnapshot;
+  onRetry: () => void;
+  isRetrying: boolean;
+};
+
+export function ResultOverlay({ snapshot, onRetry, isRetrying }: ResultOverlayProps) {
   const hasWon = snapshot.outcome === "won";
   const ResultIcon = hasWon ? Trophy : Skull;
   return (
     <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 bg-black/70 px-6 text-center backdrop-blur-sm motion-safe:animate-pop-in">
       <ResultIcon className={hasWon ? "size-12 text-amber-400" : "size-12 text-red-400"} aria-hidden="true" />
       <h2 className="font-display text-6xl tracking-[0.04em] text-foreground sm:text-7xl">
-        {hasWon ? "You survived" : snapshot.outcome === "draw" ? "Still standing" : "You fell"}
+        {hasWon ? "You survived" : "You fell"}
       </h2>
       <p className="max-w-md text-muted">
         {hasWon ? "The first bandit is down. The fire is still spreading." : "Get up. You are not done yet."}
@@ -74,8 +80,8 @@ export function ResultOverlay({ snapshot, onRetry }: { snapshot: FightSnapshot; 
         </div>
       </dl>
       <div className="flex gap-3">
-        <Button size="lg" onClick={onRetry}>
-          <RotateCcw className="size-4" />
+        <Button size="lg" onClick={onRetry} isLoading={isRetrying}>
+          {!isRetrying && <RotateCcw className="size-4" />}
           {hasWon ? "Fight again" : "Try again"}
         </Button>
         <Button asChild size="lg" variant="secondary">
