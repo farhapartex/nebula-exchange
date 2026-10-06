@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Play, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, FastForward, Play, X } from "lucide-react";
 
 import { PageContainer } from "@/components/layout/page-container";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,11 @@ export function StorySlideshow({ levelStory, onPlay, isStartingFight, startFight
 
   const goForward = useCallback(() => setSlideIndex((index) => nextSlideIndex(index, slideCount)), [slideCount]);
   const goBack = useCallback(() => setSlideIndex((index) => previousSlideIndex(index)), []);
+
+  function skipStory() {
+    setSlideIndex(slideCount - 1);
+    onPlay();
+  }
 
   useEffect(() => {
     function handleKey(keyEvent: KeyboardEvent) {
@@ -87,6 +92,12 @@ export function StorySlideshow({ levelStory, onPlay, isStartingFight, startFight
               </li>
             ))}
           </ol>
+          {!isShowingCallToAction && (
+            <Button variant="ghost" size="sm" onClick={skipStory} className="shrink-0">
+              Skip
+              <FastForward className="size-4" aria-hidden="true" />
+            </Button>
+          )}
         </PageContainer>
       </header>
 
