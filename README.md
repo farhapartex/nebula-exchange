@@ -12,7 +12,7 @@ Chapter 1 is free. Later chapters are unlocked with coins. Players buy tools (an
 | --- | --- | --- |
 | `frontend/` | Next.js, React, TypeScript, Tailwind CSS, Three.js for the fight stage | Host |
 | `backend/` | Go, Gin, GORM, PostgreSQL, Redis | Docker |
-| `smart-contract/` | Solidity, Foundry, OpenZeppelin (planned for tools as NFTs later) | Host (Anvil) |
+| `smart-contract/` | Solidity, Foundry, OpenZeppelin, Chainlink: the chapter payment vault | Host (Anvil fork of Base Sepolia) |
 
 ## Getting started
 
@@ -212,6 +212,30 @@ Each level lives in `backend/seeds/story/<level>/`: a `level.json` with the chap
 ### Tests
 
 `make backend-test` runs every test. Tests that need a database create a fresh one on the Postgres from `make docker-up` and drop it afterwards. Without that database they are skipped; set `REQUIRE_DATABASE_TESTS=true` to make them fail instead.
+
+## Smart contracts
+
+`ChapterPaymentVault` takes wallet payments for chapters in ETH or USDC. The money belongs to the game, not to players.
+
+- `payWithEth` reads the Chainlink ETH/USD price feed, rejects a price older than `maximumPriceAge` (1 hour) or not above zero, takes exactly the USD amount in ETH and sends any extra ETH back in the same transaction.
+- `payWithToken` takes exactly the USD amount in USDC (1 cent is 10,000 units).
+- Every payment needs an EIP-712 signature from the backend's payment signer over `paymentReference`, the payer's address, `usdCents` and a deadline. A different wallet, a changed price or an expired deadline is rejected on chain, and each `paymentReference` can be paid only once.
+- Both emit `PaymentReceived(paymentReference, payer, asset, amountPaid, usdCents)`; `asset` is the zero address for ETH.
+- The owner can pause payments, rotate the payment signer, switch the price feed, set a Chainlink L2 sequencer uptime feed (needed on Base mainnet), and withdraw. Withdrawals always go to the treasury address. Ownership moves in two steps and cannot be renounced.
+
+The vault is upgradeable (UUPS behind an ERC-1967 proxy). The proxy address and its money stay the same while the logic is replaced; only the owner can upgrade. State lives in ERC-7201 namespaced storage so new versions do not overwrite it. Before real money, ownership moves to a multisig.
+
+Local development runs on Anvil forked from Base Sepolia, so the real Chainlink ETH/USD feed and Circle's test USDC are used, with no mock contracts. Their addresses are in `smart-contract/config/networks/base-sepolia.json`. On a fork the price is frozen at the moment the chain started, so restart the chain (and deploy again) if payments start failing with `StaleEthUsdPrice` after an hour.
+
+| Command | What it does |
+| --- | --- |
+| `make chain` | Start Anvil on port 8545 with chain id 31337, forked from `BASE_SEPOLIA_RPC_URL` (public RPC by default) |
+| `make contracts-deploy-local` | Deploy the implementation and proxy, then give the first 5 Anvil accounts 1,000 test USDC each. Addresses are written to `smart-contract/deployments/local.json` |
+| `make contracts-upgrade-local` | Deploy a new implementation and upgrade the local proxy to it |
+| `make contracts-test` | Unit tests, upgrade tests and fuzz tests |
+| `make contracts-test-fork` | Tests against the real Base Sepolia Chainlink feed and USDC |
+
+Anvil keeps everything in memory. After restarting it, run `make contracts-deploy-local` again.
 
 ## Database
 
