@@ -49,9 +49,10 @@ The backend is a single Go service split by domain (a modular monolith). Each do
 | `identity` | Users, signup, activation links, login, refresh sessions, password reset |
 | `story` | Chapters, levels, story slides, arenas, enemies, waves and difficulty |
 | `combat` | Moves, special moves, which moves fighters and enemies can use |
-| `progress` | Fighter profile, level progress, stars, fight sessions |
+| `progress` | Fighter profile, level progress, stars, fight sessions, chapter unlocks |
+| `payment` | Purchase plans, chapter payments, Stripe checkout and webhooks |
 | `tools` | Tool catalogue, owned tools, mastery, loadout |
-| `economy` | Coin wallet, ledger, coin packs, Stripe payments, player market |
+| `economy` | Coin wallet, ledger, coin packs, player market |
 
 Every domain uses the same folders:
 
@@ -116,12 +117,16 @@ What the `/me` progress fields mean:
 - `is_current_level_paid` is true when the player owns the current chapter (or it costs nothing), so every level in it can be played.
 - `paid_chapters` is how many paid chapters the player owns. `unpaid_chapters` is how many published paid chapters they do not own yet. Free chapters are in neither count.
 
-### Store endpoints
+### Payment endpoints
 
 | Method and path | Purpose |
 | --- | --- |
 | `GET /chapters` | Every published chapter in order: `id`, `number`, `title`, `is_free`, `price_cents`, `level_count` and `is_owned` for the logged in player |
 | `GET /plans` | The ways to buy chapters, each with the exact options and prices for the logged in player |
+| `POST /checkout-sessions` | Body `{"plan_id": "chapter-bundle", "chapter_count": 3}`. Starts a Stripe Checkout and returns `id`, `checkout_url` and `expires_at`. The frontend sends the player to `checkout_url` |
+| `GET /checkout-sessions/{id}` | The checkout `status`: `OPEN`, `PAID` or `EXPIRED`. The subscription page checks it after Stripe sends the player back |
+| `GET /subscriptions` | The player's chapter purchases, newest first: plan, chapters, amounts, `status` (`PAID`, `REFUNDED` or `DISPUTED`), `paid_at` and `refunded_at` |
+| `POST /webhooks/stripe` | Stripe events, checked against `STRIPE_WEBHOOK_SECRET`. Not for the frontend |
 
 There are three plans, seeded from `backend/seeds/plans/plans.json`:
 
@@ -129,7 +134,19 @@ There are three plans, seeded from `backend/seeds/plans/plans.json`:
 - `chapter-bundle` lets the player pick how many of the next chapters to buy, from 2 up to one less than all of them. 2 chapters get 5 percent off, 3 or more get 10 percent off.
 - `all-chapters` sells every chapter that is out now and not owned yet, with 20 percent off. It needs at least 2 chapters to buy, and it grows by itself as new chapters are published.
 
-Each plan has `is_available` and an `options` list. An option has `chapter_count`, the `chapters` it covers, `subtotal_cents`, `discount_percent`, `discount_cents` and `total_cents`, all money as strings of US cents. The server works out every price from the chapters table and the plan's discount tiers, and the payment step will work it out again from `plan_id` and `chapter_count`, so a client can never send its own price. Discounts are rounded to the nearest cent.
+Each plan has `is_available` and an `options` list. An option has `chapter_count`, the `chapters` it covers, `subtotal_cents`, `discount_percent`, `discount_cents` and `total_cents`, all money as strings of US cents. The server works out every price from the chapters table and the plan's discount tiers, and a checkout works it out again from `plan_id` and `chapter_count`, so a client can never send its own price. Discounts are rounded to the nearest cent.
+
+How a chapter payment works:
+
+- `POST /checkout-sessions` saves a `payments` row (status `OPEN`) with the exact chapters and prices, then creates a hosted Stripe Checkout for that total, card only, valid for 31 minutes. A plan or count that is not offered returns 422.
+- A player has at most one open checkout. Starting a new one expires the older one in Stripe first, so it can never be paid twice. If the older one was already paid, the new request returns 409 and the chapters are unlocked.
+- After paying, Stripe sends the player to `/subscription?checkout={id}`. Cancelling sends them to `/fight?checkout=cancelled`.
+- The webhook is the source of truth. `checkout.session.completed` marks the payment `PAID` and unlocks its chapters, but only when the paid amount and currency match the payment. Every event id is stored in `stripe_webhook_events`, so a repeated event changes nothing.
+- `GET /checkout-sessions/{id}` also asks Stripe while a checkout is open, so the player sees the result even if the webhook is late.
+- A full refund (`charge.refunded`) or a dispute (`charge.dispute.created`) locks the chapters of that payment again. Wins and stars stay. A chapter that another paid purchase also covers stays unlocked. A partial refund changes nothing.
+- Without `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`, checkout and the webhook return 503. Plans and chapters still load.
+
+To test payments locally, run `make stripe-listen` in a second terminal. It forwards Stripe test events to the backend; the signing secret it prints must be the `STRIPE_WEBHOOK_SECRET` in `.env`. Pay with the test card `4242 4242 4242 4242`, any future date and any CVC.
 
 ### Story endpoints
 
@@ -189,7 +206,7 @@ These were agreed before the backend was started. Anything not listed here is st
 
 **Currency.** There is one in-game currency, coins, used for tools and the market. 1 coin is worth 1 US cent. Players buy coins with Stripe in fixed coin packs: 500 coins for USD 4.99, 1,100 for USD 9.99 and 2,400 for USD 19.99. Coins can never be turned back into money. Chapters are paid with a card directly, not with coins. A level pays coins only the first time it is cleared; replays give experience but no coins, so coins cannot be farmed.
 
-**Chapters.** Only chapter 1 level 1 is free. Every other level needs its whole chapter, bought once with a card through Stripe (chapter 1 costs USD 4.99). A player can buy the next chapter, a number of chapters or all of them at once: 2 chapters get 5 percent off, 3 or more get 10 percent off and all remaining chapters get 20 percent off. A refunded or disputed chapter payment locks those chapters again; wins and stars stay. Buying is not built yet; in development `make dev-unlock-chapter` gives a chapter to a player. Coins (1 coin is 1 US cent, sold in packs) stay for tools and the market.
+**Chapters.** Only chapter 1 level 1 is free. Every other level needs its whole chapter, bought once with a card through Stripe (chapter 1 costs USD 4.99). A player can buy the next chapter, a number of chapters or all of them at once: 2 chapters get 5 percent off, 3 or more get 10 percent off and all remaining chapters get 20 percent off. A refunded or disputed chapter payment locks those chapters again; wins and stars stay. In development `make dev-unlock-chapter` also gives a chapter to a player without paying. Coins (1 coin is 1 US cent, sold in packs) stay for tools and the market.
 
 **Selling tools.** Tools are sold player to player on a market. The game takes a 5 percent fee, and that fee is removed from the economy rather than paid to anyone. Listings expire after 7 days. The game does not buy tools back, because that would create coins out of nothing.
 
