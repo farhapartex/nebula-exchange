@@ -101,7 +101,7 @@ make migrate-version
 | `POST /auth/login` | Return an access token and set the refresh cookie |
 | `POST /auth/refresh` | Rotate the refresh cookie and return a new access token |
 | `POST /auth/logout` | End the current session |
-| `GET /me` | The logged in player's profile |
+| `GET /me` | The logged in player: `name`, `email`, `current_level` (fighter level), `story_level` (furthest story level started, such as `1-1`, or null), `total_win`, `total_lose` |
 
 Access tokens last 15 minutes and are sent as `Authorization: Bearer`. The refresh token lives in an httpOnly cookie for 30 days and is replaced on every refresh. If an old refresh token is ever used again, every session in that login chain is ended.
 
@@ -116,6 +116,18 @@ Emails are never sent inside a request. They are written to the `email_outbox` t
 The list is cursor paginated like every other list. Each item has `id`, `position`, `kind` (`SLIDE` or `CALL_TO_ACTION`), `eyebrow`, `heading`, `body`, `image`, `palette` and `button_label`. The call to action is always the last item and is the only one with a button label. A level that does not exist or is not published returns 404.
 
 Images live in a private MinIO bucket. `image` is a presigned link that works for one hour, so the page should load the story again rather than keep links around.
+
+### Fight endpoints
+
+| Method and path | Purpose |
+| --- | --- |
+| `POST /fight-sessions` | Body `{"level": "1-1"}`. Called when the player presses Play on the last story slide. Records that the level was started but not finished |
+
+The response has the fight `id`, `level`, `status` (`STARTED`), `started_at` and a server `seed` (as a string, because it does not fit in a JavaScript number). Rules:
+
+- Chapter 1 level 1 is always open. Every other level opens only after the level before it has been won, across chapters too. A locked level returns 403 `LEVEL_LOCKED`.
+- Pressing Play again on a level with an unfinished fight marks that fight `ABANDONED` and starts a new one. There is never more than one open fight per player and level.
+- Every start adds one attempt to the player's progress for that level.
 
 ### Story content
 
