@@ -1,0 +1,383 @@
+{
+  "chapter": {
+    "id": "1",
+    "number": 1,
+    "title": "The night they came",
+    "summary": "Bandits burn the village. A hungry boy has to survive the night.",
+    "is_free": true,
+    "is_published": true
+  },
+  "arena": {
+    "id": "burning-house",
+    "name": "The burning house",
+    "width": 960,
+    "floor_y": 470,
+    "stage": {
+      "world_units_per_pixel": 0.0105,
+      "background_color": "#0b0504",
+      "fog": {
+        "color": "#170906",
+        "density": 0.045
+      },
+      "ambient_light": {
+        "color": "#3a1a10",
+        "intensity": 0.7
+      },
+      "rim_light": {
+        "color": "#2dd4bf",
+        "intensity": 1.4,
+        "position": [
+          3,
+          4,
+          -5
+        ]
+      },
+      "fire_lights": [
+        {
+          "position": [
+            -3.6,
+            1.1,
+            -1.6
+          ],
+          "color": "#ff6a1a",
+          "intensity": 16,
+          "distance": 11,
+          "flicker": 0.45
+        },
+        {
+          "position": [
+            3.9,
+            1.5,
+            -1.2
+          ],
+          "color": "#ff8a2a",
+          "intensity": 18,
+          "distance": 11,
+          "flicker": 0.5
+        },
+        {
+          "position": [
+            0,
+            0.5,
+            -2.6
+          ],
+          "color": "#ff4d12",
+          "intensity": 9,
+          "distance": 9,
+          "flicker": 0.35
+        },
+        {
+          "position": [
+            0,
+            0.4,
+            2.4
+          ],
+          "color": "#ffb15a",
+          "intensity": 4,
+          "distance": 7,
+          "flicker": 0.25
+        }
+      ],
+      "floor": {
+        "color": "#1d0f09",
+        "depth": 16
+      },
+      "layers": [
+        {
+          "id": "night-sky",
+          "image": "/story/1-1/06-call-to-action.webp",
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 0.34
+          },
+          "position": [
+            0,
+            8.6,
+            -16
+          ],
+          "width": 30,
+          "brightness": 0.5,
+          "edge_fade": 0.2,
+          "is_lit": false
+        },
+        {
+          "id": "raiders-at-the-door",
+          "image": "/story/1-1/04-nothing-to-give.webp",
+          "crop": {
+            "x": 0,
+            "y": 0.08,
+            "width": 0.42,
+            "height": 0.64
+          },
+          "position": [
+            -3.6,
+            3.57,
+            -6.5
+          ],
+          "width": 3.6,
+          "brightness": 0.75,
+          "edge_fade": 0.2,
+          "is_lit": true
+        },
+        {
+          "id": "blocked-door",
+          "image": "/story/1-1/05-fire.webp",
+          "crop": {
+            "x": 0,
+            "y": 0.06,
+            "width": 0.54,
+            "height": 0.72
+          },
+          "position": [
+            2.9,
+            3.7,
+            -5.4
+          ],
+          "width": 4.4,
+          "brightness": 0.9,
+          "edge_fade": 0.18,
+          "is_lit": true
+        }
+      ],
+      "silhouettes": [
+        {
+          "id": "falling-beam",
+          "position": [
+            -4.4,
+            1.7,
+            2.3
+          ],
+          "size": [
+            0.32,
+            4.4
+          ],
+          "rotation_degrees": 18,
+          "color": "#050302"
+        },
+        {
+          "id": "door-post",
+          "position": [
+            4.9,
+            2.1,
+            2.6
+          ],
+          "size": [
+            0.5,
+            5.2
+          ],
+          "rotation_degrees": -3,
+          "color": "#050302"
+        },
+        {
+          "id": "roof-beam",
+          "position": [
+            0,
+            4.25,
+            1.6
+          ],
+          "size": [
+            13,
+            0.42
+          ],
+          "rotation_degrees": 1.5,
+          "color": "#070403"
+        }
+      ],
+      "smoke": {
+        "color": "#3b2418",
+        "count": 8,
+        "opacity": 0.3
+      },
+      "embers": {
+        "count": 280,
+        "colors": [
+          "#fbbf24",
+          "#f97316",
+          "#ef4444",
+          "#fde68a"
+        ]
+      },
+      "bloom": {
+        "strength": 0.7,
+        "radius": 0.5,
+        "threshold": 0.62
+      },
+      "grade": {
+        "vignette": 0.62,
+        "grain": 0.07,
+        "tint": "#ff6a00"
+      },
+      "camera": {
+        "field_of_view": 34,
+        "height": 1.25,
+        "look_height": 1.02,
+        "close_distance": 5.2,
+        "far_distance": 7.6,
+        "follow_speed": 2.6,
+        "knockout_zoom": 0.72
+      }
+    }
+  },
+  "level": {
+    "id": "1-2",
+    "number": 2,
+    "kind": "STORY",
+    "title": "The hammer",
+    "teaser": "One hit could end it.",
+    "time_limit_seconds": 100,
+    "difficulty": {},
+    "star_rules": [
+      {
+        "stars": 3,
+        "within_seconds": 55
+      },
+      {
+        "stars": 2,
+        "within_seconds": 80
+      },
+      {
+        "stars": 1,
+        "within_seconds": 100
+      }
+    ],
+    "first_clear_coins": 0,
+    "first_clear_experience": 0,
+    "replay_experience": 0,
+    "is_published": true
+  },
+  "enemies": [
+    {
+      "wave": 1,
+      "enemy": {
+        "id": "hammer-bandit",
+        "name": "Hammer bandit",
+        "title": "Bandit · the gang's strongest arm",
+        "stats": {
+          "max_health": 130,
+          "max_stamina": 110,
+          "stamina_regen_per_second": 14,
+          "walk_speed": 110,
+          "block_damage_reduction": 0.5,
+          "block_stamina_cost": 16,
+          "dodge_stamina_cost": 34,
+          "dodge_duration_ms": 360,
+          "dodge_distance": 90,
+          "punch": {
+            "damage": 24,
+            "stamina_cost": 18,
+            "range": 112,
+            "windup_ms": 560,
+            "active_ms": 130,
+            "recovery_ms": 620,
+            "knockback": 60,
+            "hit_stun_ms": 520
+          },
+          "kick": {
+            "damage": 10,
+            "stamina_cost": 12,
+            "range": 90,
+            "windup_ms": 320,
+            "active_ms": 100,
+            "recovery_ms": 360,
+            "knockback": 50,
+            "hit_stun_ms": 360
+          }
+        },
+        "brain": {
+          "aggression": 0.5,
+          "block_chance": 0.15,
+          "dodge_chance": 0.02,
+          "preferred_range": 104,
+          "reaction_ms": 520,
+          "punch_weight": 0.65,
+          "kick_weight": 0.35
+        },
+        "look": {
+          "body_color": "#44403c",
+          "outline_color": "#e7e5e4",
+          "height": 205,
+          "width": 80
+        }
+      },
+      "modifiers": {},
+      "intro_line": null
+    }
+  ],
+  "slides": [
+    {
+      "kind": "SLIDE",
+      "eyebrow": "Chapter 1 · The night they came",
+      "heading": "Out of the fire",
+      "image": "01-out-of-the-fire.webp",
+      "palette": {
+        "background": "#0a0807",
+        "glow": "#f9731633",
+        "accent": "#fb923c"
+      },
+      "body": "He crashes through the burning door and falls into the yard, coughing smoke out of his chest. The bandit who blocked the door lies in the dirt and does not get up. For one breath the night air feels like freedom. Then he hears the laughter."
+    },
+    {
+      "kind": "SLIDE",
+      "eyebrow": null,
+      "heading": "The big one",
+      "image": "02-the-big-one.webp",
+      "palette": {
+        "background": "#0b0806",
+        "glow": "#f59e0b33",
+        "accent": "#fbbf24"
+      },
+      "body": "The riders part to let someone through. He is the biggest man the boy has ever seen, with arms like tree trunks and a blacksmith's hammer resting on one shoulder. He looks at the fallen bandit, then at the boy, and smiles like he has been given a gift."
+    },
+    {
+      "kind": "SLIDE",
+      "eyebrow": null,
+      "heading": "Nowhere to run",
+      "image": "03-nowhere-to-run.webp",
+      "palette": {
+        "background": "#0b0605",
+        "glow": "#ef444433",
+        "accent": "#f87171"
+      },
+      "body": "The riders form a circle around the yard, torches held high, horses stamping. Behind him the house is a wall of fire. In front of him is the hammer. There is no road out tonight that does not go through that man."
+    },
+    {
+      "kind": "SLIDE",
+      "eyebrow": null,
+      "heading": "One hit",
+      "image": "04-one-hit.webp",
+      "palette": {
+        "background": "#0a0706",
+        "glow": "#fb923c40",
+        "accent": "#fdba74"
+      },
+      "body": "The first swing misses and turns an old cart into splinters. The ground shakes under the blow. The boy understands something very quickly: if that hammer lands even once, he will not get up again."
+    },
+    {
+      "kind": "SLIDE",
+      "eyebrow": null,
+      "heading": "Small and fast",
+      "image": "05-small-and-fast.webp",
+      "palette": {
+        "background": "#07090b",
+        "glow": "#2dd4bf26",
+        "accent": "#5eead4"
+      },
+      "body": "The man is strong, but he is slow, and every swing pulls him off balance. The boy is small, and hunger has made him light on his feet. Stay out of reach. Wait for the miss. Hit him while the hammer is still coming back."
+    },
+    {
+      "kind": "CALL_TO_ACTION",
+      "eyebrow": null,
+      "heading": "Make him miss.",
+      "image": "06-call-to-action.webp",
+      "palette": {
+        "background": "#0a0807",
+        "glow": "#f9731659",
+        "accent": "#f97316"
+      },
+      "button_label": "Play",
+      "body": "The hammer is heavier than the boy, and the man swinging it has never lost. One hit could end it. Make him miss, and make him pay for it."
+    }
+  ]
+}

@@ -68,3 +68,24 @@ func TestLoadLevelPackageAcceptsTheLevelOnePackage(t *testing.T) {
 		t.Fatalf("unexpected package %d slides", len(levelPackage.Slides))
 	}
 }
+
+func TestEveryLevelPackageInTheSeedsFolderIsValid(t *testing.T) {
+	levelFiles, err := filepath.Glob(filepath.Join("..", "..", "..", "seeds", "story", "*", levelFileName))
+	if err != nil || len(levelFiles) == 0 {
+		t.Fatalf("expected level packages in the seeds folder, got %v %v", levelFiles, err)
+	}
+	seenLevelIDs := map[string]bool{}
+	for _, levelFile := range levelFiles {
+		levelPackage, err := LoadLevelPackage(filepath.Dir(levelFile))
+		if err != nil {
+			t.Fatalf("%s: %v", levelFile, err)
+		}
+		if seenLevelIDs[levelPackage.Level.ID] {
+			t.Fatalf("level %s is defined twice", levelPackage.Level.ID)
+		}
+		seenLevelIDs[levelPackage.Level.ID] = true
+		if len(levelPackage.Enemies) == 0 {
+			t.Fatalf("level %s has no enemy to fight", levelPackage.Level.ID)
+		}
+	}
+}
