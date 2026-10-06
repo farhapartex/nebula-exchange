@@ -101,11 +101,17 @@ make migrate-version
 | `POST /auth/login` | Return an access token and set the refresh cookie |
 | `POST /auth/refresh` | Rotate the refresh cookie and return a new access token |
 | `POST /auth/logout` | End the current session |
-| `GET /me` | The logged in player: `name`, `email`, `current_level` (fighter level), `story_level` (furthest story level started, such as `1-1`, or null), `total_win`, `total_lose` |
+| `GET /me` | The logged in player: `name`, `email`, `current_level`, `story_level`, `total_win`, `total_lose`, `current_level_win`, `current_level_lose` (see below) |
 
 Access tokens last 15 minutes and are sent as `Authorization: Bearer`. The refresh token lives in an httpOnly cookie for 30 days and is replaced on every refresh. If an old refresh token is ever used again, every session in that login chain is ended.
 
 Emails are never sent inside a request. They are written to the `email_outbox` table in the same transaction as the change that caused them, and a background worker sends them with retries. In development they land in Mailpit.
+
+What the `/me` progress fields mean:
+
+- `current_level` is the chapter the player is in, which is also their fighter level. A new player is at 1. It is the chapter of the next level they have not won yet, so it moves to the next chapter once every level of a chapter is won.
+- `story_level` is how many levels of the current chapter the player has won: 0 for a new player, 1 after winning level 1.
+- `total_win` and `total_lose` count every finished fight in the whole game. `current_level_win` and `current_level_lose` count only fights in the current chapter.
 
 ### Story endpoints
 
@@ -121,13 +127,14 @@ Images live in a private MinIO bucket. `image` is a presigned link that works fo
 
 | Method and path | Purpose |
 | --- | --- |
+| `GET /me/next-level` | The next level to play: `status` (`AVAILABLE`, `LOCKED` for a chapter that has to be bought, `COMING_SOON` when the next chapter has no levels yet), `chapter` (number and title) and `level` (id, number, title, teaser, time limit, best stars, attempts). The fight hub shows it as the next fight |
 | `GET /levels/{level_id}/fight-setup` | Everything the fight screen needs: time limit, arena and stage, the player's fighter and the enemy of the first wave |
 | `POST /fight-sessions` | Body `{"level": "1-1"}`. Called when the player presses Play on the last story slide. Records that the level was started but not finished |
 | `POST /fight-sessions/{id}/results` | Body `{"outcome": "WON", "duration_ms": 40000, "damage_dealt": 95, "damage_taken": 30}`. Sent once when the fight ends |
 
 The response has the fight `id`, `level`, `status` (`STARTED`), `started_at` and a server `seed` (as a string, because it does not fit in a JavaScript number). Rules:
 
-- Chapter 1 level 1 is always open. Every other level opens only after the level before it has been won, across chapters too. A locked level returns 403 `LEVEL_LOCKED`.
+- Chapter 1 level 1 is always open. Every other level opens only after the level before it has been won, across chapters too. Levels in a paid chapter cannot be started until chapter purchase exists. A locked level returns 403 `LEVEL_LOCKED`.
 - Pressing Play again on a level with an unfinished fight marks that fight `ABANDONED` and starts a new one. There is never more than one open fight per player and level.
 - Every start adds one attempt to the player's progress for that level.
 
