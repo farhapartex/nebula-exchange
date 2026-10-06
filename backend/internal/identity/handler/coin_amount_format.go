@@ -9,7 +9,3 @@ func formatCoinAmount(amount *int64) *string {
 	formattedAmount := strconv.FormatInt(*amount, 10)
 	return &formattedAmount
 }
-
-func formatSeed(seed int64) string {
-	return strconv.FormatInt(seed, 10)
-}

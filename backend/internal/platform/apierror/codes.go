@@ -12,6 +12,7 @@ const (
 	CodeAccountNotActivated Code = "ACCOUNT_NOT_ACTIVATED"
 	CodeLevelLocked         Code = "LEVEL_LOCKED"
 	CodeFightResultRejected Code = "FIGHT_RESULT_REJECTED"
+	CodeChapterLocked       Code = "CHAPTER_LOCKED"
 	CodeInternalError       Code = "INTERNAL_ERROR"
 	CodeServiceUnavailable  Code = "SERVICE_UNAVAILABLE"
 )

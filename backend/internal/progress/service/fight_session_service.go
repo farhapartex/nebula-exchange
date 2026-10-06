@@ -19,7 +19,7 @@ import (
 
 var (
 	ErrLevelLocked          = apierror.New(http.StatusForbidden, apierror.CodeLevelLocked, "Win the previous level to unlock this one")
-	ErrChapterLocked        = apierror.New(http.StatusForbidden, apierror.CodeLevelLocked, "Unlock this chapter to play it")
+	ErrChapterLocked        = apierror.New(http.StatusForbidden, apierror.CodeChapterLocked, "Buy this chapter to play this level")
 	ErrFightAlreadyStarting = apierror.Conflict("This level is already being started. Try again in a moment.")
 )
 
@@ -36,13 +36,14 @@ type FightSessionService interface {
 }
 
 type FightSessionDependencies struct {
-	Levels        LevelCatalog
-	LevelProgress repository.LevelProgressRepository
-	FightSessions repository.FightSessionRepository
-	Fighters      repository.FighterRepository
-	Transactions  TransactionRunner
-	Logger        *slog.Logger
-	Now           Clock
+	Levels         LevelCatalog
+	LevelProgress  repository.LevelProgressRepository
+	FightSessions  repository.FightSessionRepository
+	Fighters       repository.FighterRepository
+	ChapterUnlocks repository.ChapterUnlockRepository
+	Transactions   TransactionRunner
+	Logger         *slog.Logger
+	Now            Clock
 }
 
 type fightSessionService struct {
@@ -58,9 +59,6 @@ func (fights *fightSessionService) Start(ctx context.Context, userID uuid.UUID, 
 	if err != nil {
 		return StartedFight{}, err
 	}
-	if !placement.IsChapterFree {
-		return StartedFight{}, ErrChapterLocked
-	}
 	if placement.PreviousLevelID != nil {
 		isPreviousLevelWon, err := fights.dependencies.LevelProgress.IsCompleted(ctx, userID, *placement.PreviousLevelID)
 		if err != nil {
@@ -69,6 +67,13 @@ func (fights *fightSessionService) Start(ctx context.Context, userID uuid.UUID, 
 		if !isPreviousLevelWon {
 			return StartedFight{}, ErrLevelLocked
 		}
+	}
+	owned, err := loadOwnedChapters(ctx, fights.dependencies.ChapterUnlocks, userID)
+	if err != nil {
+		return StartedFight{}, err
+	}
+	if !owned.canPlay(placement) {
+		return StartedFight{}, ErrChapterLocked
 	}
 
 	newFight, err := fights.newFightSession(userID, levelID)

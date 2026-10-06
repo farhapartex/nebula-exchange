@@ -11,9 +11,12 @@ var ErrLevelNotPlayable = apierror.NotFound("This level does not exist or cannot
 
 type LevelPlacement struct {
 	LevelID          string
+	ChapterID        string
 	ChapterNumber    int
 	ChapterTitle     string
 	IsChapterFree    bool
+	ChapterPrice     *int64
+	IsLevelFree      bool
 	LevelNumber      int
 	Title            string
 	Teaser           string
@@ -71,9 +74,12 @@ func (catalog *levelCatalog) OrderedPlacements(ctx context.Context) ([]LevelPlac
 	for levelOrder, level := range orderedLevels {
 		orderedPlacements = append(orderedPlacements, LevelPlacement{
 			LevelID:          level.ID,
+			ChapterID:        level.Chapter.ID,
 			ChapterNumber:    level.Chapter.Number,
 			ChapterTitle:     level.Chapter.Title,
 			IsChapterFree:    level.Chapter.IsFree,
+			ChapterPrice:     level.Chapter.PriceCoins,
+			IsLevelFree:      level.IsFree,
 			LevelNumber:      *level.Number,
 			Title:            level.Title,
 			Teaser:           level.Teaser,

@@ -30,14 +30,16 @@ func NewModule(dependencies ModuleDependencies) *Module {
 	fighters := repository.NewFighterRepository(dependencies.Database)
 	fightSessions := repository.NewFightSessionRepository(dependencies.Database)
 	transactions := database.NewTransactionRunner(dependencies.Database)
+	chapterUnlocks := repository.NewChapterUnlockRepository(dependencies.Database)
 	fightSessionService := service.NewFightSessionService(service.FightSessionDependencies{
-		Levels:        dependencies.Levels,
-		LevelProgress: levelProgress,
-		FightSessions: fightSessions,
-		Fighters:      fighters,
-		Transactions:  transactions,
-		Logger:        dependencies.Logger,
-		Now:           service.Clock(dependencies.Now),
+		Levels:         dependencies.Levels,
+		LevelProgress:  levelProgress,
+		FightSessions:  fightSessions,
+		Fighters:       fighters,
+		ChapterUnlocks: chapterUnlocks,
+		Transactions:   transactions,
+		Logger:         dependencies.Logger,
+		Now:            service.Clock(dependencies.Now),
 	})
 	fightResultService := service.NewFightResultService(service.FightResultDependencies{
 		Levels:        dependencies.Levels,
@@ -48,7 +50,13 @@ func NewModule(dependencies ModuleDependencies) *Module {
 		Logger:        dependencies.Logger,
 		Now:           service.Clock(dependencies.Now),
 	})
-	playerProgressService := service.NewPlayerProgressService(dependencies.Levels, levelProgress, fightSessions, fighters)
+	playerProgressService := service.NewPlayerProgressService(service.PlayerProgressDependencies{
+		Levels:         dependencies.Levels,
+		LevelProgress:  levelProgress,
+		FightSessions:  fightSessions,
+		Fighters:       fighters,
+		ChapterUnlocks: chapterUnlocks,
+	})
 	return &Module{
 		PlayerProgress: playerProgressService,
 		registrars: []httpserver.RouteRegistrar{

@@ -39,7 +39,7 @@ func (seeder *Seeder) SeedLevel(ctx context.Context, levelPackage LevelPackage) 
 		if err := upsert(transaction, arenaRecord(levelPackage.Arena), "name", "width", "floor_y", "stage"); err != nil {
 			return fmt.Errorf("save arena: %w", err)
 		}
-		levelColumns := []string{"chapter_id", "number", "kind", "title", "teaser", "arena_id", "time_limit_seconds", "difficulty", "star_rules", "first_clear_coins", "first_clear_experience", "replay_experience", "is_published"}
+		levelColumns := []string{"chapter_id", "number", "kind", "title", "teaser", "arena_id", "time_limit_seconds", "difficulty", "star_rules", "first_clear_coins", "first_clear_experience", "replay_experience", "is_free", "is_published"}
 		if err := upsert(transaction, levelRecord(levelPackage), levelColumns...); err != nil {
 			return fmt.Errorf("save level: %w", err)
 		}
@@ -156,6 +156,7 @@ func levelRecord(levelPackage LevelPackage) *models.Level {
 		FirstClearCoins:      level.FirstClearCoins,
 		FirstClearExperience: level.FirstClearExperience,
 		ReplayExperience:     level.ReplayExperience,
+		IsFree:               level.IsFree,
 		IsPublished:          level.IsPublished,
 	}
 }

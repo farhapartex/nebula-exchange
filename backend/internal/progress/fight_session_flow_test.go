@@ -499,7 +499,49 @@ func TestAPaidChapterIsShownAsLockedAndCannotBeStarted(t *testing.T) {
 		t.Fatalf("a paid chapter must show its first level as locked, got %v", lockedLevel)
 	}
 	status, body := harness.startFight(`{"level":"2-1"}`, "player-token")
-	if status != http.StatusForbidden || body["error"].(map[string]any)["code"] != "LEVEL_LOCKED" {
-		t.Fatalf("got %d %v for a paid chapter, want 403 LEVEL_LOCKED", status, body)
+	if status != http.StatusForbidden || body["error"].(map[string]any)["code"] != "CHAPTER_LOCKED" {
+		t.Fatalf("got %d %v for a paid chapter, want 403 CHAPTER_LOCKED", status, body)
 	}
+}
+
+func TestOnlyTheFreeLevelOfAPaidChapterCanBePlayedUntilTheChapterIsUnlocked(t *testing.T) {
+	harness := newProgressHarness(t)
+	if err := harness.database.Model(&storymodels.Chapter{}).Where(map[string]any{"id": "1"}).
+		Updates(map[string]any{"is_free": false, "price_coins": int64(499_000_000)}).Error; err != nil {
+		t.Fatalf("make chapter 1 paid: %v", err)
+	}
+	if err := harness.database.Model(&storymodels.Level{}).Where(map[string]any{"id": "1-1"}).Update("is_free", true).Error; err != nil {
+		t.Fatalf("make level 1-1 free: %v", err)
+	}
+
+	newPlayer := harness.progressOf()
+	if newPlayer.CurrentLevelPrice == nil || *newPlayer.CurrentLevelPrice != 499_000_000 || newPlayer.IsCurrentLevelPaid {
+		t.Fatalf("a new player must see chapter 1 as unpaid with its price, got %+v", newPlayer)
+	}
+	firstLevel := harness.getNextLevel()
+	firstChapter := firstLevel["chapter"].(map[string]any)
+	if firstLevel["status"] != "AVAILABLE" || firstChapter["price"] != "499000000" || firstChapter["is_paid"] != false {
+		t.Fatalf("the free first level must be playable in an unpaid chapter, got %v", firstLevel)
+	}
+
+	harness.winWithAResult("1-1")
+	if lockedLevel := harness.getNextLevel(); lockedLevel["status"] != "LOCKED" || lockedLevel["level"].(map[string]any)["id"] != "1-2" {
+		t.Fatalf("level 1-2 must be locked until chapter 1 is bought, got %v", lockedLevel)
+	}
+	status, body := harness.startFight(`{"level":"1-2"}`, "player-token")
+	if status != http.StatusForbidden || body["error"].(map[string]any)["code"] != "CHAPTER_LOCKED" {
+		t.Fatalf("got %d %v, want 403 CHAPTER_LOCKED", status, body)
+	}
+
+	unlock := &progressmodels.ChapterUnlock{UserID: harness.playerID, ChapterID: "1", Source: progressmodels.ChapterUnlockSourceGrant, UnlockedAt: harness.clock.now()}
+	if err := harness.database.Create(unlock).Error; err != nil {
+		t.Fatalf("unlock chapter 1: %v", err)
+	}
+	if paidPlayer := harness.progressOf(); !paidPlayer.IsCurrentLevelPaid {
+		t.Fatalf("an unlocked chapter must count as paid, got %+v", paidPlayer)
+	}
+	if unlockedLevel := harness.getNextLevel(); unlockedLevel["status"] != "AVAILABLE" || unlockedLevel["chapter"].(map[string]any)["is_paid"] != true {
+		t.Fatalf("level 1-2 must open after the unlock, got %v", unlockedLevel)
+	}
+	harness.requireStart("1-2", http.StatusCreated)
 }

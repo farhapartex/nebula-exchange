@@ -11,14 +11,16 @@ import (
 )
 
 type CurrentPlayerResponse struct {
-	Name             string `json:"name"`
-	Email            string `json:"email"`
-	CurrentLevel     int    `json:"current_level"`
-	StoryLevel       int    `json:"story_level"`
-	TotalWin         int    `json:"total_win"`
-	TotalLose        int    `json:"total_lose"`
-	CurrentLevelWin  int    `json:"current_level_win"`
-	CurrentLevelLose int    `json:"current_level_lose"`
+	Name               string  `json:"name"`
+	Email              string  `json:"email"`
+	CurrentLevel       int     `json:"current_level"`
+	CurrentLevelPrice  *string `json:"current_level_price"`
+	IsCurrentLevelPaid bool    `json:"is_current_level_paid"`
+	StoryLevel         int     `json:"story_level"`
+	TotalWin           int     `json:"total_win"`
+	TotalLose          int     `json:"total_lose"`
+	CurrentLevelWin    int     `json:"current_level_win"`
+	CurrentLevelLose   int     `json:"current_level_lose"`
 }
 
 type ProfileHandler struct {
@@ -41,13 +43,15 @@ func (handler *ProfileHandler) getMe(context *gin.Context) {
 		return
 	}
 	response.WriteData(context, http.StatusOK, CurrentPlayerResponse{
-		Name:             currentPlayer.Name,
-		Email:            currentPlayer.Email,
-		CurrentLevel:     currentPlayer.CurrentLevel,
-		StoryLevel:       currentPlayer.StoryLevel,
-		TotalWin:         currentPlayer.TotalWins,
-		TotalLose:        currentPlayer.TotalLosses,
-		CurrentLevelWin:  currentPlayer.CurrentLevelWins,
-		CurrentLevelLose: currentPlayer.CurrentLevelLosses,
+		Name:               currentPlayer.Name,
+		Email:              currentPlayer.Email,
+		CurrentLevel:       currentPlayer.CurrentLevel,
+		CurrentLevelPrice:  formatCoinAmount(currentPlayer.CurrentLevelPrice),
+		IsCurrentLevelPaid: currentPlayer.IsCurrentLevelPaid,
+		StoryLevel:         currentPlayer.StoryLevel,
+		TotalWin:           currentPlayer.TotalWins,
+		TotalLose:          currentPlayer.TotalLosses,
+		CurrentLevelWin:    currentPlayer.CurrentLevelWins,
+		CurrentLevelLose:   currentPlayer.CurrentLevelLosses,
 	})
 }

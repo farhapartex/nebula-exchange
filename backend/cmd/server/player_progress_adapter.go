@@ -20,6 +20,8 @@ func (adapter playerProgressAdapter) PlayerProgressOf(ctx context.Context, userI
 	}
 	return identityservice.PlayerProgress{
 		CurrentLevel:       playerProgress.CurrentLevel,
+		CurrentLevelPrice:  playerProgress.CurrentLevelPrice,
+		IsCurrentLevelPaid: playerProgress.IsCurrentLevelPaid,
 		StoryLevel:         playerProgress.StoryLevel,
 		TotalWins:          playerProgress.TotalWins,
 		TotalLosses:        playerProgress.TotalLosses,

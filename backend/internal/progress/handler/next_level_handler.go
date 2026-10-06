@@ -13,6 +13,8 @@ import (
 type NextChapterResponse struct {
 	Number int     `json:"number"`
 	Title  *string `json:"title"`
+	Price  *string `json:"price"`
+	IsPaid bool    `json:"is_paid"`
 }
 
 type NextLevelDetailsResponse struct {
@@ -53,7 +55,7 @@ func (handler *NextLevelHandler) getNextLevel(context *gin.Context) {
 	nextLevel := playerProgress.NextLevel
 	nextLevelResponse := NextLevelResponse{
 		Status:  nextLevel.Status,
-		Chapter: NextChapterResponse{Number: nextLevel.ChapterNumber, Title: nextLevel.ChapterTitle},
+		Chapter: NextChapterResponse{Number: nextLevel.ChapterNumber, Title: nextLevel.ChapterTitle, Price: formatCoinAmount(nextLevel.ChapterPrice), IsPaid: nextLevel.IsChapterPaid},
 	}
 	if nextLevel.Level != nil {
 		nextLevelResponse.Level = &NextLevelDetailsResponse{

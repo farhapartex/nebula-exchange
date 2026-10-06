@@ -4,7 +4,8 @@
     "number": 1,
     "title": "The night they came",
     "summary": "Bandits burn the village. A hungry boy has to survive the night.",
-    "is_free": true,
+    "is_free": false,
+    "price_coins": 499000000,
     "is_published": true
   },
   "arena": {
@@ -245,6 +246,7 @@
     "first_clear_coins": 0,
     "first_clear_experience": 0,
     "replay_experience": 0,
+    "is_free": true,
     "is_published": true
   },
   "enemies": [

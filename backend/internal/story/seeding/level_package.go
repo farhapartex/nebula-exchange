@@ -47,6 +47,7 @@ type LevelContent struct {
 	FirstClearCoins      int64                 `json:"first_clear_coins"`
 	FirstClearExperience int                   `json:"first_clear_experience"`
 	ReplayExperience     int                   `json:"replay_experience"`
+	IsFree               bool                  `json:"is_free"`
 	IsPublished          bool                  `json:"is_published"`
 }
 

@@ -28,6 +28,7 @@ type Level struct {
 	FirstClearCoins      int64                 `gorm:"not null"`
 	FirstClearExperience int                   `gorm:"not null"`
 	ReplayExperience     int                   `gorm:"not null"`
+	IsFree               bool                  `gorm:"not null"`
 	IsPublished          bool                  `gorm:"not null"`
 	CreatedAt            time.Time
 	UpdatedAt            time.Time

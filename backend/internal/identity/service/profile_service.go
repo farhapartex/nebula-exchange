@@ -13,6 +13,8 @@ type PlayerSummary struct {
 	Name               string
 	Email              string
 	CurrentLevel       int
+	CurrentLevelPrice  *int64
+	IsCurrentLevelPaid bool
 	StoryLevel         int
 	TotalWins          int
 	TotalLosses        int
@@ -22,6 +24,8 @@ type PlayerSummary struct {
 
 type PlayerProgress struct {
 	CurrentLevel       int
+	CurrentLevelPrice  *int64
+	IsCurrentLevelPaid bool
 	StoryLevel         int
 	TotalWins          int
 	TotalLosses        int
@@ -62,6 +66,8 @@ func (profile *profileService) CurrentPlayer(ctx context.Context, userID uuid.UU
 		Name:               currentUser.Username,
 		Email:              currentUser.Email,
 		CurrentLevel:       playerProgress.CurrentLevel,
+		CurrentLevelPrice:  playerProgress.CurrentLevelPrice,
+		IsCurrentLevelPaid: playerProgress.IsCurrentLevelPaid,
 		StoryLevel:         playerProgress.StoryLevel,
 		TotalWins:          playerProgress.TotalWins,
 		TotalLosses:        playerProgress.TotalLosses,
