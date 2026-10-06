@@ -215,6 +215,8 @@ The player's fighter comes from their `fighter_profiles` row. A player gets that
 
 `backend/seeds/fighters/*.json` holds fighter templates. Exactly one of them is the default for new players.
 
+Tools live in `backend/seeds/tools/*.json`, one file per tool type: its category (`WEAPON` or `GUARD`), rarity, base stats, mastery curve (`points_to_reach_level`, which sets the number of mastery levels, at most 10, and `stat_gain_per_level`), an optional shop price in coins and `introduced_in_level_id`. Winning the introducing level for the first time will give the player one copy, and from then on the tool is also sold in the shop. The first two tools, the iron pipe and the scrap shield, use placeholder stats and prices and are not tied to a level yet. Tools are seeded after the story levels, because a tool can point at a level.
+
 The purchase plans live in `backend/seeds/plans/plans.json`. The seed checks the plan kinds and discount tiers and updates plans by id.
 
 Each level lives in `backend/seeds/story/<level>/`: a `level.json` with the chapter, arena, level, enemy waves and slides, and an `images` folder. The seed checks the package before it changes anything, uploads the images under `story/<level_id>/`, then saves the rows in one transaction.
