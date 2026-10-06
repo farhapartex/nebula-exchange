@@ -6,6 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Spinner } from "@/components/ui/spinner";
 import { currentPlayerQueryKey } from "@/features/auth/session/use-current-player";
 import { submitFightResult } from "@/features/fight/api/fight-session-api";
+import { nextLevelQueryKey } from "@/features/fight-hub/api/next-level-api";
 import type { FightSetup } from "@/features/fight/api/fight-setup-api";
 import { FightController } from "@/features/fight/engine/fight-controller";
 import { createFightState } from "@/features/fight/engine/fight-simulation";
@@ -49,7 +50,10 @@ export function FightArena({ setup, fightSessionID, onRestartFight }: FightArena
       sessionID: string;
       report: NonNullable<ReturnType<typeof buildFightResultReport>>;
     }) => submitFightResult(sessionID, report),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: currentPlayerQueryKey }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: currentPlayerQueryKey });
+      void queryClient.invalidateQueries({ queryKey: nextLevelQueryKey });
+    },
     onError: () =>
       publishToastEvent({
         tone: "error",

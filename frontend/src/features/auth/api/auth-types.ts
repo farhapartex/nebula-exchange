@@ -30,9 +30,11 @@ export type CurrentPlayer = {
   name: string;
   email: string;
   current_level: number;
-  story_level: string | null;
+  story_level: number;
   total_win: number;
   total_lose: number;
+  current_level_win: number;
+  current_level_lose: number;
 };
 
 export type LoginRequest = {

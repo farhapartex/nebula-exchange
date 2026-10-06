@@ -21,3 +21,16 @@ export function activeChapterOf(chapters: StoryChapter[]): StoryChapter | null {
 export function levelRoute(levelID: string): string {
   return `/fight/${levelID}`;
 }
+
+export function markLevelsByProgress(levels: StoryLevel[], wonLevelCount: number): StoryLevel[] {
+  const storyLevelCount = levels.filter((storyLevel) => storyLevel.number !== null).length;
+  return levels.map((storyLevel) => {
+    if (storyLevel.number === null) {
+      return { ...storyLevel, status: wonLevelCount >= storyLevelCount ? "current" : "locked" };
+    }
+    if (storyLevel.number <= wonLevelCount) {
+      return { ...storyLevel, status: "completed" };
+    }
+    return { ...storyLevel, status: storyLevel.number === wonLevelCount + 1 ? "current" : "locked" };
+  });
+}
