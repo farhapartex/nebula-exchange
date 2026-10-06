@@ -1,6 +1,5 @@
 import { bypass, http, passthrough } from "msw";
-import { keccak256, toHex, verifyMessage } from "viem";
-import { generateSiweNonce, parseSiweMessage } from "viem/siwe";
+import { keccak256, toHex } from "viem";
 
 import type { Plan } from "@/features/chapter-purchase/api/plan-api";
 import type {
@@ -10,16 +9,13 @@ import type {
   PaymentMethod,
 } from "@/features/subscriptions/api/checkout-session-api";
 import type { Subscription } from "@/features/subscriptions/api/subscription-api";
-import type { LinkedWallet, WalletChallenge, WalletLinkRequest } from "@/features/wallet/api/wallet-api";
 import { buildApiUrl } from "@/lib/api/api-config";
 import type { DataEnvelope, ListEnvelope } from "@/lib/api/api-types";
 import { gameChain } from "@/lib/web3/chain-config";
 import { mockDataResponse, mockErrorResponse, mockListResponse, simulateLatency } from "@/mocks/utils/mock-responses";
 import { readSessionMockState, writeSessionMockState } from "@/mocks/utils/session-mock-store";
 
-const linkedWalletsStorageKey = "street-born-mock-linked-wallets";
 const walletCheckoutsStorageKey = "street-born-mock-wallet-checkouts";
-const walletChallengeLifetimeInMilliseconds = 5 * 60 * 1000;
 const walletCheckoutLifetimeInMilliseconds = 30 * 60 * 1000;
 const statusChecksBeforePaid = 2;
 const usdcUnitsPerCent = 10000n;
@@ -32,10 +28,6 @@ type MockWalletCheckout = {
 };
 
 type CheckoutSessionBody = CheckoutSessionRequest & { payment_method?: PaymentMethod };
-
-function readLinkedWallets(): LinkedWallet[] {
-  return readSessionMockState<LinkedWallet[]>(linkedWalletsStorageKey, []);
-}
 
 function readWalletCheckouts(): Record<string, MockWalletCheckout> {
   return readSessionMockState<Record<string, MockWalletCheckout>>(walletCheckoutsStorageKey, {});
@@ -54,48 +46,7 @@ async function findPlanOption(request: Request, checkoutRequest: CheckoutSession
   return plan && option ? { plan, option } : null;
 }
 
-export const walletHandlers = [
-  http.get(buildApiUrl("/wallets"), async ({ request }) => {
-    await simulateLatency();
-    return mockListResponse(readLinkedWallets(), new URL(request.url));
-  }),
-
-  http.post(buildApiUrl("/wallet-challenges"), async () => {
-    await simulateLatency();
-    return mockDataResponse<WalletChallenge>(
-      {
-        nonce: generateSiweNonce(),
-        expires_at: new Date(Date.now() + walletChallengeLifetimeInMilliseconds).toISOString(),
-      },
-      201,
-    );
-  }),
-
-  http.post(buildApiUrl("/wallets"), async ({ request }) => {
-    await simulateLatency();
-    const walletLinkRequest = (await request.json()) as WalletLinkRequest;
-    const signedMessage = parseSiweMessage(walletLinkRequest.message);
-    const isValidSignature =
-      signedMessage.address !== undefined &&
-      (await verifyMessage({
-        address: signedMessage.address,
-        message: walletLinkRequest.message,
-        signature: walletLinkRequest.signature as `0x${string}`,
-      }));
-    if (!signedMessage.address || !isValidSignature) {
-      return mockErrorResponse(422, "VALIDATION_FAILED", "Some fields are invalid", {
-        signature: "does not match the wallet",
-      });
-    }
-    const linkedWallet: LinkedWallet = {
-      address: signedMessage.address.toLowerCase(),
-      chain_id: signedMessage.chainId ?? gameChain.id,
-      linked_at: new Date().toISOString(),
-    };
-    writeSessionMockState(linkedWalletsStorageKey, [linkedWallet]);
-    return mockDataResponse(linkedWallet, 201);
-  }),
-
+export const walletCheckoutHandlers = [
   http.post(buildApiUrl("/checkout-sessions"), async ({ request }) => {
     const checkoutBody = (await request.clone().json()) as CheckoutSessionBody;
     if (checkoutBody.payment_method !== "WALLET") {
