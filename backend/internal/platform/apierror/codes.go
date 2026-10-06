@@ -13,6 +13,7 @@ const (
 	CodeLevelLocked         Code = "LEVEL_LOCKED"
 	CodeFightResultRejected Code = "FIGHT_RESULT_REJECTED"
 	CodeChapterLocked       Code = "CHAPTER_LOCKED"
+	CodeWalletRequired      Code = "WALLET_REQUIRED"
 	CodeInternalError       Code = "INTERNAL_ERROR"
 	CodeServiceUnavailable  Code = "SERVICE_UNAVAILABLE"
 )

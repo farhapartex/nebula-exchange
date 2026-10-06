@@ -51,6 +51,9 @@ func run() error {
 
 	var backgroundWorkers sync.WaitGroup
 	backgroundWorkers.Go(func() { app.emailDispatcher.Run(shutdownSignal) })
+	if app.vaultPaymentWatcher != nil {
+		backgroundWorkers.Go(func() { app.vaultPaymentWatcher.Run(shutdownSignal) })
+	}
 
 	server := httpserver.New(appConfig.HTTPAddress(), app.router, appLogger)
 	serverError := server.Run(shutdownSignal, appConfig.ShutdownTimeout)

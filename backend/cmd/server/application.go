@@ -13,6 +13,7 @@ import (
 	"github.com/farhapartex/nebula-exchange/backend/internal/identity"
 	"github.com/farhapartex/nebula-exchange/backend/internal/payment"
 	paymentgateway "github.com/farhapartex/nebula-exchange/backend/internal/payment/gateway"
+	paymentservice "github.com/farhapartex/nebula-exchange/backend/internal/payment/service"
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/config"
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/email"
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/email/outbox"
@@ -25,8 +26,9 @@ import (
 )
 
 type application struct {
-	router          *gin.Engine
-	emailDispatcher *outbox.Dispatcher
+	router              *gin.Engine
+	emailDispatcher     *outbox.Dispatcher
+	vaultPaymentWatcher *paymentservice.VaultPaymentWatcher
 }
 
 func buildApplication(ctx context.Context, appConfig config.Config, appLogger *slog.Logger, gormDatabase *gorm.DB, redisClient *redis.Client) (*application, error) {
@@ -51,8 +53,6 @@ func buildApplication(ctx context.Context, appConfig config.Config, appLogger *s
 		Now:      time.Now,
 	})
 
-	paymentModule := payment.NewModule(buildPaymentDependencies(appConfig, appLogger, gormDatabase, storyModule, progressModule))
-
 	walletModule, err := wallet.NewModule(wallet.ModuleDependencies{
 		Database:        gormDatabase,
 		ChainID:         appConfig.ChainID,
@@ -62,6 +62,12 @@ func buildApplication(ctx context.Context, appConfig config.Config, appLogger *s
 	if err != nil {
 		return nil, err
 	}
+
+	paymentDependencies, err := buildPaymentDependencies(ctx, appConfig, appLogger, gormDatabase, storyModule, progressModule, walletModule)
+	if err != nil {
+		return nil, err
+	}
+	paymentModule := payment.NewModule(paymentDependencies)
 
 	identityModule, err := identity.NewModule(ctx, identity.ModuleDependencies{
 		Database:        gormDatabase,
@@ -100,8 +106,9 @@ func buildApplication(ctx context.Context, appConfig config.Config, appLogger *s
 	}
 
 	return &application{
-		router:          router,
-		emailDispatcher: outbox.NewDispatcher(emailOutbox, smtpSender, appLogger, outbox.DispatcherOptions{}),
+		router:              router,
+		emailDispatcher:     outbox.NewDispatcher(emailOutbox, smtpSender, appLogger, outbox.DispatcherOptions{}),
+		vaultPaymentWatcher: paymentModule.VaultPaymentWatcher,
 	}, nil
 }
 
@@ -120,21 +127,50 @@ func buildHealthService(appLogger *slog.Logger, gormDatabase *gorm.DB, redisClie
 	)
 }
 
-func buildPaymentDependencies(appConfig config.Config, appLogger *slog.Logger, gormDatabase *gorm.DB, storyModule *story.Module, progressModule *progress.Module) payment.ModuleDependencies {
+func buildPaymentDependencies(ctx context.Context, appConfig config.Config, appLogger *slog.Logger, gormDatabase *gorm.DB, storyModule *story.Module, progressModule *progress.Module, walletModule *wallet.Module) (payment.ModuleDependencies, error) {
 	paymentDependencies := payment.ModuleDependencies{
-		Database:         gormDatabase,
-		Chapters:         storyModule.LevelCatalog,
-		ChapterOwnership: progressModule.ChapterOwnership,
-		ChapterUnlocker:  progressModule.ChapterUnlocks,
-		FrontendBaseURL:  appConfig.FrontendBaseURL,
-		Logger:           appLogger,
-		Now:              time.Now,
+		Database:          gormDatabase,
+		Chapters:          storyModule.LevelCatalog,
+		ChapterOwnership:  progressModule.ChapterOwnership,
+		ChapterUnlocker:   progressModule.ChapterUnlocks,
+		FrontendBaseURL:   appConfig.FrontendBaseURL,
+		Logger:            appLogger,
+		Now:               time.Now,
+		ChainPollInterval: appConfig.WalletPayment.PollInterval,
 	}
-	if !appConfig.Stripe.IsConfigured() {
-		appLogger.Warn("stripe is not configured, chapter payments are off")
-		return paymentDependencies
+	if appConfig.Stripe.IsConfigured() {
+		paymentDependencies.CheckoutGateway = paymentgateway.NewStripeCheckoutGateway(appConfig.Stripe.SecretKey)
+		paymentDependencies.EventVerifier = paymentgateway.NewStripeEventVerifier(appConfig.Stripe.WebhookSecret)
+	} else {
+		appLogger.Warn("stripe is not configured, card payments are off")
 	}
-	paymentDependencies.CheckoutGateway = paymentgateway.NewStripeCheckoutGateway(appConfig.Stripe.SecretKey)
-	paymentDependencies.EventVerifier = paymentgateway.NewStripeEventVerifier(appConfig.Stripe.WebhookSecret)
-	return paymentDependencies
+	walletPayments, err := buildWalletPaymentDependencies(ctx, appConfig, appLogger, walletModule)
+	if err != nil {
+		return payment.ModuleDependencies{}, err
+	}
+	paymentDependencies.WalletPayments = walletPayments
+	return paymentDependencies, nil
+}
+
+func buildWalletPaymentDependencies(ctx context.Context, appConfig config.Config, appLogger *slog.Logger, walletModule *wallet.Module) (*paymentservice.WalletPaymentDependencies, error) {
+	walletPaymentConfig := appConfig.WalletPayment
+	if !walletPaymentConfig.IsConfigured() {
+		appLogger.Warn("chain is not configured, wallet payments are off")
+		return nil, nil
+	}
+	authorizer, err := paymentgateway.NewEIP712PaymentAuthorizer(walletPaymentConfig.PaymentSignerPrivateKey, walletPaymentConfig.ChapterPaymentVaultAddress, appConfig.ChainID)
+	if err != nil {
+		return nil, err
+	}
+	vaultReader, err := paymentgateway.NewChainVaultReader(ctx, walletPaymentConfig.RPCURL, walletPaymentConfig.ChapterPaymentVaultAddress, appConfig.ChainID)
+	if err != nil {
+		return nil, err
+	}
+	appLogger.Info("wallet payments are on", slog.String("vault", authorizer.VaultAddress()), slog.String("payment_signer", authorizer.SignerAddress()), slog.Int64("chain_id", appConfig.ChainID))
+	return &paymentservice.WalletPaymentDependencies{
+		Authorizer:            authorizer,
+		Chain:                 vaultReader,
+		LinkedWallets:         walletModule.LinkedWallets,
+		RequiredConfirmations: walletPaymentConfig.RequiredConfirmations,
+	}, nil
 }

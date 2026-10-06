@@ -10,7 +10,11 @@ import (
 
 const MinimumJWTSecretLength = 32
 
-const defaultChainID = 31337
+const (
+	defaultChainID               = 31337
+	defaultRequiredConfirmations = 1
+	defaultChainPollInterval     = 3 * time.Second
+)
 
 const (
 	EnvironmentDevelopment = "development"
@@ -54,6 +58,18 @@ func (stripeConfig StripeConfig) IsConfigured() bool {
 	return stripeConfig.SecretKey != "" && stripeConfig.WebhookSecret != ""
 }
 
+type WalletPaymentConfig struct {
+	RPCURL                     string
+	ChapterPaymentVaultAddress string
+	PaymentSignerPrivateKey    string
+	RequiredConfirmations      int
+	PollInterval               time.Duration
+}
+
+func (walletPaymentConfig WalletPaymentConfig) IsConfigured() bool {
+	return walletPaymentConfig.RPCURL != "" && walletPaymentConfig.ChapterPaymentVaultAddress != "" && walletPaymentConfig.PaymentSignerPrivateKey != ""
+}
+
 type SessionConfig struct {
 	JWTSecret      string
 	IsCookieSecure bool
@@ -74,6 +90,7 @@ type Config struct {
 	Storage         StorageConfig
 	Stripe          StripeConfig
 	ChainID         int64
+	WalletPayment   WalletPaymentConfig
 }
 
 func Load() (Config, error) {
@@ -127,6 +144,11 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	walletPaymentConfig, err := loadWalletPaymentConfig()
+	if err != nil {
+		return Config{}, err
+	}
+
 	return Config{
 		Environment:     environment,
 		HTTPPort:        httpPort,
@@ -141,6 +163,7 @@ func Load() (Config, error) {
 		Session:         sessionConfig,
 		Storage:         storageConfig,
 		ChainID:         int64(chainID),
+		WalletPayment:   walletPaymentConfig,
 		Stripe: StripeConfig{
 			SecretKey:     readString("STRIPE_SECRET_KEY", ""),
 			WebhookSecret: readString("STRIPE_WEBHOOK_SECRET", ""),
@@ -260,4 +283,25 @@ func validateTrustedProxies(trustedProxies []string) error {
 		}
 	}
 	return nil
+}
+
+func loadWalletPaymentConfig() (WalletPaymentConfig, error) {
+	requiredConfirmations, err := readInt("CHAIN_REQUIRED_CONFIRMATIONS", defaultRequiredConfirmations)
+	if err != nil {
+		return WalletPaymentConfig{}, err
+	}
+	if requiredConfirmations < 1 {
+		return WalletPaymentConfig{}, errors.New("CHAIN_REQUIRED_CONFIRMATIONS must be 1 or more")
+	}
+	pollInterval, err := readDuration("CHAIN_POLL_INTERVAL", defaultChainPollInterval)
+	if err != nil {
+		return WalletPaymentConfig{}, err
+	}
+	return WalletPaymentConfig{
+		RPCURL:                     readString("CHAIN_RPC_URL", ""),
+		ChapterPaymentVaultAddress: readString("CHAPTER_PAYMENT_VAULT_ADDRESS", ""),
+		PaymentSignerPrivateKey:    readString("PAYMENT_SIGNER_PRIVATE_KEY", ""),
+		RequiredConfirmations:      requiredConfirmations,
+		PollInterval:               pollInterval,
+	}, nil
 }

@@ -21,6 +21,13 @@ type SubscriptionChapterResponse struct {
 	Title  string `json:"title"`
 }
 
+type WalletPaymentResponse struct {
+	Asset           models.WalletPaymentAsset `json:"asset"`
+	AmountUnits     string                    `json:"amount_units"`
+	PayerAddress    string                    `json:"payer_address"`
+	TransactionHash string                    `json:"transaction_hash"`
+}
+
 type SubscriptionResponse struct {
 	ID              uuid.UUID                     `json:"id"`
 	PlanID          string                        `json:"plan_id"`
@@ -34,6 +41,8 @@ type SubscriptionResponse struct {
 	TotalCents      string                        `json:"total_cents"`
 	PaidAt          time.Time                     `json:"paid_at"`
 	RefundedAt      *time.Time                    `json:"refunded_at"`
+	PaymentMethod   models.PaymentMethod          `json:"payment_method"`
+	WalletPayment   *WalletPaymentResponse        `json:"wallet_payment"`
 }
 
 type SubscriptionHandler struct {
@@ -94,5 +103,19 @@ func toSubscriptionResponse(payment models.Payment) SubscriptionResponse {
 		TotalCents:      formatCents(payment.TotalCents),
 		PaidAt:          *payment.PaidAt,
 		RefundedAt:      payment.RefundedAt,
+		PaymentMethod:   payment.PaymentMethod,
+		WalletPayment:   toWalletPaymentResponse(payment),
+	}
+}
+
+func toWalletPaymentResponse(payment models.Payment) *WalletPaymentResponse {
+	if payment.PaymentMethod != models.PaymentMethodWallet || payment.WalletAsset == nil || payment.WalletAmountUnits == nil || payment.PayerAddress == nil || payment.TransactionHash == nil {
+		return nil
+	}
+	return &WalletPaymentResponse{
+		Asset:           *payment.WalletAsset,
+		AmountUnits:     *payment.WalletAmountUnits,
+		PayerAddress:    *payment.PayerAddress,
+		TransactionHash: *payment.TransactionHash,
 	}
 }

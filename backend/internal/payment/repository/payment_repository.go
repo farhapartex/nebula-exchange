@@ -31,6 +31,7 @@ type PaymentRepository interface {
 	FindForUser(ctx context.Context, paymentID uuid.UUID, userID uuid.UUID) (models.Payment, error)
 	LockByID(ctx context.Context, paymentID uuid.UUID) (models.Payment, error)
 	LockByPaymentIntent(ctx context.Context, paymentIntentID string) (models.Payment, error)
+	LockByPaymentReference(ctx context.Context, paymentReference string) (models.Payment, error)
 	ListPaidForUser(ctx context.Context, userID uuid.UUID, excludedPaymentID uuid.UUID) ([]models.Payment, error)
 	ListSettledForUser(ctx context.Context, userID uuid.UUID, after *SettledPaymentPosition, limit int) ([]models.Payment, error)
 	Update(ctx context.Context, payment *models.Payment, changes map[string]any) error
@@ -55,6 +56,7 @@ func (repository *GormPaymentRepository) CreateWithChapters(ctx context.Context,
 func (repository *GormPaymentRepository) ListOpenForUser(ctx context.Context, userID uuid.UUID) ([]models.Payment, error) {
 	var payments []models.Payment
 	err := database.Session(ctx, repository.database).
+		Preload("Chapters", func(chapters *gorm.DB) *gorm.DB { return chapters.Order("chapter_number") }).
 		Where(map[string]any{"user_id": userID, "status": models.PaymentStatusOpen}).
 		Find(&payments).Error
 	return payments, err
@@ -78,6 +80,10 @@ func (repository *GormPaymentRepository) LockByID(ctx context.Context, paymentID
 
 func (repository *GormPaymentRepository) LockByPaymentIntent(ctx context.Context, paymentIntentID string) (models.Payment, error) {
 	return repository.lockOne(ctx, map[string]any{"stripe_payment_intent_id": paymentIntentID})
+}
+
+func (repository *GormPaymentRepository) LockByPaymentReference(ctx context.Context, paymentReference string) (models.Payment, error) {
+	return repository.lockOne(ctx, map[string]any{"payment_reference": paymentReference})
 }
 
 func (repository *GormPaymentRepository) lockOne(ctx context.Context, conditions map[string]any) (models.Payment, error) {

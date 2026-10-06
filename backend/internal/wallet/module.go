@@ -20,13 +20,15 @@ type ModuleDependencies struct {
 }
 
 type Module struct {
-	registrars []httpserver.RouteRegistrar
+	LinkedWallets service.LinkedWalletLookup
+	registrars    []httpserver.RouteRegistrar
 }
 
 func NewModule(dependencies ModuleDependencies) (*Module, error) {
+	wallets := repository.NewWalletRepository(dependencies.Database)
 	walletLinkService, err := service.NewWalletLinkService(service.WalletLinkDependencies{
 		Challenges:      repository.NewWalletChallengeRepository(dependencies.Database),
-		Wallets:         repository.NewWalletRepository(dependencies.Database),
+		Wallets:         wallets,
 		Transactions:    database.NewTransactionRunner(dependencies.Database),
 		ChainID:         dependencies.ChainID,
 		FrontendBaseURL: dependencies.FrontendBaseURL,
@@ -35,7 +37,10 @@ func NewModule(dependencies ModuleDependencies) (*Module, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Module{registrars: []httpserver.RouteRegistrar{handler.NewWalletHandler(walletLinkService)}}, nil
+	return &Module{
+		LinkedWallets: service.NewLinkedWalletLookup(wallets),
+		registrars:    []httpserver.RouteRegistrar{handler.NewWalletHandler(walletLinkService)},
+	}, nil
 }
 
 func (module *Module) RouteRegistrars() []httpserver.RouteRegistrar {

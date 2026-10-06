@@ -49,13 +49,17 @@ type StartedCheckout struct {
 }
 
 type CheckoutState struct {
-	ID     uuid.UUID
-	Status CheckoutStatus
+	ID                    uuid.UUID
+	Status                CheckoutStatus
+	Confirmations         *int
+	RequiredConfirmations *int
 }
 
 type CheckoutService interface {
 	Start(ctx context.Context, userID uuid.UUID, planID string, chapterCount int) (StartedCheckout, error)
 	State(ctx context.Context, userID uuid.UUID, paymentID uuid.UUID) (CheckoutState, error)
+	StartWallet(ctx context.Context, userID uuid.UUID, planID string, chapterCount int) (StartedWalletCheckout, error)
+	ReportWalletTransaction(ctx context.Context, userID uuid.UUID, paymentID uuid.UUID, transactionHash string) (CheckoutState, error)
 }
 
 type CheckoutDependencies struct {
@@ -65,6 +69,7 @@ type CheckoutDependencies struct {
 	Ownership       ChapterOwnership
 	Unlocker        ChapterUnlocker
 	Gateway         CheckoutGateway
+	WalletPayments  *WalletPaymentDependencies
 	Transactions    TransactionRunner
 	FrontendBaseURL string
 	Logger          *slog.Logger
@@ -72,9 +77,10 @@ type CheckoutDependencies struct {
 }
 
 type checkoutService struct {
-	dependencies CheckoutDependencies
-	quoter       chapterQuoter
-	settlement   paymentSettlement
+	dependencies     CheckoutDependencies
+	quoter           chapterQuoter
+	settlement       paymentSettlement
+	walletSettlement walletPaymentSettlement
 }
 
 func NewCheckoutService(dependencies CheckoutDependencies) CheckoutService {
@@ -88,7 +94,22 @@ func NewCheckoutService(dependencies CheckoutDependencies) CheckoutService {
 			logger:       dependencies.Logger,
 			now:          dependencies.Now,
 		},
+		walletSettlement: walletPaymentSettlement{
+			payments:              dependencies.Payments,
+			unlocker:              dependencies.Unlocker,
+			transactions:          dependencies.Transactions,
+			logger:                dependencies.Logger,
+			now:                   dependencies.Now,
+			requiredConfirmations: requiredConfirmationsOf(dependencies.WalletPayments),
+		},
 	}
+}
+
+func requiredConfirmationsOf(walletPayments *WalletPaymentDependencies) int {
+	if walletPayments == nil || walletPayments.RequiredConfirmations < 1 {
+		return 1
+	}
+	return walletPayments.RequiredConfirmations
 }
 
 func (checkout *checkoutService) Start(ctx context.Context, userID uuid.UUID, planID string, chapterCount int) (StartedCheckout, error) {
@@ -178,6 +199,9 @@ func (checkout *checkoutService) expireOpenCheckouts(ctx context.Context, userID
 }
 
 func (checkout *checkoutService) expireOpenCheckout(ctx context.Context, openPayment models.Payment) error {
+	if openPayment.PaymentMethod == models.PaymentMethodWallet || checkout.dependencies.Gateway == nil {
+		return checkout.settlement.markExpired(ctx, openPayment.ID)
+	}
 	if openPayment.StripeCheckoutSessionID == nil {
 		if checkout.dependencies.Now().Sub(openPayment.CreatedAt) < checkoutCreationGrace {
 			return ErrCheckoutAlreadyStarting
@@ -228,6 +252,7 @@ func (checkout *checkoutService) newPayment(userID uuid.UUID, plan models.Plan, 
 		UserID:            userID,
 		PlanID:            plan.ID,
 		Status:            models.PaymentStatusOpen,
+		PaymentMethod:     models.PaymentMethodCard,
 		Currency:          checkoutCurrency,
 		SubtotalCents:     option.SubtotalCents,
 		DiscountPercent:   option.DiscountPercent,
@@ -246,12 +271,12 @@ func (checkout *checkoutService) returnURL(path string, checkoutValue string) st
 }
 
 func (checkout *checkoutService) State(ctx context.Context, userID uuid.UUID, paymentID uuid.UUID) (CheckoutState, error) {
-	payment, err := checkout.dependencies.Payments.FindForUser(ctx, paymentID, userID)
-	if errors.Is(err, repository.ErrPaymentNotFound) {
-		return CheckoutState{}, ErrCheckoutNotFound
-	}
+	payment, err := checkout.findOwnPayment(ctx, userID, paymentID)
 	if err != nil {
 		return CheckoutState{}, err
+	}
+	if payment.PaymentMethod == models.PaymentMethodWallet {
+		return checkout.walletState(ctx, userID, paymentID)
 	}
 	if payment.Status == models.PaymentStatusOpen && payment.StripeCheckoutSessionID != nil && checkout.dependencies.Gateway != nil {
 		if payment, err = checkout.refreshFromStripe(ctx, userID, payment); err != nil {

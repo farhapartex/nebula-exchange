@@ -111,10 +111,16 @@ func (gateway *fakeCheckoutGateway) payInStripe(sessionID string, paymentIntentI
 }
 
 type harnessOptions struct {
-	withoutStripe bool
+	withoutStripe         bool
+	withoutWalletPayments bool
+	requiredConfirmations int
 }
 
 type paymentHarness struct {
+	walletChain   *fakeVaultChain
+	linkedWallets fakeLinkedWallets
+	authorizer    *paymentgateway.EIP712PaymentAuthorizer
+	watcher       *service.VaultPaymentWatcher
 	t             *testing.T
 	database      *gorm.DB
 	router        *gin.Engine
@@ -178,9 +184,29 @@ func newPaymentHarness(t *testing.T, options ...harnessOptions) *paymentHarness 
 		Logger:           quietLogger,
 		Now:              time.Now,
 	}
-	if len(options) == 0 || !options[0].withoutStripe {
+	chosenOptions := harnessOptions{requiredConfirmations: 1}
+	if len(options) > 0 {
+		chosenOptions = options[0]
+		chosenOptions.requiredConfirmations = max(chosenOptions.requiredConfirmations, 1)
+	}
+	if !chosenOptions.withoutStripe {
 		paymentDependencies.CheckoutGateway = fakeGateway
 		paymentDependencies.EventVerifier = paymentgateway.NewStripeEventVerifier(testWebhookSecret)
+	}
+	walletChain := newFakeVaultChain()
+	linkedWallets := fakeLinkedWallets{}
+	authorizer, err := paymentgateway.NewEIP712PaymentAuthorizer(testPaymentSignerKey, testVaultAddress, testChainID)
+	if err != nil {
+		t.Fatalf("build authorizer: %v", err)
+	}
+	if !chosenOptions.withoutWalletPayments {
+		paymentDependencies.WalletPayments = &service.WalletPaymentDependencies{
+			Authorizer:            authorizer,
+			Chain:                 walletChain,
+			LinkedWallets:         linkedWallets,
+			RequiredConfirmations: chosenOptions.requiredConfirmations,
+		}
+		paymentDependencies.ChainPollInterval = time.Second
 	}
 	paymentModule := payment.NewModule(paymentDependencies)
 	router, err := httpserver.NewRouter(httpserver.RouterOptions{
@@ -190,7 +216,18 @@ func newPaymentHarness(t *testing.T, options ...harnessOptions) *paymentHarness 
 	if err != nil {
 		t.Fatalf("build router: %v", err)
 	}
-	return &paymentHarness{t: t, database: testDatabase, router: router, playerID: playerID, otherPlayerID: otherPlayerID, gateway: fakeGateway}
+	return &paymentHarness{
+		t:             t,
+		database:      testDatabase,
+		router:        router,
+		playerID:      playerID,
+		otherPlayerID: otherPlayerID,
+		gateway:       fakeGateway,
+		walletChain:   walletChain,
+		linkedWallets: linkedWallets,
+		authorizer:    authorizer,
+		watcher:       paymentModule.VaultPaymentWatcher,
+	}
 }
 
 type listBody struct {
