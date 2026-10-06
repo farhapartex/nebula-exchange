@@ -110,6 +110,7 @@ services:
       EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-Street Born}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      CHAIN_ID: ${CHAIN_ID:-31337}
       <<: *storage-environment
     ports:
       - "${BACKEND_PORT:-8080}:8080"

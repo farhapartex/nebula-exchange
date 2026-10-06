@@ -21,6 +21,7 @@ backend/coverage.out
 smart-contract/out/
 smart-contract/cache/
 smart-contract/broadcast/*/31337/
+smart-contract/deployments/local.json
 
 CLAUDE.md
 Nebula Exchange — Product Requirements Document.md

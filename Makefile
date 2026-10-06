@@ -4,7 +4,7 @@ ANVIL_PORT ?= 8545
 COMPOSE := docker compose --env-file .env
 MIGRATE := $(COMPOSE) run --rm migrate
 
-.PHONY: help docker-up docker-down docker-logs docker-ps backend-build backend-test backend-lint migrate-up migrate-down migrate-version migrate-create seed dev-unlock-chapter stripe-listen chain contracts-build contracts-test contracts-fmt
+.PHONY: help docker-up docker-down docker-logs docker-ps backend-build backend-test backend-lint migrate-up migrate-down migrate-version migrate-create seed dev-unlock-chapter stripe-listen chain contracts-build contracts-test contracts-fmt contracts-deploy-local
 
 help:
 	@echo "Available commands:"
@@ -26,6 +26,7 @@ help:
 	@echo "  make contracts-build          Compile the smart contracts"
 	@echo "  make contracts-test           Run Foundry tests"
 	@echo "  make contracts-fmt            Format Solidity files"
+	@echo "  make contracts-deploy-local   Deploy the payment vault, test USDC and price feed to the local Anvil chain"
 
 docker-up:
 	$(COMPOSE) up -d --build
@@ -86,3 +87,9 @@ contracts-test:
 
 contracts-fmt:
 	cd smart-contract && forge fmt
+
+contracts-deploy-local:
+	@test -n "$(LOCAL_DEPLOYER_PRIVATE_KEY)" -a -n "$(PAYMENT_SIGNER_PRIVATE_KEY)" || (echo "LOCAL_DEPLOYER_PRIVATE_KEY and PAYMENT_SIGNER_PRIVATE_KEY must be set in .env" && exit 1)
+	@mkdir -p smart-contract/deployments
+	@cd smart-contract && DEPLOYER_PRIVATE_KEY="$(LOCAL_DEPLOYER_PRIVATE_KEY)" PAYMENT_SIGNER_ADDRESS="$$(cast wallet address --private-key "$(PAYMENT_SIGNER_PRIVATE_KEY)")" forge script script/DeployLocalChapterPaymentVault.s.sol --rpc-url http://localhost:$(ANVIL_PORT) --broadcast
+	@cat smart-contract/deployments/local.json
