@@ -1,17 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { Lock, Play, Sparkles } from "lucide-react";
+import { LockOpen, Play, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentPlayer } from "@/features/auth/session/use-current-player";
+import { ChapterPurchaseDialog } from "@/features/chapter-purchase/chapter-purchase-dialog";
 import type { NextLevel } from "@/features/fight-hub/api/next-level-api";
 import { ChapterPath } from "@/features/fight-hub/chapter-path";
 import { HubPanel } from "@/features/fight-hub/hub-panel";
 import { levelRoute, markLevelsByProgress } from "@/features/fight-hub/story-progress";
 import { useNextLevel, useStoryProgress } from "@/features/fight-hub/use-fight-hub";
-import { formatCoins } from "@/utils/money/format-coins";
 
 export function NextFightCard() {
   const nextLevel = useNextLevel().data;
@@ -51,6 +52,7 @@ export function NextFightCard() {
 }
 
 function NextFightBox({ nextLevel }: { nextLevel: NextLevel }) {
+  const [isPurchaseOpen, setIsPurchaseOpen] = useState(false);
   if (nextLevel.status === "COMING_SOON" || !nextLevel.level) {
     return (
       <div className="relative flex items-center gap-4 rounded-xl border border-border bg-background/60 p-5">
@@ -69,35 +71,40 @@ function NextFightBox({ nextLevel }: { nextLevel: NextLevel }) {
 
   const isLocked = nextLevel.status === "LOCKED";
   return (
-    <div className="relative flex flex-wrap items-end justify-between gap-6 rounded-xl border border-accent/30 bg-background/60 p-5">
-      <div>
-        <p className="text-xs tracking-[0.18em] text-accent-soft uppercase">
-          Next fight · Level {nextLevel.level.number}
-        </p>
-        <p className="mt-1 font-display text-3xl tracking-[0.03em] text-foreground">{nextLevel.level.title}</p>
-        <p className="mt-1 text-sm text-muted">{isLocked ? lockedChapterMessage(nextLevel) : nextLevel.level.teaser}</p>
+    <>
+      <div className="relative flex flex-wrap items-end justify-between gap-6 rounded-xl border border-accent/30 bg-background/60 p-5">
+        <div>
+          <p className="text-xs tracking-[0.18em] text-accent-soft uppercase">
+            Next fight · Level {nextLevel.level.number}
+          </p>
+          <p className="mt-1 font-display text-3xl tracking-[0.03em] text-foreground">{nextLevel.level.title}</p>
+          <p className="mt-1 text-sm text-muted">
+            {isLocked ? lockedChapterMessage(nextLevel) : nextLevel.level.teaser}
+          </p>
+        </div>
+        {isLocked ? (
+          <Button
+            size="lg"
+            onClick={() => setIsPurchaseOpen(true)}
+            className="px-8 font-display text-xl tracking-[0.1em]"
+          >
+            <LockOpen className="size-5" aria-hidden="true" />
+            Unlock chapters
+          </Button>
+        ) : (
+          <Button asChild size="lg" className="px-8 font-display text-xl tracking-[0.1em]">
+            <Link href={levelRoute(nextLevel.level.id)}>
+              <Play className="size-5 fill-current" aria-hidden="true" />
+              Fight
+            </Link>
+          </Button>
+        )}
       </div>
-      {isLocked ? (
-        <Button size="lg" variant="secondary" disabled className="px-8 font-display text-xl tracking-[0.1em]">
-          <Lock className="size-5" aria-hidden="true" />
-          Locked
-        </Button>
-      ) : (
-        <Button asChild size="lg" className="px-8 font-display text-xl tracking-[0.1em]">
-          <Link href={levelRoute(nextLevel.level.id)}>
-            <Play className="size-5 fill-current" aria-hidden="true" />
-            Fight
-          </Link>
-        </Button>
-      )}
-    </div>
+      {isPurchaseOpen && <ChapterPurchaseDialog isOpen={isPurchaseOpen} onOpenChange={setIsPurchaseOpen} />}
+    </>
   );
 }
 
 function lockedChapterMessage(nextLevel: NextLevel): string {
-  const chapterNumber = nextLevel.chapter.number;
-  if (!nextLevel.chapter.price) {
-    return `Unlock chapter ${chapterNumber} to keep fighting.`;
-  }
-  return `Buy chapter ${chapterNumber} for ${formatCoins(nextLevel.chapter.price)} coins to keep fighting.`;
+  return `Unlock chapter ${nextLevel.chapter.number} to keep fighting.`;
 }
