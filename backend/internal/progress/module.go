@@ -28,12 +28,23 @@ type Module struct {
 func NewModule(dependencies ModuleDependencies) *Module {
 	levelProgress := repository.NewLevelProgressRepository(dependencies.Database)
 	fighters := repository.NewFighterRepository(dependencies.Database)
+	fightSessions := repository.NewFightSessionRepository(dependencies.Database)
+	transactions := database.NewTransactionRunner(dependencies.Database)
 	fightSessionService := service.NewFightSessionService(service.FightSessionDependencies{
 		Levels:        dependencies.Levels,
 		LevelProgress: levelProgress,
-		FightSessions: repository.NewFightSessionRepository(dependencies.Database),
+		FightSessions: fightSessions,
 		Fighters:      fighters,
-		Transactions:  database.NewTransactionRunner(dependencies.Database),
+		Transactions:  transactions,
+		Logger:        dependencies.Logger,
+		Now:           service.Clock(dependencies.Now),
+	})
+	fightResultService := service.NewFightResultService(service.FightResultDependencies{
+		Levels:        dependencies.Levels,
+		FightSessions: fightSessions,
+		Fighters:      fighters,
+		LevelProgress: levelProgress,
+		Transactions:  transactions,
 		Logger:        dependencies.Logger,
 		Now:           service.Clock(dependencies.Now),
 	})
@@ -42,6 +53,7 @@ func NewModule(dependencies ModuleDependencies) *Module {
 		registrars: []httpserver.RouteRegistrar{
 			handler.NewFightSessionHandler(fightSessionService),
 			handler.NewFightSetupHandler(service.NewFightSetupService(dependencies.Levels, fighters)),
+			handler.NewFightResultHandler(fightResultService),
 		},
 	}
 }

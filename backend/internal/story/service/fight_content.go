@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/database"
 )
@@ -32,6 +33,7 @@ type EnemyWave struct {
 type FightContent struct {
 	LevelID          string
 	TimeLimitSeconds int
+	StarRules        StarRules
 	Arena            FightArena
 	Waves            []EnemyWave
 }
@@ -47,6 +49,10 @@ func (catalog *levelCatalog) FightContent(ctx context.Context, levelID string) (
 	if !isFound || len(level.Enemies) == 0 {
 		return FightContent{}, ErrLevelNotPlayable
 	}
+	starRules, err := ParseStarRules(level.StarRules, level.TimeLimitSeconds)
+	if err != nil {
+		return FightContent{}, fmt.Errorf("level %s: %w", level.ID, err)
+	}
 	waves := make([]EnemyWave, 0, len(level.Enemies))
 	for _, levelEnemy := range level.Enemies {
 		enemy := levelEnemy.Enemy
@@ -60,6 +66,7 @@ func (catalog *levelCatalog) FightContent(ctx context.Context, levelID string) (
 	return FightContent{
 		LevelID:          level.ID,
 		TimeLimitSeconds: level.TimeLimitSeconds,
+		StarRules:        starRules,
 		Arena:            FightArena{Name: level.Arena.Name, Width: level.Arena.Width, FloorY: level.Arena.FloorY, Stage: level.Arena.Stage},
 		Waves:            waves,
 	}, nil

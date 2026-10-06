@@ -42,6 +42,7 @@ type FightSession struct {
 	InputLog         database.JSONDocument `gorm:"type:jsonb"`
 	RewardCoins      *int64
 	RewardExperience *int
+	RejectionReason  *string
 	StartedAt        time.Time `gorm:"not null"`
 	FinishedAt       *time.Time
 	CreatedAt        time.Time

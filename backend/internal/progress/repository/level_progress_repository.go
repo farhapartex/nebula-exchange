@@ -16,6 +16,7 @@ type LevelProgressRepository interface {
 	IsCompleted(ctx context.Context, userID uuid.UUID, levelID string) (bool, error)
 	RecordStart(ctx context.Context, userID uuid.UUID, levelID string, startedAt time.Time) error
 	ListStartedLevelIDs(ctx context.Context, userID uuid.UUID) ([]string, error)
+	RecordWin(ctx context.Context, userID uuid.UUID, levelID string, stars int, wonAt time.Time) error
 }
 
 type GormLevelProgressRepository struct {
@@ -62,4 +63,16 @@ func (repository *GormLevelProgressRepository) ListStartedLevelIDs(ctx context.C
 		Where(map[string]any{"user_id": userID}).
 		Pluck("level_id", &levelIDs).Error
 	return levelIDs, err
+}
+
+func (repository *GormLevelProgressRepository) RecordWin(ctx context.Context, userID uuid.UUID, levelID string, stars int, wonAt time.Time) error {
+	return database.Session(ctx, repository.database).
+		Model(&models.LevelProgress{}).
+		Where(map[string]any{"user_id": userID, "level_id": levelID}).
+		Updates(map[string]any{
+			"status":             models.ProgressStatusCompleted,
+			"first_completed_at": gorm.Expr("COALESCE(first_completed_at, ?)", wonAt),
+			"best_stars":         gorm.Expr("GREATEST(COALESCE(best_stars, 0), ?)", stars),
+			"updated_at":         wonAt,
+		}).Error
 }

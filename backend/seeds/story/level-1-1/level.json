@@ -228,7 +228,20 @@
     "teaser": "Get out alive.",
     "time_limit_seconds": 90,
     "difficulty": {},
-    "star_rules": [],
+    "star_rules": [
+      {
+        "stars": 3,
+        "within_seconds": 45
+      },
+      {
+        "stars": 2,
+        "within_seconds": 70
+      },
+      {
+        "stars": 1,
+        "within_seconds": 90
+      }
+    ],
     "first_clear_coins": 0,
     "first_clear_experience": 0,
     "replay_experience": 0,

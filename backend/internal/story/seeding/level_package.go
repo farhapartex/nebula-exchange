@@ -9,6 +9,7 @@ import (
 
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/database"
 	"github.com/farhapartex/nebula-exchange/backend/internal/story/models"
+	"github.com/farhapartex/nebula-exchange/backend/internal/story/service"
 )
 
 const (
@@ -113,6 +114,9 @@ func (levelPackage LevelPackage) validate() error {
 		if wave.Wave != waveIndex+1 || wave.Enemy.ID == "" {
 			return fmt.Errorf("enemy wave %d: waves must be numbered 1, 2, 3 in order and name an enemy id", waveIndex+1)
 		}
+	}
+	if _, err := service.ParseStarRules(levelPackage.Level.StarRules, levelPackage.Level.TimeLimitSeconds); err != nil {
+		return err
 	}
 	if len(levelPackage.Slides) < 2 {
 		return errors.New("a level story needs at least one slide and a call to action")

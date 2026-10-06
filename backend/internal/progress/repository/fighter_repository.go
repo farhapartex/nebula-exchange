@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -16,6 +17,7 @@ type FighterRepository interface {
 	FindDefaultTemplate(ctx context.Context) (models.FighterTemplate, bool, error)
 	FindProfile(ctx context.Context, userID uuid.UUID) (models.FighterProfile, bool, error)
 	CreateProfileIfMissing(ctx context.Context, profile *models.FighterProfile) error
+	RecordResult(ctx context.Context, userID uuid.UUID, hasWon bool, recordedAt time.Time) error
 }
 
 type GormFighterRepository struct {
@@ -55,4 +57,15 @@ func (repository *GormFighterRepository) CreateProfileIfMissing(ctx context.Cont
 		Omit("Template").
 		Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "user_id"}}, DoNothing: true}).
 		Create(profile).Error
+}
+
+func (repository *GormFighterRepository) RecordResult(ctx context.Context, userID uuid.UUID, hasWon bool, recordedAt time.Time) error {
+	counterColumn := "losses"
+	if hasWon {
+		counterColumn = "wins"
+	}
+	return database.Session(ctx, repository.database).
+		Model(&models.FighterProfile{}).
+		Where(map[string]any{"user_id": userID}).
+		Updates(map[string]any{counterColumn: gorm.Expr(counterColumn + " + 1"), "updated_at": recordedAt}).Error
 }

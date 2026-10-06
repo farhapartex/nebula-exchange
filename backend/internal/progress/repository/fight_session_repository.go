@@ -16,9 +16,21 @@ const oneOpenSessionPerLevelIndex = "fight_sessions_one_open_per_level"
 
 var ErrFightAlreadyStarting = errors.New("another fight for this level started at the same time")
 
+type FinishedFight struct {
+	Outcome     models.FightOutcome
+	Stars       int
+	DurationMS  int
+	DamageDealt int
+	DamageTaken int
+	FinishedAt  time.Time
+}
+
 type FightSessionRepository interface {
 	AbandonOpen(ctx context.Context, userID uuid.UUID, levelID string, abandonedAt time.Time) (int64, error)
 	Create(ctx context.Context, fightSession *models.FightSession) error
+	FindForUser(ctx context.Context, fightSessionID, userID uuid.UUID) (models.FightSession, bool, error)
+	Finish(ctx context.Context, fightSessionID uuid.UUID, finishedFight FinishedFight) (bool, error)
+	Reject(ctx context.Context, fightSessionID uuid.UUID, reason string, rejectedAt time.Time) (bool, error)
 }
 
 type GormFightSessionRepository struct {
@@ -43,4 +55,46 @@ func (repository *GormFightSessionRepository) Create(ctx context.Context, fightS
 		return ErrFightAlreadyStarting
 	}
 	return err
+}
+
+func (repository *GormFightSessionRepository) FindForUser(ctx context.Context, fightSessionID, userID uuid.UUID) (models.FightSession, bool, error) {
+	var fightSession models.FightSession
+	err := database.Session(ctx, repository.database).
+		Where(map[string]any{"id": fightSessionID, "user_id": userID}).
+		Take(&fightSession).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return models.FightSession{}, false, nil
+	}
+	if err != nil {
+		return models.FightSession{}, false, err
+	}
+	return fightSession, true, nil
+}
+
+func (repository *GormFightSessionRepository) Finish(ctx context.Context, fightSessionID uuid.UUID, finishedFight FinishedFight) (bool, error) {
+	noReward := 0
+	result := database.Session(ctx, repository.database).
+		Model(&models.FightSession{}).
+		Where(map[string]any{"id": fightSessionID, "status": models.FightStatusStarted}).
+		Updates(map[string]any{
+			"status":            models.FightStatusFinished,
+			"outcome":           finishedFight.Outcome,
+			"stars":             finishedFight.Stars,
+			"duration_ms":       finishedFight.DurationMS,
+			"damage_dealt":      finishedFight.DamageDealt,
+			"damage_taken":      finishedFight.DamageTaken,
+			"reward_coins":      int64(noReward),
+			"reward_experience": noReward,
+			"finished_at":       finishedFight.FinishedAt,
+			"updated_at":        finishedFight.FinishedAt,
+		})
+	return result.RowsAffected == 1, result.Error
+}
+
+func (repository *GormFightSessionRepository) Reject(ctx context.Context, fightSessionID uuid.UUID, reason string, rejectedAt time.Time) (bool, error) {
+	result := database.Session(ctx, repository.database).
+		Model(&models.FightSession{}).
+		Where(map[string]any{"id": fightSessionID, "status": models.FightStatusStarted}).
+		Updates(map[string]any{"status": models.FightStatusRejected, "rejection_reason": reason, "finished_at": rejectedAt, "updated_at": rejectedAt})
+	return result.RowsAffected == 1, result.Error
 }
