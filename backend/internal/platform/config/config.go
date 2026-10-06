@@ -32,6 +32,17 @@ type EmailConfig struct {
 	FromName     string
 }
 
+type StorageConfig struct {
+	Endpoint        string
+	PublicEndpoint  string
+	AccessKey       string
+	SecretKey       string
+	Bucket          string
+	Region          string
+	UseSSL          bool
+	PresignLifetime time.Duration
+}
+
 type SessionConfig struct {
 	JWTSecret      string
 	IsCookieSecure bool
@@ -49,6 +60,7 @@ type Config struct {
 	Database        DatabaseConfig
 	Email           EmailConfig
 	Session         SessionConfig
+	Storage         StorageConfig
 }
 
 func Load() (Config, error) {
@@ -92,6 +104,11 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	storageConfig, err := LoadStorageConfig()
+	if err != nil {
+		return Config{}, err
+	}
+
 	return Config{
 		Environment:     environment,
 		HTTPPort:        httpPort,
@@ -104,6 +121,37 @@ func Load() (Config, error) {
 		Database:        databaseConfig,
 		Email:           emailConfig,
 		Session:         sessionConfig,
+		Storage:         storageConfig,
+	}, nil
+}
+
+func LoadStorageConfig() (StorageConfig, error) {
+	accessKey := readString("STORAGE_ACCESS_KEY", "")
+	secretKey := readString("STORAGE_SECRET_KEY", "")
+	if accessKey == "" || secretKey == "" {
+		return StorageConfig{}, errors.New("STORAGE_ACCESS_KEY and STORAGE_SECRET_KEY are required")
+	}
+	useSSL, err := readBool("STORAGE_USE_SSL", false)
+	if err != nil {
+		return StorageConfig{}, err
+	}
+	presignLifetime, err := readDuration("STORAGE_PRESIGN_LIFETIME", time.Hour)
+	if err != nil {
+		return StorageConfig{}, err
+	}
+	if presignLifetime < time.Minute || presignLifetime > 7*24*time.Hour {
+		return StorageConfig{}, errors.New("STORAGE_PRESIGN_LIFETIME must be between 1m and 168h")
+	}
+	endpoint := readString("STORAGE_ENDPOINT", "localhost:9000")
+	return StorageConfig{
+		Endpoint:        endpoint,
+		PublicEndpoint:  readString("STORAGE_PUBLIC_ENDPOINT", endpoint),
+		AccessKey:       accessKey,
+		SecretKey:       secretKey,
+		Bucket:          readString("STORAGE_BUCKET", "street-born-assets"),
+		Region:          readString("STORAGE_REGION", "us-east-1"),
+		UseSSL:          useSSL,
+		PresignLifetime: presignLifetime,
 	}, nil
 }
 

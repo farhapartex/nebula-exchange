@@ -11,6 +11,8 @@ const testJWTSecret = "a-test-secret-that-is-long-enough-123"
 func TestLoadUsesDefaultsWhenOnlyRequiredValuesAreSet(t *testing.T) {
 	t.Setenv("DATABASE_URL", "postgres://street:street@localhost:5432/street")
 	t.Setenv("JWT_SECRET", testJWTSecret)
+	t.Setenv("STORAGE_ACCESS_KEY", "street-born")
+	t.Setenv("STORAGE_SECRET_KEY", "street-born-secret")
 
 	loadedConfig, err := Load()
 	if err != nil {
@@ -26,6 +28,9 @@ func TestLoadUsesDefaultsWhenOnlyRequiredValuesAreSet(t *testing.T) {
 	if loadedConfig.Session.IsCookieSecure || loadedConfig.Email.SMTPPort != 1025 {
 		t.Fatalf("unexpected session or email defaults: %+v %+v", loadedConfig.Session, loadedConfig.Email)
 	}
+	if loadedConfig.Storage.PublicEndpoint != "localhost:9000" || loadedConfig.Storage.PresignLifetime != time.Hour {
+		t.Fatalf("unexpected storage defaults: %+v", loadedConfig.Storage)
+	}
 	if loadedConfig.ShutdownTimeout != 15*time.Second {
 		t.Fatalf("got shutdown timeout %s, want 15s", loadedConfig.ShutdownTimeout)
 	}
@@ -33,19 +38,23 @@ func TestLoadUsesDefaultsWhenOnlyRequiredValuesAreSet(t *testing.T) {
 
 func TestLoadRejectsInvalidValues(t *testing.T) {
 	invalidSettings := map[string]map[string]string{
-		"missing database url":   {"DATABASE_URL": ""},
-		"unknown environment":    {"APP_ENV": "staging"},
-		"non numeric port":       {"HTTP_PORT": "eighty"},
-		"zero connections":       {"DATABASE_MAX_CONNECTIONS": "0"},
-		"invalid trusted proxy":  {"TRUSTED_PROXIES": "not-an-ip"},
-		"invalid shutdown value": {"SHUTDOWN_TIMEOUT": "soon"},
-		"short jwt secret":       {"JWT_SECRET": "too-short"},
-		"invalid cookie flag":    {"COOKIE_SECURE": "maybe"},
+		"missing database url":      {"DATABASE_URL": ""},
+		"unknown environment":       {"APP_ENV": "staging"},
+		"non numeric port":          {"HTTP_PORT": "eighty"},
+		"zero connections":          {"DATABASE_MAX_CONNECTIONS": "0"},
+		"invalid trusted proxy":     {"TRUSTED_PROXIES": "not-an-ip"},
+		"invalid shutdown value":    {"SHUTDOWN_TIMEOUT": "soon"},
+		"short jwt secret":          {"JWT_SECRET": "too-short"},
+		"invalid cookie flag":       {"COOKIE_SECURE": "maybe"},
+		"missing storage key":       {"STORAGE_SECRET_KEY": ""},
+		"presign lifetime too long": {"STORAGE_PRESIGN_LIFETIME": "720h"},
 	}
 	for caseName, settings := range invalidSettings {
 		t.Run(caseName, func(t *testing.T) {
 			t.Setenv("DATABASE_URL", "postgres://street:street@localhost:5432/street")
 			t.Setenv("JWT_SECRET", testJWTSecret)
+			t.Setenv("STORAGE_ACCESS_KEY", "street-born")
+			t.Setenv("STORAGE_SECRET_KEY", "street-born-secret")
 			for key, value := range settings {
 				t.Setenv(key, value)
 			}
@@ -59,6 +68,8 @@ func TestLoadRejectsInvalidValues(t *testing.T) {
 func TestCookiesAreSecureOutsideDevelopment(t *testing.T) {
 	t.Setenv("DATABASE_URL", "postgres://street:street@localhost:5432/street")
 	t.Setenv("JWT_SECRET", testJWTSecret)
+	t.Setenv("STORAGE_ACCESS_KEY", "street-born")
+	t.Setenv("STORAGE_SECRET_KEY", "street-born-secret")
 	t.Setenv("APP_ENV", EnvironmentProduction)
 
 	loadedConfig, err := Load()

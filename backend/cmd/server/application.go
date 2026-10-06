@@ -16,6 +16,8 @@ import (
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/email/outbox"
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/httpserver"
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/idempotency"
+	"github.com/farhapartex/nebula-exchange/backend/internal/platform/objectstorage"
+	"github.com/farhapartex/nebula-exchange/backend/internal/story"
 )
 
 type application struct {
@@ -45,6 +47,16 @@ func buildApplication(ctx context.Context, appConfig config.Config, appLogger *s
 		return nil, err
 	}
 
+	assetStorage, err := objectstorage.NewMinioStorage(appConfig.Storage)
+	if err != nil {
+		return nil, err
+	}
+	storyModule := story.NewModule(story.ModuleDependencies{Database: gormDatabase, ImageSigner: assetStorage})
+
+	routeRegistrars := []httpserver.RouteRegistrar{health.NewHandler(buildHealthService(appLogger, gormDatabase, redisClient))}
+	routeRegistrars = append(routeRegistrars, identityModule.RouteRegistrars()...)
+	routeRegistrars = append(routeRegistrars, storyModule.RouteRegistrars()...)
+
 	router, err := httpserver.NewRouter(
 		httpserver.RouterOptions{
 			Logger:         appLogger,
@@ -55,7 +67,7 @@ func buildApplication(ctx context.Context, appConfig config.Config, appLogger *s
 			Idempotency:    idempotency.NewGormStore(gormDatabase),
 			NonReplayable:  identityModule.NonReplayableRoutes(),
 		},
-		append([]httpserver.RouteRegistrar{health.NewHandler(buildHealthService(appLogger, gormDatabase, redisClient))}, identityModule.RouteRegistrars()...)...,
+		routeRegistrars...,
 	)
 	if err != nil {
 		return nil, err

@@ -1,0 +1,312 @@
+{
+  "chapter": {
+    "id": "1",
+    "number": 1,
+    "title": "The night they came",
+    "summary": "Bandits burn the village. A hungry boy has to survive the night.",
+    "is_free": true,
+    "is_published": true
+  },
+  "arena": {
+    "id": "burning-house",
+    "name": "The burning house",
+    "width": 960,
+    "floor_y": 470,
+    "stage": {
+      "world_units_per_pixel": 0.0105,
+      "background_color": "#0b0504",
+      "fog": {
+        "color": "#170906",
+        "density": 0.045
+      },
+      "ambient_light": {
+        "color": "#3a1a10",
+        "intensity": 0.7
+      },
+      "rim_light": {
+        "color": "#2dd4bf",
+        "intensity": 1.4,
+        "position": [
+          3,
+          4,
+          -5
+        ]
+      },
+      "fire_lights": [
+        {
+          "position": [
+            -3.6,
+            1.1,
+            -1.6
+          ],
+          "color": "#ff6a1a",
+          "intensity": 16,
+          "distance": 11,
+          "flicker": 0.45
+        },
+        {
+          "position": [
+            3.9,
+            1.5,
+            -1.2
+          ],
+          "color": "#ff8a2a",
+          "intensity": 18,
+          "distance": 11,
+          "flicker": 0.5
+        },
+        {
+          "position": [
+            0,
+            0.5,
+            -2.6
+          ],
+          "color": "#ff4d12",
+          "intensity": 9,
+          "distance": 9,
+          "flicker": 0.35
+        },
+        {
+          "position": [
+            0,
+            0.4,
+            2.4
+          ],
+          "color": "#ffb15a",
+          "intensity": 4,
+          "distance": 7,
+          "flicker": 0.25
+        }
+      ],
+      "floor": {
+        "color": "#1d0f09",
+        "depth": 16
+      },
+      "layers": [
+        {
+          "id": "night-sky",
+          "image": "/story/1-1/06-call-to-action.webp",
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 0.34
+          },
+          "position": [
+            0,
+            8.6,
+            -16
+          ],
+          "width": 30,
+          "brightness": 0.5,
+          "edge_fade": 0.2,
+          "is_lit": false
+        },
+        {
+          "id": "raiders-at-the-door",
+          "image": "/story/1-1/04-nothing-to-give.webp",
+          "crop": {
+            "x": 0,
+            "y": 0.08,
+            "width": 0.42,
+            "height": 0.64
+          },
+          "position": [
+            -3.6,
+            3.57,
+            -6.5
+          ],
+          "width": 3.6,
+          "brightness": 0.75,
+          "edge_fade": 0.2,
+          "is_lit": true
+        },
+        {
+          "id": "blocked-door",
+          "image": "/story/1-1/05-fire.webp",
+          "crop": {
+            "x": 0,
+            "y": 0.06,
+            "width": 0.54,
+            "height": 0.72
+          },
+          "position": [
+            2.9,
+            3.7,
+            -5.4
+          ],
+          "width": 4.4,
+          "brightness": 0.9,
+          "edge_fade": 0.18,
+          "is_lit": true
+        }
+      ],
+      "silhouettes": [
+        {
+          "id": "falling-beam",
+          "position": [
+            -4.4,
+            1.7,
+            2.3
+          ],
+          "size": [
+            0.32,
+            4.4
+          ],
+          "rotation_degrees": 18,
+          "color": "#050302"
+        },
+        {
+          "id": "door-post",
+          "position": [
+            4.9,
+            2.1,
+            2.6
+          ],
+          "size": [
+            0.5,
+            5.2
+          ],
+          "rotation_degrees": -3,
+          "color": "#050302"
+        },
+        {
+          "id": "roof-beam",
+          "position": [
+            0,
+            4.25,
+            1.6
+          ],
+          "size": [
+            13,
+            0.42
+          ],
+          "rotation_degrees": 1.5,
+          "color": "#070403"
+        }
+      ],
+      "smoke": {
+        "color": "#3b2418",
+        "count": 8,
+        "opacity": 0.3
+      },
+      "embers": {
+        "count": 280,
+        "colors": [
+          "#fbbf24",
+          "#f97316",
+          "#ef4444",
+          "#fde68a"
+        ]
+      },
+      "bloom": {
+        "strength": 0.7,
+        "radius": 0.5,
+        "threshold": 0.62
+      },
+      "grade": {
+        "vignette": 0.62,
+        "grain": 0.07,
+        "tint": "#ff6a00"
+      },
+      "camera": {
+        "field_of_view": 34,
+        "height": 1.25,
+        "look_height": 1.02,
+        "close_distance": 5.2,
+        "far_distance": 7.6,
+        "follow_speed": 2.6,
+        "knockout_zoom": 0.72
+      }
+    }
+  },
+  "level": {
+    "id": "1-1",
+    "number": 1,
+    "kind": "STORY",
+    "title": "The burning house",
+    "teaser": "Get out alive.",
+    "time_limit_seconds": 90,
+    "difficulty": {},
+    "star_rules": [],
+    "first_clear_coins": 0,
+    "first_clear_experience": 0,
+    "replay_experience": 0,
+    "is_published": true
+  },
+  "slides": [
+    {
+      "kind": "SLIDE",
+      "eyebrow": "Chapter 1 · The night they came",
+      "heading": "At the edge of the village",
+      "body": "A thin boy lives alone in a small, broken house at the far end of the village. The roof leaks every time it rains, and it rains most nights. The walls lean like they are tired of standing. He eats when he can find something, and most nights he cannot. He has learned to fall asleep listening to his own stomach.",
+      "image": "01-edge-of-the-village.webp",
+      "palette": {
+        "background": "#08090a",
+        "glow": "#2dd4bf26",
+        "accent": "#2dd4bf"
+      }
+    },
+    {
+      "kind": "SLIDE",
+      "eyebrow": null,
+      "heading": "No one left",
+      "body": "There was a family once. He remembers a voice that sang while it cooked, and a hand on his head before sleep. Now there is only a thin mat, a cracked bowl and the sound of rain dripping onto the floor. No one knocks on his door. The village stopped noticing him a long time ago, and he stopped expecting it to.",
+      "image": "02-no-one-left.webp",
+      "palette": {
+        "background": "#08090b",
+        "glow": "#64748b26",
+        "accent": "#94a3b8"
+      }
+    },
+    {
+      "kind": "SLIDE",
+      "eyebrow": null,
+      "heading": "Torches in the dark",
+      "body": "Tonight the dogs start barking before anyone sees them. Then the lights appear on the hill: one torch, then ten, then too many to count. Riders come down the road with fire in their hands and knives at their belts. Doors slam shut all over the village. The boy stands in his doorway and watches the fire come closer.",
+      "image": "03-torches-in-the-dark.webp",
+      "palette": {
+        "background": "#0b0806",
+        "glow": "#f59e0b2e",
+        "accent": "#fbbf24"
+      }
+    },
+    {
+      "kind": "SLIDE",
+      "eyebrow": null,
+      "heading": "Nothing to give",
+      "body": "They kick his door open and fill the room with smoke and laughter. They tear through the corners, the mat and the empty pot, looking for anything worth taking. There is nothing. Their leader looks down at the boy on the floor and grins. \"No food, no money, no family. Then he is worth nothing. Burn it.\"",
+      "image": "04-nothing-to-give.webp",
+      "palette": {
+        "background": "#0c0606",
+        "glow": "#dc262640",
+        "accent": "#f87171"
+      }
+    },
+    {
+      "kind": "SLIDE",
+      "eyebrow": null,
+      "heading": "Fire",
+      "body": "Flames climb the walls faster than he can breathe. The beams crack overhead and burning wood falls across the door. Through the smoke he can see them waiting in the yard, torches high, ready to see what crawls out. His eyes sting and his hands shake. Somewhere under the fear, something else wakes up.",
+      "image": "05-fire.webp",
+      "palette": {
+        "background": "#0d0605",
+        "glow": "#ea580c4d",
+        "accent": "#fb923c"
+      }
+    },
+    {
+      "kind": "CALL_TO_ACTION",
+      "eyebrow": null,
+      "heading": "Fight to win. Win to become a street fighter.",
+      "body": "The house is coming down around him, and the only way out is through the bandit at the door. He has never fought anyone in his life. Tonight he has no choice. Get out of the burning house alive.",
+      "image": "06-call-to-action.webp",
+      "palette": {
+        "background": "#0a0807",
+        "glow": "#f9731659",
+        "accent": "#f97316"
+      },
+      "button_label": "Play"
+    }
+  ]
+}

@@ -20,9 +20,9 @@ type StorySlide struct {
 	Position    int       `gorm:"not null"`
 	Kind        SlideKind `gorm:"type:slide_kind;not null"`
 	Eyebrow     *string
-	Heading     string                `gorm:"not null"`
-	Body        string                `gorm:"not null"`
-	ImageURL    *string               `gorm:"column:image_url"`
+	Heading     string `gorm:"not null"`
+	Body        string `gorm:"not null"`
+	ImageKey    *string
 	Palette     database.JSONDocument `gorm:"type:jsonb;not null"`
 	ButtonLabel *string
 	CreatedAt   time.Time
