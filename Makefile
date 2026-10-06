@@ -4,7 +4,7 @@ ANVIL_PORT ?= 8545
 COMPOSE := docker compose --env-file .env
 MIGRATE := $(COMPOSE) run --rm migrate
 
-.PHONY: help docker-up docker-down docker-logs docker-ps backend-build backend-test backend-lint migrate-up migrate-down migrate-version migrate-create chain contracts-build contracts-test contracts-fmt
+.PHONY: help docker-up docker-down docker-logs docker-ps backend-build backend-test backend-lint migrate-up migrate-down migrate-version migrate-create seed-story chain contracts-build contracts-test contracts-fmt
 
 help:
 	@echo "Available commands:"
@@ -19,6 +19,7 @@ help:
 	@echo "  make migrate-down             Roll back the last migration"
 	@echo "  make migrate-version          Show the current migration version"
 	@echo "  make migrate-create name=NAME Create a new up and down migration pair"
+	@echo "  make seed-story               Upload level story images to MinIO and load the story into Postgres"
 	@echo "  make chain                    Start a local Anvil chain on the host"
 	@echo "  make contracts-build          Compile the smart contracts"
 	@echo "  make contracts-test           Run Foundry tests"
@@ -59,6 +60,9 @@ migrate-create:
 	@next_version=$$(printf "%06d" $$(( $$(ls backend/migrations/*.up.sql 2>/dev/null | wc -l) + 1 ))); \
 	touch backend/migrations/$${next_version}_$(name).up.sql backend/migrations/$${next_version}_$(name).down.sql; \
 	echo "created backend/migrations/$${next_version}_$(name).up.sql and .down.sql"
+
+seed-story:
+	$(COMPOSE) run --rm --build seed
 
 chain:
 	anvil --host 0.0.0.0 --port $(ANVIL_PORT) --chain-id 31337
