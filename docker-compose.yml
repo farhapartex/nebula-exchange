@@ -126,7 +126,7 @@ services:
       context: ./backend
     profiles: ["tools"]
     entrypoint: ["/seed"]
-    command: ["/seeds/story/level-1-1"]
+    command: ["/seeds"]
     environment:
       DATABASE_URL: *database-url
       <<: *storage-environment
