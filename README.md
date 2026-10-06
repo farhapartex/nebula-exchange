@@ -21,11 +21,11 @@ You need Docker with Compose v2, Go 1.26 or newer, Node.js 22 or newer, and Foun
 ```bash
 cp .env.example .env
 make docker-up
-make seed-story
+make seed
 cd frontend && npm install && npm run dev
 ```
 
-`make docker-up` builds the backend image, starts Postgres, Redis, Mailpit and MinIO, runs the `migrate` container once to apply every pending migration, and then starts the API. `make seed-story` uploads the story images to MinIO and loads the story content into Postgres. It is safe to run again after editing the content.
+`make docker-up` builds the backend image, starts Postgres, Redis, Mailpit and MinIO, runs the `migrate` container once to apply every pending migration, and then starts the API. `make seed` loads everything under `backend/seeds` (the starter fighter, then every story level with its enemies, slides and images) into Postgres and MinIO. It is safe to run again after editing the content.
 
 | Service | Address |
 | --- | --- |
@@ -121,6 +121,7 @@ Images live in a private MinIO bucket. `image` is a presigned link that works fo
 
 | Method and path | Purpose |
 | --- | --- |
+| `GET /levels/{level_id}/fight-setup` | Everything the fight screen needs: time limit, arena and stage, the player's fighter and the enemy of the first wave |
 | `POST /fight-sessions` | Body `{"level": "1-1"}`. Called when the player presses Play on the last story slide. Records that the level was started but not finished |
 
 The response has the fight `id`, `level`, `status` (`STARTED`), `started_at` and a server `seed` (as a string, because it does not fit in a JavaScript number). Rules:
@@ -129,9 +130,13 @@ The response has the fight `id`, `level`, `status` (`STARTED`), `started_at` and
 - Pressing Play again on a level with an unfinished fight marks that fight `ABANDONED` and starts a new one. There is never more than one open fight per player and level.
 - Every start adds one attempt to the player's progress for that level.
 
-### Story content
+The player's fighter comes from their `fighter_profiles` row. A player gets that row the first time they press Play, copied from the default fighter template (the boy). Until then the fight setup and `/me` use the template itself, so `current_level` starts at the template's starting level, which is 1.
 
-Each level's story lives in `backend/seeds/story/<level>/`: a `level.json` with the chapter, arena, level and slides, and an `images` folder. The seed checks the package before it changes anything, uploads the images under `story/<level_id>/`, then saves the rows in one transaction.
+### Game content
+
+`backend/seeds/fighters/*.json` holds fighter templates. Exactly one of them is the default for new players.
+
+Each level lives in `backend/seeds/story/<level>/`: a `level.json` with the chapter, arena, level, enemy waves and slides, and an `images` folder. The seed checks the package before it changes anything, uploads the images under `story/<level_id>/`, then saves the rows in one transaction.
 
 ### Tests
 
