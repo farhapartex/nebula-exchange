@@ -133,5 +133,5 @@ export type FightSetup = {
 export const fightSetupQueryKey = (levelID: string) => ["levels", levelID, "fight"] as const;
 
 export function fetchFightSetup(levelID: string): Promise<FightSetup> {
-  return requestData<FightSetup>(`/levels/${encodeURIComponent(levelID)}/fight`);
+  return requestData<FightSetup>(`/levels/${encodeURIComponent(levelID)}/fight-setup`);
 }
