@@ -101,7 +101,7 @@ make migrate-version
 | `POST /auth/login` | Return an access token and set the refresh cookie |
 | `POST /auth/refresh` | Rotate the refresh cookie and return a new access token |
 | `POST /auth/logout` | End the current session |
-| `GET /me` | The logged in player: `name`, `email`, `current_level`, `story_level`, `total_win`, `total_lose`, `current_level_win`, `current_level_lose` (see below) |
+| `GET /me` | The logged in player: `name`, `email`, `current_level`, `story_level`, `total_win`, `total_lose`, `current_level_win`, `current_level_lose`, `paid_chapters`, `unpaid_chapters` (see below) |
 
 Access tokens last 15 minutes and are sent as `Authorization: Bearer`. The refresh token lives in an httpOnly cookie for 30 days and is replaced on every refresh. If an old refresh token is ever used again, every session in that login chain is ended.
 
@@ -112,8 +112,24 @@ What the `/me` progress fields mean:
 - `current_level` is the chapter the player is in, which is also their fighter level. A new player is at 1. It is the chapter of the next level they have not won yet, so it moves to the next chapter once every level of a chapter is won.
 - `story_level` is how many levels of the current chapter the player has won: 0 for a new player, 1 after winning level 1.
 - `total_win` and `total_lose` count every finished fight in the whole game. `current_level_win` and `current_level_lose` count only fights in the current chapter.
-- `current_level_price` is what the current chapter costs, as a string of coin micro-units (`"499000000"` is 499 coins), or null for a free chapter.
+- `current_level_price` is what the current chapter costs, as a string of US cents (`"499"` is USD 4.99), or null for a free chapter.
 - `is_current_level_paid` is true when the player owns the current chapter (or it costs nothing), so every level in it can be played.
+- `paid_chapters` is how many paid chapters the player owns. `unpaid_chapters` is how many published paid chapters they do not own yet. Free chapters are in neither count.
+
+### Store endpoints
+
+| Method and path | Purpose |
+| --- | --- |
+| `GET /chapters` | Every published chapter in order: `id`, `number`, `title`, `is_free`, `price_cents`, `level_count` and `is_owned` for the logged in player |
+| `GET /plans` | The ways to buy chapters, each with the exact options and prices for the logged in player |
+
+There are three plans, seeded from `backend/seeds/plans/plans.json`:
+
+- `single-chapter` sells the next chapter the player does not own, at full price.
+- `chapter-bundle` lets the player pick how many of the next chapters to buy, from 2 up to one less than all of them. 2 chapters get 5 percent off, 3 or more get 10 percent off.
+- `all-chapters` sells every chapter that is out now and not owned yet, with 20 percent off. It needs at least 2 chapters to buy, and it grows by itself as new chapters are published.
+
+Each plan has `is_available` and an `options` list. An option has `chapter_count`, the `chapters` it covers, `subtotal_cents`, `discount_percent`, `discount_cents` and `total_cents`, all money as strings of US cents. The server works out every price from the chapters table and the plan's discount tiers, and the payment step will work it out again from `plan_id` and `chapter_count`, so a client can never send its own price. Discounts are rounded to the nearest cent.
 
 ### Story endpoints
 
@@ -136,7 +152,7 @@ Images live in a private MinIO bucket. `image` is a presigned link that works fo
 
 The response has the fight `id`, `level`, `status` (`STARTED`), `started_at` and a server `seed` (as a string, because it does not fit in a JavaScript number). Rules:
 
-- Chapter 1 level 1 is always open. Every other level opens only after the level before it has been won, across chapters too. Levels in a paid chapter need the chapter to be owned, unless the level itself is free. A level waiting on the previous win returns 403 `LEVEL_LOCKED`; a level in a chapter the player does not own returns 403 `CHAPTER_LOCKED`. `/me/next-level` shows the chapter `price` and `is_paid`.
+- Chapter 1 level 1 is always open. Every other level opens only after the level before it has been won, across chapters too. Levels in a paid chapter need the chapter to be owned, unless the level itself is free. A level waiting on the previous win returns 403 `LEVEL_LOCKED`; a level in a chapter the player does not own returns 403 `CHAPTER_LOCKED`. `/me/next-level` shows the chapter `price` (US cents) and `is_paid`.
 - Pressing Play again on a level with an unfinished fight marks that fight `ABANDONED` and starts a new one. There is never more than one open fight per player and level.
 - Every start adds one attempt to the player's progress for that level.
 
@@ -154,6 +170,8 @@ The player's fighter comes from their `fighter_profiles` row. A player gets that
 ### Game content
 
 `backend/seeds/fighters/*.json` holds fighter templates. Exactly one of them is the default for new players.
+
+The purchase plans live in `backend/seeds/plans/plans.json`. The seed checks the plan kinds and discount tiers and updates plans by id.
 
 Each level lives in `backend/seeds/story/<level>/`: a `level.json` with the chapter, arena, level, enemy waves and slides, and an `images` folder. The seed checks the package before it changes anything, uploads the images under `story/<level_id>/`, then saves the rows in one transaction.
 
