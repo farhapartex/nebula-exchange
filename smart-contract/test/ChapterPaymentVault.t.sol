@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.37;
 
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -9,8 +11,10 @@ import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Test} from "forge-std/Test.sol";
 
 import {ChapterPaymentVault} from "../src/ChapterPaymentVault.sol";
-import {MockEthUsdPriceFeed} from "../src/mocks/MockEthUsdPriceFeed.sol";
-import {MockUSDC} from "../src/mocks/MockUSDC.sol";
+import {ChapterPaymentVaultNextVersion} from "./support/ChapterPaymentVaultNextVersion.sol";
+import {ControllablePriceFeed} from "./support/ControllablePriceFeed.sol";
+import {TestStablecoin} from "./support/TestStablecoin.sol";
+import {VaultDeployment} from "./support/VaultDeployment.sol";
 
 contract ChapterPaymentVaultTest is Test {
     int256 private constant ETH_PRICE_3000_USD = 3000e8;
@@ -19,8 +23,8 @@ contract ChapterPaymentVaultTest is Test {
     uint256 private constant CHECKOUT_LIFETIME = 30 minutes;
 
     ChapterPaymentVault private vault;
-    MockUSDC private usdc;
-    MockEthUsdPriceFeed private priceFeed;
+    TestStablecoin private usdc;
+    ControllablePriceFeed private priceFeed;
 
     address private owner = makeAddr("owner");
     address private treasury = makeAddr("treasury");
@@ -40,9 +44,11 @@ contract ChapterPaymentVaultTest is Test {
     function setUp() public {
         vm.warp(1_790_000_000);
         (paymentSigner, paymentSignerKey) = makeAddrAndKey("paymentSigner");
-        usdc = new MockUSDC();
-        priceFeed = new MockEthUsdPriceFeed(owner, ETH_PRICE_3000_USD, false);
-        vault = new ChapterPaymentVault(owner, treasury, paymentSigner, usdc, priceFeed, ONE_HOUR);
+        usdc = new TestStablecoin();
+        priceFeed = new ControllablePriceFeed(8, ETH_PRICE_3000_USD);
+        vault = VaultDeployment.deployBehindProxy(
+            VaultDeployment.settingsFor(owner, treasury, paymentSigner, usdc, priceFeed, ONE_HOUR)
+        );
         vm.deal(player, 10 ether);
         vm.deal(otherPlayer, 10 ether);
         usdc.mint(player, 1000e6);
@@ -178,14 +184,12 @@ contract ChapterPaymentVaultTest is Test {
         ChapterPaymentVault.PaymentAuthorization memory authorization =
             _authorize(keccak256("payment-1"), player, CHAPTER_PRICE_CENTS);
         uint256 staleUpdatedAt = block.timestamp - ONE_HOUR - 1;
-        vm.prank(owner);
-        priceFeed.setPriceUpdatedAt(ETH_PRICE_3000_USD, staleUpdatedAt);
+        priceFeed.setAnswer(ETH_PRICE_3000_USD, staleUpdatedAt, staleUpdatedAt);
         vm.expectRevert(abi.encodeWithSelector(ChapterPaymentVault.StaleEthUsdPrice.selector, staleUpdatedAt));
         vm.prank(player);
         vault.payWithEth{value: 1 ether}(authorization);
 
-        vm.prank(owner);
-        priceFeed.setPrice(0);
+        priceFeed.setAnswer(0, block.timestamp, block.timestamp);
         vm.expectRevert(abi.encodeWithSelector(ChapterPaymentVault.InvalidEthUsdPrice.selector, int256(0)));
         vm.prank(player);
         vault.payWithEth{value: 1 ether}(authorization);
@@ -251,11 +255,86 @@ contract ChapterPaymentVaultTest is Test {
     function testFuzz_QuotedWeiNeverUndercharges(uint256 usdCents, uint256 ethPrice) public {
         usdCents = bound(usdCents, 1, 10_000_000);
         ethPrice = bound(ethPrice, 1e8, 1_000_000e8);
-        vm.prank(owner);
-        priceFeed.setPrice(SafeCast.toInt256(ethPrice));
+        priceFeed.setAnswer(SafeCast.toInt256(ethPrice), block.timestamp, block.timestamp);
 
         uint256 quotedWei = vault.quoteWei(usdCents);
         assertGe(quotedWei * ethPrice * 100, usdCents * 1e18 * 1e8);
         assertLt((quotedWei - 1) * ethPrice * 100, usdCents * 1e18 * 1e8);
+    }
+
+    function test_TheImplementationAndProxyCanOnlyBeInitializedOnce() public {
+        ChapterPaymentVault.InitializationSettings memory settings =
+            VaultDeployment.settingsFor(owner, treasury, paymentSigner, usdc, priceFeed, ONE_HOUR);
+        vm.expectRevert(Initializable.InvalidInitialization.selector);
+        vault.initialize(settings);
+
+        ChapterPaymentVault bareImplementation = new ChapterPaymentVault();
+        vm.expectRevert(Initializable.InvalidInitialization.selector);
+        bareImplementation.initialize(settings);
+    }
+
+    function test_OnlyTheOwnerCanUpgradeAndPaymentsSurviveTheUpgrade() public {
+        bytes32 paidReference = keccak256("paid-before-upgrade");
+        ChapterPaymentVault.PaymentAuthorization memory authorization =
+            _authorize(paidReference, player, CHAPTER_PRICE_CENTS);
+        vm.prank(player);
+        vault.payWithEth{value: 1 ether}(authorization);
+        uint256 vaultEthBeforeUpgrade = address(vault).balance;
+        ChapterPaymentVaultNextVersion nextImplementation = new ChapterPaymentVaultNextVersion();
+
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, player));
+        vm.prank(player);
+        vault.upgradeToAndCall(address(nextImplementation), "");
+
+        vm.prank(owner);
+        vault.upgradeToAndCall(address(nextImplementation), "");
+        assertEq(vault.implementationVersion(), 2);
+        assertTrue(vault.isPaymentReferencePaid(paidReference));
+        assertEq(vault.paymentSigner(), paymentSigner);
+        assertEq(vault.treasury(), treasury);
+        assertEq(address(vault).balance, vaultEthBeforeUpgrade);
+
+        ChapterPaymentVault.PaymentAuthorization memory nextAuthorization =
+            _authorize(keccak256("paid-after-upgrade"), player, CHAPTER_PRICE_CENTS);
+        vm.prank(player);
+        vault.payWithEth{value: 1 ether}(nextAuthorization);
+        assertEq(address(vault).balance, vaultEthBeforeUpgrade * 2);
+    }
+
+    function test_AStoppedOrJustRestartedSequencerBlocksEthPayments() public {
+        ControllablePriceFeed sequencerUptimeFeed = new ControllablePriceFeed(0, 1);
+        vm.prank(owner);
+        vault.setSequencerUptimeFeed(AggregatorV3Interface(address(sequencerUptimeFeed)));
+        ChapterPaymentVault.PaymentAuthorization memory authorization =
+            _authorize(keccak256("payment-1"), player, CHAPTER_PRICE_CENTS);
+
+        vm.expectRevert(ChapterPaymentVault.SequencerDown.selector);
+        vm.prank(player);
+        vault.payWithEth{value: 1 ether}(authorization);
+
+        sequencerUptimeFeed.setAnswer(0, block.timestamp - 10 minutes, block.timestamp);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ChapterPaymentVault.SequencerGracePeriodNotOver.selector, block.timestamp - 10 minutes
+            )
+        );
+        vm.prank(player);
+        vault.payWithEth{value: 1 ether}(authorization);
+
+        sequencerUptimeFeed.setAnswer(0, block.timestamp - 2 hours, block.timestamp);
+        vm.prank(player);
+        vault.payWithEth{value: 1 ether}(authorization);
+    }
+
+    function test_TheOwnerCanSwitchToANewPriceFeed() public {
+        ControllablePriceFeed replacementFeed = new ControllablePriceFeed(18, 2000e18);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, player));
+        vm.prank(player);
+        vault.setEthUsdPriceFeed(replacementFeed);
+
+        vm.prank(owner);
+        vault.setEthUsdPriceFeed(replacementFeed);
+        assertEq(address(vault.ethUsdPriceFeed()), address(replacementFeed));
+        assertEq(vault.quoteWei(200_000), 1 ether);
     }
 }
