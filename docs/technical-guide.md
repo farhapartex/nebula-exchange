@@ -140,9 +140,10 @@ A wallet can belong to one account only (422 on `address`), and an account has o
 | --- | --- |
 | `GET /chapters` | Every published chapter in order: `id`, `number`, `title`, `is_free`, `price_cents`, `level_count` and `is_owned` for the logged in player |
 | `GET /plans` | The ways to buy chapters, each with the exact options and prices for the logged in player |
-| `POST /checkout-sessions` | Body `{"plan_id": "chapter-bundle", "chapter_count": 3}`. Starts a Stripe Checkout and returns `id`, `checkout_url` and `expires_at`. The frontend sends the player to `checkout_url` |
-| `GET /checkout-sessions/{id}` | The checkout `status`: `OPEN`, `PAID` or `EXPIRED`. The subscription page checks it after Stripe sends the player back |
-| `GET /subscriptions` | The player's chapter purchases, newest first: plan, chapters, amounts, `status` (`PAID`, `REFUNDED` or `DISPUTED`), `paid_at` and `refunded_at` |
+| `POST /checkout-sessions` | Body `{"plan_id": "chapter-bundle", "chapter_count": 3, "payment_method": "CARD"}`. For `CARD` (the default) it starts a Stripe Checkout and returns `id`, `checkout_url` and `expires_at`. For `WALLET` it returns the signed authorization the vault needs: `id`, `payment_reference`, `usd_cents`, `deadline`, `signature`, `vault_address`, `chain_id` and `expires_at` |
+| `GET /checkout-sessions/{id}` | The checkout `status`: `OPEN`, `PAID` or `EXPIRED`, plus `confirmations` and `required_confirmations` for wallet payments. The subscription page checks it after the payment |
+| `POST /checkout-sessions/{id}/transactions` | Body `{"transaction_hash": "0x..."}`. The frontend reports the wallet transaction it sent, so the payment is confirmed without waiting for the chain watcher |
+| `GET /subscriptions` | The player's chapter purchases, newest first: plan, chapters, amounts, `status` (`PAID`, `REFUNDED` or `DISPUTED`), `paid_at`, `refunded_at`, `payment_method`, and for wallet payments `wallet_payment` with the `asset`, `amount_units`, `payer_address` and `transaction_hash` |
 | `POST /webhooks/stripe` | Stripe events, checked against `STRIPE_WEBHOOK_SECRET`. Not for the frontend |
 
 There are three plans, seeded from `backend/seeds/plans/plans.json`:
@@ -163,7 +164,16 @@ How a chapter payment works:
 - A full refund (`charge.refunded`) or a dispute (`charge.dispute.created`) locks the chapters of that payment again. Wins and stars stay. A chapter that another paid purchase also covers stays unlocked. A partial refund changes nothing.
 - Without `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`, checkout and the webhook return 503. Plans and chapters still load.
 
-To test payments locally, run `make stripe-listen` in a second terminal. It forwards Stripe test events to the backend; the signing secret it prints must be the `STRIPE_WEBHOOK_SECRET` in `.env`. Pay with the test card `4242 4242 4242 4242`, any future date and any CVC.
+How a wallet payment works:
+
+- The player must have a linked wallet (403 `WALLET_REQUIRED` otherwise). `POST /checkout-sessions` with `payment_method: "WALLET"` saves a `payments` row with a `payment_reference` (keccak256 of the payment id), the linked wallet as payer, and an EIP-712 signature from `PAYMENT_SIGNER_PRIVATE_KEY` over the reference, payer, USD cents and a 30 minute deadline.
+- Asking again for the same plan and chapters reuses the open wallet checkout and its signature (200). A different choice, or a card checkout, replaces it. A replaced wallet checkout can still be paid before its deadline; if that happens the money reached the vault, so its chapters are unlocked anyway.
+- The frontend sends `payWithEth` or `approve` plus `payWithToken` from the player's wallet, waits for the transaction, then reports its hash.
+- Two paths confirm a payment, and both are safe to run twice: the reported transaction is read right away, and a background watcher reads `PaymentReceived` events from the vault every `CHAIN_POLL_INTERVAL` (3 seconds). A payment is accepted only when its reference matches a checkout and its USD cents cover the price, and only after `CHAIN_REQUIRED_CONFIRMATIONS` blocks (1 locally). Then the payment becomes `PAID`, the asset, amount, payer and transaction are stored, and the chapters unlock.
+- The watcher keeps its place in `chain_sync_cursors`. If the chain was restarted or reorganized it starts again from the current block; reported transactions still confirm.
+- Wallet payments are off (503) unless `CHAIN_RPC_URL`, `CHAPTER_PAYMENT_VAULT_ADDRESS` and `PAYMENT_SIGNER_PRIVATE_KEY` are set. Crypto payments are not refundable.
+
+To test card payments locally, run `make stripe-listen` in a second terminal. It forwards Stripe test events to the backend; the signing secret it prints must be the `STRIPE_WEBHOOK_SECRET` in `.env`. Pay with the test card `4242 4242 4242 4242`, any future date and any CVC.
 
 ### Story endpoints
 

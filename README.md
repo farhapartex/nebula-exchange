@@ -15,7 +15,7 @@ A thin, hungry boy lives alone in a broken village house. One night bandits burn
 - Knock out your opponent before the time runs out to win. The faster you win, the more stars you earn, up to three.
 - If you lose, you can try again straight away.
 - The first fight of chapter 1 is free. To keep playing, you unlock whole chapters, either one at a time or several at once for a discount.
-- You pay by card. Paying from a crypto wallet such as MetaMask is being built.
+- You can pay by card, or in ETH or USDC from a crypto wallet such as MetaMask.
 - Coming later: buy tools like an iron pipe or a scrap shield, make them stronger by fighting with them, and sell them to other players.
 
 ## Fight controls
@@ -73,7 +73,14 @@ Card payments run in Stripe test mode, so no real money is charged.
 3. Restart the game server with `make docker-up`, and keep `make stripe-listen` running in another window while you play.
 4. Pay with the card number `4242 4242 4242 4242`, any future expiry date and any security code.
 
-Without these keys the game still works, but chapters cannot be unlocked.
+Without these keys the game still works, but chapters cannot be unlocked by card.
+
+To pay from a crypto wallet instead, everything runs on a local test network, so no real money is used.
+
+1. Install [Foundry](https://getfoundry.sh/), then start the test network with `make chain` and keep it running.
+2. In another window, run `make contracts-deploy-local`. Then restart the game server with `make docker-up` and restart the website.
+3. In MetaMask, add the network `Anvil Local` with the RPC URL `http://localhost:8545` and chain ID `31337`, then import the test account key `0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d`. It is a public test key with test ETH and USDC, so never use it for real money.
+4. In the unlock window choose **Wallet**, connect MetaMask, link the wallet, choose ETH or USDC and press **Pay**.
 
 ## For developers
 
