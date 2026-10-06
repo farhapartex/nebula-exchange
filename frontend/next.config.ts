@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
         headers: buildSecurityHeaders({
           isDevelopment: process.env.NODE_ENV !== "production",
           apiBaseUrl: process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api/v1",
+          assetOrigin: process.env.NEXT_PUBLIC_ASSET_ORIGIN,
         }),
       },
     ];

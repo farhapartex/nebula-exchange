@@ -1,4 +1,4 @@
-import type { SlidePalette } from "@/features/level-intro/api/level-intro-api";
+import type { SlidePalette } from "@/features/level-intro/api/level-story-api";
 import { safeHexColor } from "@/utils/colors/safe-hex-color";
 
 const themePalette: SlidePalette = {

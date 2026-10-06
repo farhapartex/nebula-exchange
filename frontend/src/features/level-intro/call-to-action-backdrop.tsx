@@ -1,5 +1,7 @@
 import Image from "next/image";
 
+import { isRemoteImage } from "@/utils/images/is-remote-image";
+
 const backdropFadeMask =
   "linear-gradient(to right, transparent, black 18%, black 82%, transparent), linear-gradient(to bottom, transparent, black 10%, black 90%, transparent)";
 
@@ -23,6 +25,7 @@ export function CallToActionBackdrop({ source }: { source: string }) {
           alt=""
           fill
           priority
+          unoptimized={isRemoteImage(source)}
           sizes="(min-width: 640px) 70vh, 100vw"
           className="object-cover object-bottom"
         />

@@ -12,6 +12,17 @@ describe("buildContentSecurityPolicy", () => {
     expect(policy).not.toContain("unsafe-eval");
   });
 
+  it("allows images from the asset storage origin only when one is configured", () => {
+    const withStorage = buildContentSecurityPolicy({
+      isDevelopment: false,
+      apiBaseUrl,
+      assetOrigin: "http://localhost:9000/",
+    });
+    const withoutStorage = buildContentSecurityPolicy({ isDevelopment: false, apiBaseUrl });
+    expect(withStorage).toContain("img-src 'self' data: blob: http://localhost:9000;");
+    expect(withoutStorage).toContain("img-src 'self' data: blob:;");
+  });
+
   it("relaxes script and connect sources only in development", () => {
     const policy = buildContentSecurityPolicy({ isDevelopment: true, apiBaseUrl: "http://localhost:8080/api/v1" });
     expect(policy).toContain("'unsafe-eval'");

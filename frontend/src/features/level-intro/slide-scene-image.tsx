@@ -1,5 +1,7 @@
 import Image from "next/image";
 
+import { isRemoteImage } from "@/utils/images/is-remote-image";
+
 const sceneFadeMask =
   "linear-gradient(to left, black 45%, transparent 100%), linear-gradient(to top, transparent 0%, black 18%, black 85%, transparent 100%)";
 
@@ -20,6 +22,7 @@ export function SlideSceneImage({ source }: { source: string }) {
         alt=""
         fill
         priority
+        unoptimized={isRemoteImage(source)}
         sizes="(min-width: 1024px) 58vw, 100vw"
         className="object-cover object-[50%_20%]"
       />

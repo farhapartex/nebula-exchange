@@ -6,24 +6,24 @@ import { ChevronLeft, ChevronRight, Play, X } from "lucide-react";
 
 import { PageContainer } from "@/components/layout/page-container";
 import { Button } from "@/components/ui/button";
-import type { LevelIntro } from "@/features/level-intro/api/level-intro-api";
 import { CallToActionBackdrop } from "@/features/level-intro/call-to-action-backdrop";
+import type { LevelStory } from "@/features/level-intro/level-story";
 import { isFinalSlide, nextSlideIndex, previousSlideIndex } from "@/features/level-intro/slide-navigation";
 import { resolveSlidePalette } from "@/features/level-intro/slide-palette";
 import { SlideSceneImage } from "@/features/level-intro/slide-scene-image";
 import { cn } from "@/utils/class-names";
 
 type StorySlideshowProps = {
-  levelIntro: LevelIntro;
+  levelStory: LevelStory;
   onPlay: () => void;
 };
 
-export function StorySlideshow({ levelIntro, onPlay }: StorySlideshowProps) {
-  const slideCount = levelIntro.slides.length + 1;
+export function StorySlideshow({ levelStory, onPlay }: StorySlideshowProps) {
+  const slideCount = levelStory.slides.length + 1;
   const [slideIndex, setSlideIndex] = useState(0);
   const isShowingCallToAction = isFinalSlide(slideIndex, slideCount);
-  const currentSlide = isShowingCallToAction ? null : levelIntro.slides[slideIndex];
-  const callToAction = levelIntro.call_to_action;
+  const currentSlide = isShowingCallToAction ? null : levelStory.slides[slideIndex];
+  const callToAction = levelStory.callToAction;
   const palette = resolveSlidePalette(currentSlide?.palette ?? callToAction.palette);
   const sceneImage = currentSlide ? currentSlide.image : callToAction.image;
 
@@ -112,9 +112,6 @@ export function StorySlideshow({ levelIntro, onPlay }: StorySlideshowProps) {
               key="call-to-action"
               className="mx-auto flex max-w-3xl flex-col items-center text-center motion-safe:animate-pop-in"
             >
-              <p className="mb-4 text-xs font-semibold tracking-[0.22em] uppercase" style={accentStyle}>
-                Level {levelIntro.level_number} · {levelIntro.level_title}
-              </p>
               <h1 className="font-display text-5xl leading-[0.92] tracking-[0.02em] text-foreground drop-shadow-[0_4px_24px_rgb(0_0_0/0.85)] sm:text-7xl">
                 {callToAction.heading}
               </h1>
@@ -143,7 +140,7 @@ export function StorySlideshow({ levelIntro, onPlay }: StorySlideshowProps) {
               Back
             </Button>
             <span className="font-mono text-xs text-subtle tabular-nums">
-              {slideIndex + 1} / {levelIntro.slides.length}
+              {slideIndex + 1} / {levelStory.slides.length}
             </span>
             <Button onClick={goForward} style={{ backgroundColor: palette.accent, color: palette.background }}>
               Next

@@ -1,6 +1,7 @@
 type SecurityHeaderOptions = {
   isDevelopment: boolean;
   apiBaseUrl: string;
+  assetOrigin?: string;
 };
 
 type ResponseHeader = { key: string; value: string };
@@ -9,8 +10,9 @@ function webSocketOriginFor(httpOrigin: string): string {
   return httpOrigin.replace(/^http/, "ws");
 }
 
-export function buildContentSecurityPolicy({ isDevelopment, apiBaseUrl }: SecurityHeaderOptions): string {
+export function buildContentSecurityPolicy({ isDevelopment, apiBaseUrl, assetOrigin }: SecurityHeaderOptions): string {
   const apiOrigin = new URL(apiBaseUrl).origin;
+  const imageSources = ["'self'", "data:", "blob:", ...(assetOrigin ? [new URL(assetOrigin).origin] : [])];
   const scriptSources = ["'self'", "'unsafe-inline'", ...(isDevelopment ? ["'unsafe-eval'"] : [])];
   const connectSources = [
     "'self'",
@@ -23,7 +25,7 @@ export function buildContentSecurityPolicy({ isDevelopment, apiBaseUrl }: Securi
     "default-src": ["'self'"],
     "script-src": scriptSources,
     "style-src": ["'self'", "'unsafe-inline'"],
-    "img-src": ["'self'", "data:", "blob:"],
+    "img-src": imageSources,
     "font-src": ["'self'"],
     "connect-src": connectSources,
     "worker-src": ["'self'"],

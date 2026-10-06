@@ -138,11 +138,15 @@ export async function requestList<Item>(
   return responseBody;
 }
 
-export async function requestAllPages<Item>(path: string, pageSize = 100): Promise<Item[]> {
+export async function requestAllPages<Item>(
+  path: string,
+  query: RequestOptions["query"] = {},
+  pageSize = 100,
+): Promise<Item[]> {
   const collectedItems: Item[] = [];
   let cursor: string | null = null;
   do {
-    const listPage: ListEnvelope<Item> = await requestList<Item>(path, { cursor, limit: pageSize });
+    const listPage: ListEnvelope<Item> = await requestList<Item>(path, { cursor, limit: pageSize }, { query });
     collectedItems.push(...listPage.data);
     cursor = listPage.pagination.next_cursor;
   } while (cursor);
