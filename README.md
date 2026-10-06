@@ -112,6 +112,8 @@ What the `/me` progress fields mean:
 - `current_level` is the chapter the player is in, which is also their fighter level. A new player is at 1. It is the chapter of the next level they have not won yet, so it moves to the next chapter once every level of a chapter is won.
 - `story_level` is how many levels of the current chapter the player has won: 0 for a new player, 1 after winning level 1.
 - `total_win` and `total_lose` count every finished fight in the whole game. `current_level_win` and `current_level_lose` count only fights in the current chapter.
+- `current_level_price` is what the current chapter costs, as a string of coin micro-units (`"499000000"` is 499 coins), or null for a free chapter.
+- `is_current_level_paid` is true when the player owns the current chapter (or it costs nothing), so every level in it can be played.
 
 ### Story endpoints
 
@@ -134,7 +136,7 @@ Images live in a private MinIO bucket. `image` is a presigned link that works fo
 
 The response has the fight `id`, `level`, `status` (`STARTED`), `started_at` and a server `seed` (as a string, because it does not fit in a JavaScript number). Rules:
 
-- Chapter 1 level 1 is always open. Every other level opens only after the level before it has been won, across chapters too. Levels in a paid chapter cannot be started until chapter purchase exists. A locked level returns 403 `LEVEL_LOCKED`.
+- Chapter 1 level 1 is always open. Every other level opens only after the level before it has been won, across chapters too. Levels in a paid chapter need the chapter to be owned, unless the level itself is free. A level waiting on the previous win returns 403 `LEVEL_LOCKED`; a level in a chapter the player does not own returns 403 `CHAPTER_LOCKED`. `/me/next-level` shows the chapter `price` and `is_paid`.
 - Pressing Play again on a level with an unfinished fight marks that fight `ABANDONED` and starts a new one. There is never more than one open fight per player and level.
 - Every start adds one attempt to the player's progress for that level.
 
@@ -167,9 +169,9 @@ The table design is in `backend/docs/database-design.drawio`. Open it with draw.
 
 These were agreed before the backend was started. Anything not listed here is still open and gets decided before it is built.
 
-**Currency.** There is one in-game currency, coins. Players buy coins with Stripe in fixed coin packs. Coins can never be turned back into money. A level pays coins only the first time it is cleared; replays give experience but no coins, so coins cannot be farmed.
+**Currency.** There is one in-game currency, coins. 1 coin is worth 1 US cent. Players buy coins with Stripe in fixed coin packs: 500 coins for USD 4.99, 1,100 for USD 9.99 and 2,400 for USD 19.99. Coins can never be turned back into money. A level pays coins only the first time it is cleared; replays give experience but no coins, so coins cannot be farmed.
 
-**Chapters.** Chapter 1 is free. Each later chapter is a one-time unlock paid in coins, so Stripe only ever sells coin packs.
+**Chapters.** Only chapter 1 level 1 is free. Every other level needs its whole chapter, which is a one-time unlock paid in coins (chapter 1 costs 499 coins), so Stripe only ever sells coin packs. If a coin purchase is refunded or disputed, the coins are taken back; if they were already spent the wallet goes negative, and paid chapters and spending stay blocked until the next coin purchase pays the debt. Buying coins and chapters is not built yet; in development `make dev-unlock-chapter` gives a chapter to a player.
 
 **Selling tools.** Tools are sold player to player on a market. The game takes a 5 percent fee, and that fee is removed from the economy rather than paid to anyone. Listings expire after 7 days. The game does not buy tools back, because that would create coins out of nothing.
 
