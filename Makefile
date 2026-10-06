@@ -4,7 +4,7 @@ ANVIL_PORT ?= 8545
 COMPOSE := docker compose --env-file .env
 MIGRATE := $(COMPOSE) run --rm migrate
 
-.PHONY: help docker-up docker-down docker-logs docker-ps backend-build backend-test backend-lint migrate-up migrate-down migrate-version migrate-create seed dev-unlock-chapter chain contracts-build contracts-test contracts-fmt
+.PHONY: help docker-up docker-down docker-logs docker-ps backend-build backend-test backend-lint migrate-up migrate-down migrate-version migrate-create seed dev-unlock-chapter stripe-listen chain contracts-build contracts-test contracts-fmt
 
 help:
 	@echo "Available commands:"
@@ -21,6 +21,7 @@ help:
 	@echo "  make migrate-create name=NAME Create a new up and down migration pair"
 	@echo "  make seed                     Load fighters and story levels into Postgres and their images into MinIO"
 	@echo "  make dev-unlock-chapter email=E chapter=C  Give a player a chapter for free (development only)"
+	@echo "  make stripe-listen            Forward Stripe test webhooks to the local backend"
 	@echo "  make chain                    Start a local Anvil chain on the host"
 	@echo "  make contracts-build          Compile the smart contracts"
 	@echo "  make contracts-test           Run Foundry tests"
@@ -69,6 +70,10 @@ dev-unlock-chapter:
 	@test "$(APP_ENV)" = "development" || (echo "dev-unlock-chapter only runs with APP_ENV=development" && exit 1)
 	@test -n "$(email)" -a -n "$(chapter)" || (echo "usage: make dev-unlock-chapter email=player@streetborn.test chapter=1" && exit 1)
 	$(COMPOSE) exec -T postgres psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 -c "INSERT INTO chapter_unlocks (user_id, chapter_id, source, unlocked_at) SELECT id, '$(chapter)', 'GRANT', now() FROM users WHERE lower(email) = lower('$(email)') ON CONFLICT DO NOTHING RETURNING user_id, chapter_id, source;"
+
+stripe-listen:
+	@test -n "$(STRIPE_SECRET_KEY)" || (echo "STRIPE_SECRET_KEY must be set in .env" && exit 1)
+	@stripe listen --api-key "$(STRIPE_SECRET_KEY)" --forward-to localhost:$(or $(BACKEND_PORT),8080)/api/v1/webhooks/stripe --events checkout.session.completed,checkout.session.async_payment_succeeded,checkout.session.expired,charge.refunded,charge.dispute.created
 
 chain:
 	anvil --host 0.0.0.0 --port $(ANVIL_PORT) --chain-id 31337

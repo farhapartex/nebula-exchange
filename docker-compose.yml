@@ -108,6 +108,8 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS:-no-reply@streetborn.test}
       EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-Street Born}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
       <<: *storage-environment
     ports:
       - "${BACKEND_PORT:-8080}:8080"
