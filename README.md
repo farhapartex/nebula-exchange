@@ -21,10 +21,11 @@ You need Docker with Compose v2, Go 1.26 or newer, Node.js 22 or newer, and Foun
 ```bash
 cp .env.example .env
 make docker-up
+make seed-story
 cd frontend && npm install && npm run dev
 ```
 
-`make docker-up` builds the backend image, starts Postgres, Redis and Mailpit, runs the `migrate` container once to apply every pending migration, and then starts the API.
+`make docker-up` builds the backend image, starts Postgres, Redis, Mailpit and MinIO, runs the `migrate` container once to apply every pending migration, and then starts the API. `make seed-story` uploads the story images to MinIO and loads the story content into Postgres. It is safe to run again after editing the content.
 
 | Service | Address |
 | --- | --- |
@@ -33,6 +34,8 @@ cd frontend && npm install && npm run dev
 | PostgreSQL | localhost:5432 |
 | Redis | localhost:6379 |
 | Mailpit inbox | http://localhost:8025 |
+| MinIO API | http://localhost:9000 |
+| MinIO console | http://localhost:9001 |
 | Frontend | http://localhost:3000 |
 
 Run `make help` to see every command.
@@ -103,6 +106,20 @@ make migrate-version
 Access tokens last 15 minutes and are sent as `Authorization: Bearer`. The refresh token lives in an httpOnly cookie for 30 days and is replaced on every refresh. If an old refresh token is ever used again, every session in that login chain is ended.
 
 Emails are never sent inside a request. They are written to the `email_outbox` table in the same transaction as the change that caused them, and a background worker sends them with retries. In development they land in Mailpit.
+
+### Story endpoints
+
+| Method and path | Purpose |
+| --- | --- |
+| `GET /stories?level={level_id}` | The story slides of one level, in order. `level` is required |
+
+The list is cursor paginated like every other list. Each item has `id`, `position`, `kind` (`SLIDE` or `CALL_TO_ACTION`), `eyebrow`, `heading`, `body`, `image`, `palette` and `button_label`. The call to action is always the last item and is the only one with a button label. A level that does not exist or is not published returns 404.
+
+Images live in a private MinIO bucket. `image` is a presigned link that works for one hour, so the page should load the story again rather than keep links around.
+
+### Story content
+
+Each level's story lives in `backend/seeds/story/<level>/`: a `level.json` with the chapter, arena, level and slides, and an `images` folder. The seed checks the package before it changes anything, uploads the images under `story/<level_id>/`, then saves the rows in one transaction.
 
 ### Tests
 
