@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Minus, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -12,10 +12,9 @@ import { fetchPlans, plansQueryKey, type Plan } from "@/features/chapter-purchas
 import { describePlanOption } from "@/features/chapter-purchase/plan-option-label";
 import { PurchaseChoiceCard } from "@/features/chapter-purchase/purchase-choice-card";
 import { PurchaseSummary } from "@/features/chapter-purchase/purchase-summary";
+import { createCheckoutSession } from "@/features/subscriptions/api/checkout-session-api";
 import { publishToastEvent } from "@/lib/notifications/toast-events";
 import { formatUsd } from "@/utils/money/format-usd";
-
-const mockCheckoutDelayInMilliseconds = 900;
 
 type ChapterPurchaseDialogProps = {
   isOpen: boolean;
@@ -27,7 +26,17 @@ export function ChapterPurchaseDialog({ isOpen, onOpenChange }: ChapterPurchaseD
   const availablePlans = (plansQuery.data ?? []).filter((plan) => plan.is_available && plan.options.length > 0);
   const [chosenPlanID, setChosenPlanID] = useState<string | null>(null);
   const [optionIndexByPlan, setOptionIndexByPlan] = useState<Record<string, number>>({});
-  const [isPaying, setIsPaying] = useState(false);
+  const checkoutMutation = useMutation({
+    mutationFn: createCheckoutSession,
+    onSuccess: (checkoutSession) => window.location.assign(checkoutSession.checkout_url),
+    onError: () =>
+      publishToastEvent({
+        tone: "error",
+        title: "Checkout could not start",
+        description: "Nothing was charged. Try again in a moment.",
+      }),
+  });
+  const isPaying = checkoutMutation.isPending || checkoutMutation.isSuccess;
 
   const selectedPlan = availablePlans.find((plan) => plan.id === chosenPlanID) ?? availablePlans[0];
   const optionIndexOf = (plan: Plan) => Math.min(optionIndexByPlan[plan.id] ?? 0, plan.options.length - 1);
@@ -45,16 +54,7 @@ export function ChapterPurchaseDialog({ isOpen, onOpenChange }: ChapterPurchaseD
     if (!selectedPlan || !selectedOption) {
       return;
     }
-    setIsPaying(true);
-    window.setTimeout(() => {
-      setIsPaying(false);
-      onOpenChange(false);
-      publishToastEvent({
-        tone: "info",
-        title: "Checkout is not connected yet",
-        description: `This will open Stripe for the ${selectedPlan.name.toLowerCase()} plan: ${selectedOption.chapter_count} ${selectedOption.chapter_count === 1 ? "chapter" : "chapters"} for ${formatUsd(BigInt(selectedOption.total_cents))}.`,
-      });
-    }, mockCheckoutDelayInMilliseconds);
+    checkoutMutation.mutate({ plan_id: selectedPlan.id, chapter_count: selectedOption.chapter_count });
   }
 
   return (
@@ -137,7 +137,7 @@ export function ChapterPurchaseDialog({ isOpen, onOpenChange }: ChapterPurchaseD
               Cancel
             </Button>
             <Button type="button" size="lg" onClick={pay} isLoading={isPaying} className="sm:min-w-52">
-              {isPaying ? "Opening checkout" : `Pay ${formatUsd(BigInt(selectedOption.total_cents))}`}
+              {isPaying ? "Opening Stripe" : `Pay ${formatUsd(BigInt(selectedOption.total_cents))}`}
             </Button>
           </div>
         </div>

@@ -1,0 +1,31 @@
+import { requestAllPages } from "@/lib/api/api-client";
+import type { PlanKind } from "@/features/chapter-purchase/api/plan-api";
+
+export type SubscriptionStatus = "PAID" | "REFUNDED" | "DISPUTED";
+
+export type SubscriptionChapter = {
+  id: string;
+  number: number;
+  title: string;
+};
+
+export type Subscription = {
+  id: string;
+  plan_id: string;
+  plan_name: string;
+  plan_kind: PlanKind;
+  status: SubscriptionStatus;
+  chapters: SubscriptionChapter[];
+  subtotal_cents: string;
+  discount_percent: number;
+  discount_cents: string;
+  total_cents: string;
+  paid_at: string;
+  refunded_at: string | null;
+};
+
+export const subscriptionsQueryKey = ["subscriptions"] as const;
+
+export function fetchSubscriptions(): Promise<Subscription[]> {
+  return requestAllPages<Subscription>("/subscriptions");
+}

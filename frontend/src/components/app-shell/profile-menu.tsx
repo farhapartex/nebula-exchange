@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDown, LogOut } from "lucide-react";
+import { ChevronDown, LogOut, ReceiptText } from "lucide-react";
 import { DropdownMenu } from "radix-ui";
 
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,15 @@ export function ProfileMenu() {
             <p className="truncate text-xs text-muted">{user.email}</p>
           </div>
           <DropdownMenu.Separator className="my-1 h-px bg-border" />
+          <DropdownMenu.Item
+            asChild
+            className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-sm text-muted outline-none data-[highlighted]:bg-border data-[highlighted]:text-foreground"
+          >
+            <Link href="/subscription">
+              <ReceiptText className="size-4" aria-hidden="true" />
+              Subscription
+            </Link>
+          </DropdownMenu.Item>
           <DropdownMenu.Item
             onSelect={() => void logOutAndLeave()}
             className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-sm text-muted outline-none data-[highlighted]:bg-border data-[highlighted]:text-foreground"
