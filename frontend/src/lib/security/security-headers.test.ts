@@ -23,6 +23,15 @@ describe("buildContentSecurityPolicy", () => {
     expect(withoutStorage).toContain("img-src 'self' data: blob:;");
   });
 
+  it("allows the wallet RPC origin only when one is configured", () => {
+    const policy = buildContentSecurityPolicy({
+      isDevelopment: false,
+      apiBaseUrl,
+      chainRpcUrl: "https://rpc.chain.test/v1",
+    });
+    expect(policy).toContain("wss://api.nebula.test https://rpc.chain.test;");
+  });
+
   it("relaxes script and connect sources only in development", () => {
     const policy = buildContentSecurityPolicy({ isDevelopment: true, apiBaseUrl: "http://localhost:8080/api/v1" });
     expect(policy).toContain("'unsafe-eval'");
