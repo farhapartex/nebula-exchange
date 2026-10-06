@@ -51,6 +51,7 @@ The backend is a single Go service split by domain (a modular monolith). Each do
 | `combat` | Moves, special moves, which moves fighters and enemies can use |
 | `progress` | Fighter profile, level progress, stars, fight sessions, chapter unlocks |
 | `payment` | Purchase plans, chapter payments, Stripe checkout and webhooks |
+| `wallet` | Linking a crypto wallet to an account with a signed message |
 | `tools` | Tool catalogue, owned tools, mastery, loadout |
 | `economy` | Coin wallet, ledger, coin packs, player market |
 
@@ -116,6 +117,22 @@ What the `/me` progress fields mean:
 - `current_level_price` is what the current chapter costs, as a string of US cents (`"499"` is USD 4.99), or null for a free chapter.
 - `is_current_level_paid` is true when the player owns the current chapter (or it costs nothing), so every level in it can be played.
 - `paid_chapters` is how many paid chapters the player owns. `unpaid_chapters` is how many published paid chapters they do not own yet. Free chapters are in neither count.
+
+### Wallet endpoints
+
+| Method and path | Purpose |
+| --- | --- |
+| `POST /wallet-challenges` | Body `{"address": "0x...", "chain_id": 31337}`. Returns a single use `nonce` that expires after 5 minutes |
+| `POST /wallets` | Body `{"message": "...", "signature": "0x..."}`. Links the wallet that signed the message to the player. 201 for a new link, 200 when that wallet is already linked |
+| `GET /wallets` | The player's linked wallet: `address` (lowercase), `chain_id` and `linked_at`. The list has one item at most |
+
+Linking uses Sign-In With Ethereum (EIP-4361). The frontend asks for a nonce, builds the sign-in message, and the player signs it in their wallet. Signing is free and sends no transaction. The backend accepts the link only when:
+
+- the message is for this site (`FRONTEND_BASE_URL`), the configured `CHAIN_ID` and version 1, and is not expired;
+- the signature recovers to the address in the message;
+- the nonce was issued to this player for this address and has not been used or expired. A nonce works once.
+
+A wallet can belong to one account only (422 on `address`), and an account has one wallet (409 when a different wallet is already linked). Only regular wallets (MetaMask, Coinbase Wallet browser extension and similar) can sign in for now; smart contract wallets are not supported yet.
 
 ### Payment endpoints
 
