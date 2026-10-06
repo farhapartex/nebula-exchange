@@ -43,13 +43,16 @@ func (seeder *Seeder) SeedLevel(ctx context.Context, levelPackage LevelPackage) 
 		if err := upsert(transaction, levelRecord(levelPackage), levelColumns...); err != nil {
 			return fmt.Errorf("save level: %w", err)
 		}
+		if err := seedEnemyWaves(transaction, levelPackage); err != nil {
+			return err
+		}
 		if err := transaction.Where(map[string]any{"level_id": levelPackage.Level.ID}).Delete(&models.StorySlide{}).Error; err != nil {
 			return fmt.Errorf("clear old slides: %w", err)
 		}
 		if err := transaction.Create(slideRecords(levelPackage)).Error; err != nil {
 			return fmt.Errorf("save slides: %w", err)
 		}
-		seeder.logger.InfoContext(ctx, "level story seeded", slog.String("level_id", levelPackage.Level.ID), slog.Int("slides", len(levelPackage.Slides)))
+		seeder.logger.InfoContext(ctx, "level story seeded", slog.String("level_id", levelPackage.Level.ID), slog.Int("slides", len(levelPackage.Slides)), slog.Int("enemy_waves", len(levelPackage.Enemies)))
 		return nil
 	})
 }
@@ -93,6 +96,30 @@ func upsert(transaction *gorm.DB, record any, updatedColumns ...string) error {
 		Columns:   []clause.Column{{Name: "id"}},
 		DoUpdates: clause.AssignmentColumns(append(updatedColumns, "updated_at")),
 	}).Create(record).Error
+}
+
+func seedEnemyWaves(transaction *gorm.DB, levelPackage LevelPackage) error {
+	for _, wave := range levelPackage.Enemies {
+		enemy := wave.Enemy
+		enemyRecord := &models.Enemy{ID: enemy.ID, Name: enemy.Name, Title: enemy.Title, Stats: enemy.Stats, Brain: enemy.Brain, Look: enemy.Look}
+		if err := upsert(transaction, enemyRecord, "name", "title", "stats", "brain", "look"); err != nil {
+			return fmt.Errorf("save enemy %s: %w", enemy.ID, err)
+		}
+	}
+	if err := transaction.Where(map[string]any{"level_id": levelPackage.Level.ID}).Delete(&models.LevelEnemy{}).Error; err != nil {
+		return fmt.Errorf("clear old enemy waves: %w", err)
+	}
+	for _, wave := range levelPackage.Enemies {
+		modifiers := wave.Modifiers
+		if len(modifiers) == 0 {
+			modifiers = []byte(`{}`)
+		}
+		waveRecord := &models.LevelEnemy{LevelID: levelPackage.Level.ID, Wave: wave.Wave, EnemyID: wave.Enemy.ID, Modifiers: modifiers, IntroLine: wave.IntroLine}
+		if err := transaction.Create(waveRecord).Error; err != nil {
+			return fmt.Errorf("save enemy wave %d: %w", wave.Wave, err)
+		}
+	}
+	return nil
 }
 
 func chapterRecord(chapter ChapterContent) *models.Chapter {

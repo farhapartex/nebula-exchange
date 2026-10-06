@@ -53,7 +53,7 @@ func buildApplication(ctx context.Context, appConfig config.Config, appLogger *s
 		EmailEnqueuer:   outbox.NewEnqueuer(emailOutbox, time.Now),
 		Session:         appConfig.Session,
 		FrontendBaseURL: appConfig.FrontendBaseURL,
-		StoryProgress:   progressModule.StoryProgress,
+		PlayerProgress:  playerProgressAdapter{playerProgress: progressModule.PlayerProgress},
 		Logger:          appLogger,
 		Now:             time.Now,
 	})

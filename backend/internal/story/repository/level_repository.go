@@ -13,6 +13,7 @@ import (
 type LevelRepository interface {
 	FindPublished(ctx context.Context, levelID string) (models.Level, bool, error)
 	ListPublishedStoryLevels(ctx context.Context) ([]models.Level, error)
+	FindWithFightContent(ctx context.Context, levelID string) (models.Level, bool, error)
 }
 
 type GormLevelRepository struct {
@@ -48,4 +49,21 @@ func (repository *GormLevelRepository) ListPublishedStoryLevels(ctx context.Cont
 		Order("levels.number").
 		Find(&levels).Error
 	return levels, err
+}
+
+func (repository *GormLevelRepository) FindWithFightContent(ctx context.Context, levelID string) (models.Level, bool, error) {
+	var level models.Level
+	err := database.Session(ctx, repository.database).
+		Preload("Arena").
+		Preload("Enemies", func(query *gorm.DB) *gorm.DB { return query.Order("wave") }).
+		Preload("Enemies.Enemy").
+		Where(map[string]any{"id": levelID}).
+		Take(&level).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return models.Level{}, false, nil
+	}
+	if err != nil {
+		return models.Level{}, false, err
+	}
+	return level, true, nil
 }

@@ -20,6 +20,7 @@ type LevelPlacement struct {
 type LevelCatalog interface {
 	PlayableLevel(ctx context.Context, levelID string) (LevelPlacement, error)
 	Placements(ctx context.Context) (map[string]LevelPlacement, error)
+	FightContent(ctx context.Context, levelID string) (FightContent, error)
 }
 
 type levelCatalog struct {

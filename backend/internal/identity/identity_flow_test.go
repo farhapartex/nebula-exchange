@@ -22,6 +22,7 @@ import (
 	"github.com/farhapartex/nebula-exchange/backend/internal/identity"
 	"github.com/farhapartex/nebula-exchange/backend/internal/identity/handler"
 	"github.com/farhapartex/nebula-exchange/backend/internal/identity/models"
+	"github.com/farhapartex/nebula-exchange/backend/internal/identity/service"
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/config"
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/database/databasetest"
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/email/outbox"
@@ -35,10 +36,10 @@ const (
 	playerPassword = "streets-are-cold"
 )
 
-type noStoryProgress struct{}
+type newPlayerProgress struct{}
 
-func (noStoryProgress) FurthestStartedLevel(context.Context, uuid.UUID) (*string, error) {
-	return nil, nil
+func (newPlayerProgress) PlayerProgressOf(context.Context, uuid.UUID) (service.PlayerProgress, error) {
+	return service.PlayerProgress{FighterLevel: 1}, nil
 }
 
 var activationTokenPattern = regexp.MustCompile(`token=([A-Za-z0-9_-]{43})`)
@@ -61,7 +62,7 @@ func newIdentityHarness(t *testing.T) *identityHarness {
 		EmailEnqueuer:   outbox.NewEnqueuer(outbox.NewGormRepository(testDatabase), time.Now),
 		Session:         config.SessionConfig{JWTSecret: strings.Repeat("s", 40)},
 		FrontendBaseURL: "http://localhost:3000",
-		StoryProgress:   noStoryProgress{},
+		PlayerProgress:  newPlayerProgress{},
 		Logger:          quietLogger,
 		Now:             time.Now,
 	})
@@ -208,7 +209,7 @@ func TestPlayerSignsUpActivatesLogsInAndReadsProfile(t *testing.T) {
 	harness.requireStatus(harness.send(http.MethodGet, "/me", nil, ""), http.StatusUnauthorized)
 	profileResponse := harness.send(http.MethodGet, "/me", nil, accessToken)
 	harness.requireStatus(profileResponse, http.StatusOK)
-	expectedProfile := map[string]any{"name": playerUsername, "email": playerEmail, "current_level": float64(0), "story_level": nil, "total_win": float64(0), "total_lose": float64(0)}
+	expectedProfile := map[string]any{"name": playerUsername, "email": playerEmail, "current_level": float64(1), "story_level": nil, "total_win": float64(0), "total_lose": float64(0)}
 	if !maps.Equal(profileResponse.data(), expectedProfile) {
 		t.Fatalf("got profile %v, want exactly %v", profileResponse.data(), expectedProfile)
 	}

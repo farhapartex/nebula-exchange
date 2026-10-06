@@ -234,6 +234,64 @@
     "replay_experience": 0,
     "is_published": true
   },
+  "enemies": [
+    {
+      "wave": 1,
+      "enemy": {
+        "id": "torch-bandit",
+        "name": "Torch bandit",
+        "title": "Bandit · first of the gang",
+        "stats": {
+          "max_health": 90,
+          "max_stamina": 90,
+          "stamina_regen_per_second": 16,
+          "walk_speed": 150,
+          "block_damage_reduction": 0.6,
+          "block_stamina_cost": 14,
+          "dodge_stamina_cost": 30,
+          "dodge_duration_ms": 320,
+          "dodge_distance": 110,
+          "punch": {
+            "damage": 9,
+            "stamina_cost": 9,
+            "range": 82,
+            "windup_ms": 260,
+            "active_ms": 90,
+            "recovery_ms": 260,
+            "knockback": 16,
+            "hit_stun_ms": 280
+          },
+          "kick": {
+            "damage": 15,
+            "stamina_cost": 16,
+            "range": 110,
+            "windup_ms": 380,
+            "active_ms": 110,
+            "recovery_ms": 340,
+            "knockback": 34,
+            "hit_stun_ms": 400
+          }
+        },
+        "brain": {
+          "aggression": 0.55,
+          "block_chance": 0.25,
+          "dodge_chance": 0.08,
+          "preferred_range": 86,
+          "reaction_ms": 420,
+          "punch_weight": 0.7,
+          "kick_weight": 0.3
+        },
+        "look": {
+          "body_color": "#7f1d1d",
+          "outline_color": "#fca5a5",
+          "height": 172,
+          "width": 58
+        }
+      },
+      "modifiers": {},
+      "intro_line": null
+    }
+  ],
   "slides": [
     {
       "kind": "SLIDE",

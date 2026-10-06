@@ -1,0 +1,44 @@
+{
+  "id": "the-boy",
+  "name": "The boy",
+  "title": "Nobody",
+  "starting_level": 1,
+  "is_default": true,
+  "stats": {
+    "max_health": 100,
+    "max_stamina": 100,
+    "stamina_regen_per_second": 22,
+    "walk_speed": 210,
+    "block_damage_reduction": 0.75,
+    "block_stamina_cost": 12,
+    "dodge_stamina_cost": 22,
+    "dodge_duration_ms": 280,
+    "dodge_distance": 130,
+    "punch": {
+      "damage": 8,
+      "stamina_cost": 7,
+      "range": 78,
+      "windup_ms": 90,
+      "active_ms": 80,
+      "recovery_ms": 170,
+      "knockback": 12,
+      "hit_stun_ms": 260
+    },
+    "kick": {
+      "damage": 14,
+      "stamina_cost": 15,
+      "range": 104,
+      "windup_ms": 200,
+      "active_ms": 100,
+      "recovery_ms": 280,
+      "knockback": 30,
+      "hit_stun_ms": 380
+    }
+  },
+  "look": {
+    "body_color": "#f5ede5",
+    "outline_color": "#f97316",
+    "height": 150,
+    "width": 44
+  }
+}

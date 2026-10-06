@@ -22,6 +22,7 @@ import (
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/httpserver"
 	"github.com/farhapartex/nebula-exchange/backend/internal/progress"
 	progressmodels "github.com/farhapartex/nebula-exchange/backend/internal/progress/models"
+	progressservice "github.com/farhapartex/nebula-exchange/backend/internal/progress/service"
 	"github.com/farhapartex/nebula-exchange/backend/internal/story"
 	storymodels "github.com/farhapartex/nebula-exchange/backend/internal/story/models"
 )
@@ -37,11 +38,11 @@ func (tokens playerTokens) Verify(accessToken string) (uuid.UUID, error) {
 }
 
 type progressHarness struct {
-	t             *testing.T
-	database      *gorm.DB
-	router        *gin.Engine
-	storyProgress interface {
-		FurthestStartedLevel(ctx context.Context, userID uuid.UUID) (*string, error)
+	t              *testing.T
+	database       *gorm.DB
+	router         *gin.Engine
+	playerProgress interface {
+		PlayerProgress(ctx context.Context, userID uuid.UUID) (progressservice.PlayerProgress, error)
 	}
 	playerID uuid.UUID
 }
@@ -75,6 +76,11 @@ func newProgressHarness(t *testing.T) *progressHarness {
 	for _, level := range levels {
 		seedRecords = append(seedRecords, &storymodels.Level{ID: level.id, ChapterID: textPointer(level.chapterID), Number: numberPointer(level.number), Kind: storymodels.LevelKindStory, Title: level.id, Teaser: "x", ArenaID: "burning-house", TimeLimitSeconds: 90, Difficulty: database.JSONDocument(`{}`), StarRules: database.JSONDocument(`[]`), IsPublished: level.isPublished})
 	}
+	seedRecords = append(seedRecords,
+		&storymodels.Enemy{ID: "torch-bandit", Name: "Torch bandit", Title: "First of the gang", Stats: database.JSONDocument(`{"max_health":90}`), Brain: database.JSONDocument(`{"aggression":0.5}`), Look: database.JSONDocument(`{"body_color":"#7f1d1d"}`)},
+		&storymodels.LevelEnemy{LevelID: "1-1", Wave: 1, EnemyID: "torch-bandit", Modifiers: database.JSONDocument(`{}`)},
+		&progressmodels.FighterTemplate{ID: "the-boy", Name: "The boy", Title: "Nobody", StartingLevel: 1, Stats: database.JSONDocument(`{"max_health":100}`), Look: database.JSONDocument(`{"body_color":"#e7d3c1"}`), IsDefault: true},
+	)
 	seedRecords = append(seedRecords, &storymodels.Level{ID: "training", Kind: storymodels.LevelKindTraining, Title: "Training", Teaser: "x", ArenaID: "burning-house", TimeLimitSeconds: 90, Difficulty: database.JSONDocument(`{}`), StarRules: database.JSONDocument(`[]`), IsPublished: true})
 	for _, record := range seedRecords {
 		if err := testDatabase.Create(record).Error; err != nil {
@@ -89,7 +95,17 @@ func newProgressHarness(t *testing.T) *progressHarness {
 	if err != nil {
 		t.Fatalf("build router: %v", err)
 	}
-	return &progressHarness{t: t, database: testDatabase, router: router, storyProgress: progressModule.StoryProgress, playerID: playerID}
+	return &progressHarness{t: t, database: testDatabase, router: router, playerProgress: progressModule.PlayerProgress, playerID: playerID}
+}
+
+func (harness *progressHarness) getFightSetup(levelID string) (int, map[string]any) {
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/levels/"+levelID+"/fight-setup", nil)
+	request.Header.Set("Authorization", "Bearer player-token")
+	recorder := httptest.NewRecorder()
+	harness.router.ServeHTTP(recorder, request)
+	var decodedBody map[string]any
+	_ = json.Unmarshal(recorder.Body.Bytes(), &decodedBody)
+	return recorder.Code, decodedBody
 }
 
 func (harness *progressHarness) startFight(body string, accessToken string) (int, map[string]any) {
@@ -117,11 +133,11 @@ func (harness *progressHarness) requireStart(levelID string, expectedStatus int)
 
 func (harness *progressHarness) furthestLevel() *string {
 	harness.t.Helper()
-	furthestLevelID, err := harness.storyProgress.FurthestStartedLevel(context.Background(), harness.playerID)
+	playerProgress, err := harness.playerProgress.PlayerProgress(context.Background(), harness.playerID)
 	if err != nil {
-		harness.t.Fatalf("furthest level: %v", err)
+		harness.t.Fatalf("player progress: %v", err)
 	}
-	return furthestLevelID
+	return playerProgress.StoryLevel
 }
 
 func (harness *progressHarness) winLevel(levelID string) {
@@ -214,5 +230,61 @@ func TestStartingAFightRejectsBadRequests(t *testing.T) {
 	}
 	for _, unplayableLevel := range []string{"9-9", "1-3", "training"} {
 		harness.requireStart(unplayableLevel, http.StatusNotFound)
+	}
+}
+
+func TestFightSetupUsesTheStarterFighterUntilTheFirstFightCreatesAProfile(t *testing.T) {
+	harness := newProgressHarness(t)
+
+	status, body := harness.getFightSetup("1-1")
+	if status != http.StatusOK {
+		t.Fatalf("got %d %v", status, body)
+	}
+	fightSetup := body["data"].(map[string]any)
+	player := fightSetup["player"].(map[string]any)
+	enemy := fightSetup["enemy"].(map[string]any)
+	arena := fightSetup["arena"].(map[string]any)
+	if fightSetup["level_id"] != "1-1" || fightSetup["time_limit_seconds"] != float64(90) || arena["width"] != float64(960) {
+		t.Fatalf("unexpected fight setup %v", fightSetup)
+	}
+	if player["id"] != "the-boy" || player["stats"].(map[string]any)["max_health"] != float64(100) || enemy["id"] != "torch-bandit" || enemy["brain"] == nil {
+		t.Fatalf("unexpected fighters %v / %v", player, enemy)
+	}
+	var profileCount int64
+	harness.database.Model(&progressmodels.FighterProfile{}).Count(&profileCount)
+	if profileCount != 0 {
+		t.Fatal("reading the fight setup must not create a profile")
+	}
+
+	harness.requireStart("1-1", http.StatusCreated)
+	var profile progressmodels.FighterProfile
+	if err := harness.database.Take(&profile, "user_id = ?", harness.playerID).Error; err != nil {
+		t.Fatalf("expected a profile after the first fight: %v", err)
+	}
+	if profile.TemplateID != "the-boy" || profile.FighterLevel != 1 || string(profile.Stats) != `{"max_health": 100}` {
+		t.Fatalf("unexpected profile %+v (stats %s)", profile, profile.Stats)
+	}
+	playerProgress, err := harness.playerProgress.PlayerProgress(context.Background(), harness.playerID)
+	if err != nil || playerProgress.FighterLevel != 1 || playerProgress.Wins != 0 || playerProgress.Losses != 0 {
+		t.Fatalf("unexpected player progress %+v, %v", playerProgress, err)
+	}
+}
+
+func TestFightSetupNeedsAPlayableLevelWithAnEnemy(t *testing.T) {
+	harness := newProgressHarness(t)
+	for _, levelID := range []string{"9-9", "1-3", "training", "1-2"} {
+		if status, _ := harness.getFightSetup(levelID); status != http.StatusNotFound {
+			t.Fatalf("%s: got %d, want 404", levelID, status)
+		}
+	}
+}
+
+func TestStartingAFightWithoutAStarterFighterIsRefused(t *testing.T) {
+	harness := newProgressHarness(t)
+	harness.database.Where("1 = 1").Delete(&progressmodels.FighterTemplate{})
+
+	status, body := harness.startFight(`{"level":"1-1"}`, "player-token")
+	if status != http.StatusServiceUnavailable || len(harness.sessionStatuses("1-1")) != 0 {
+		t.Fatalf("got %d %v with sessions %v, want 503 and nothing saved", status, body, harness.sessionStatuses("1-1"))
 	}
 }

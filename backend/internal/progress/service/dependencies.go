@@ -10,6 +10,7 @@ import (
 type LevelCatalog interface {
 	PlayableLevel(ctx context.Context, levelID string) (storyservice.LevelPlacement, error)
 	Placements(ctx context.Context) (map[string]storyservice.LevelPlacement, error)
+	FightContent(ctx context.Context, levelID string) (storyservice.FightContent, error)
 }
 
 type TransactionRunner interface {

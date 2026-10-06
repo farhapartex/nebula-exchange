@@ -49,6 +49,22 @@ type LevelContent struct {
 	IsPublished          bool                  `json:"is_published"`
 }
 
+type EnemyContent struct {
+	ID    string                `json:"id"`
+	Name  string                `json:"name"`
+	Title string                `json:"title"`
+	Stats database.JSONDocument `json:"stats"`
+	Brain database.JSONDocument `json:"brain"`
+	Look  database.JSONDocument `json:"look"`
+}
+
+type WaveContent struct {
+	Wave      int                   `json:"wave"`
+	Enemy     EnemyContent          `json:"enemy"`
+	Modifiers database.JSONDocument `json:"modifiers"`
+	IntroLine *string               `json:"intro_line"`
+}
+
 type SlideContent struct {
 	Kind        models.SlideKind      `json:"kind"`
 	Eyebrow     *string               `json:"eyebrow"`
@@ -64,6 +80,7 @@ type LevelPackage struct {
 	Chapter   ChapterContent `json:"chapter"`
 	Arena     ArenaContent   `json:"arena"`
 	Level     LevelContent   `json:"level"`
+	Enemies   []WaveContent  `json:"enemies"`
 	Slides    []SlideContent `json:"slides"`
 }
 
@@ -91,6 +108,11 @@ func (levelPackage LevelPackage) ImageObjectKey(imageFileName string) string {
 func (levelPackage LevelPackage) validate() error {
 	if levelPackage.Chapter.ID == "" || levelPackage.Arena.ID == "" || levelPackage.Level.ID == "" {
 		return errors.New("chapter, arena and level all need an id")
+	}
+	for waveIndex, wave := range levelPackage.Enemies {
+		if wave.Wave != waveIndex+1 || wave.Enemy.ID == "" {
+			return fmt.Errorf("enemy wave %d: waves must be numbered 1, 2, 3 in order and name an enemy id", waveIndex+1)
+		}
 	}
 	if len(levelPackage.Slides) < 2 {
 		return errors.New("a level story needs at least one slide and a call to action")

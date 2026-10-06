@@ -38,6 +38,7 @@ type FightSessionDependencies struct {
 	Levels        LevelCatalog
 	LevelProgress repository.LevelProgressRepository
 	FightSessions repository.FightSessionRepository
+	Fighters      repository.FighterRepository
 	Transactions  TransactionRunner
 	Logger        *slog.Logger
 	Now           Clock
@@ -71,6 +72,9 @@ func (fights *fightSessionService) Start(ctx context.Context, userID uuid.UUID, 
 		return StartedFight{}, err
 	}
 	err = fights.dependencies.Transactions.WithinTransaction(ctx, func(ctx context.Context) error {
+		if err := (fighterResolver{fighters: fights.dependencies.Fighters}).ensureProfile(ctx, userID, newFight.StartedAt); err != nil {
+			return err
+		}
 		abandonedCount, err := fights.dependencies.FightSessions.AbandonOpen(ctx, userID, levelID, newFight.StartedAt)
 		if err != nil {
 			return err

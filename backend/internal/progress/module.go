@@ -21,23 +21,28 @@ type ModuleDependencies struct {
 }
 
 type Module struct {
-	StoryProgress service.StoryProgressService
-	registrars    []httpserver.RouteRegistrar
+	PlayerProgress service.PlayerProgressService
+	registrars     []httpserver.RouteRegistrar
 }
 
 func NewModule(dependencies ModuleDependencies) *Module {
 	levelProgress := repository.NewLevelProgressRepository(dependencies.Database)
+	fighters := repository.NewFighterRepository(dependencies.Database)
 	fightSessionService := service.NewFightSessionService(service.FightSessionDependencies{
 		Levels:        dependencies.Levels,
 		LevelProgress: levelProgress,
 		FightSessions: repository.NewFightSessionRepository(dependencies.Database),
+		Fighters:      fighters,
 		Transactions:  database.NewTransactionRunner(dependencies.Database),
 		Logger:        dependencies.Logger,
 		Now:           service.Clock(dependencies.Now),
 	})
 	return &Module{
-		StoryProgress: service.NewStoryProgressService(dependencies.Levels, levelProgress),
-		registrars:    []httpserver.RouteRegistrar{handler.NewFightSessionHandler(fightSessionService)},
+		PlayerProgress: service.NewPlayerProgressService(dependencies.Levels, levelProgress, fighters),
+		registrars: []httpserver.RouteRegistrar{
+			handler.NewFightSessionHandler(fightSessionService),
+			handler.NewFightSetupHandler(service.NewFightSetupService(dependencies.Levels, fighters)),
+		},
 	}
 }
 

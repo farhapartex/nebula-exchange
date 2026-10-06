@@ -147,6 +147,11 @@ func TestSeedUploadsEveryImageAndTheStoryListsInOrder(t *testing.T) {
 	storage := newRecordingStorage()
 	seedLevelOne(t, testDatabase, storage)
 
+	var waves []models.LevelEnemy
+	testDatabase.Preload("Enemy").Where(map[string]any{"level_id": "1-1"}).Find(&waves)
+	if len(waves) != 1 || waves[0].Wave != 1 || waves[0].Enemy.Name != "Torch bandit" {
+		t.Fatalf("expected the torch bandit as wave 1, got %+v", waves)
+	}
 	if !storage.hasEnsuredBucket || len(storage.uploadedBytes) != 6 {
 		t.Fatalf("expected the bucket check and 6 uploads, got %v", storage.uploadedBytes)
 	}

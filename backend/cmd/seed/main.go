@@ -7,13 +7,23 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"sort"
 	"syscall"
+
+	"gorm.io/gorm"
 
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/config"
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/database"
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/logger"
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/objectstorage"
-	"github.com/farhapartex/nebula-exchange/backend/internal/story/seeding"
+	progressseeding "github.com/farhapartex/nebula-exchange/backend/internal/progress/seeding"
+	storyseeding "github.com/farhapartex/nebula-exchange/backend/internal/story/seeding"
+)
+
+const (
+	fightersDirectoryName = "fighters"
+	storyDirectoryName    = "story"
 )
 
 func main() {
@@ -24,10 +34,12 @@ func main() {
 	}
 }
 
-func run(levelPackageDirectories []string, appLogger *slog.Logger) error {
-	if len(levelPackageDirectories) == 0 {
-		return errors.New("usage: seed <level package directory>...")
+func run(arguments []string, appLogger *slog.Logger) error {
+	if len(arguments) != 1 {
+		return errors.New("usage: seed <seeds directory>")
 	}
+	seedsDirectory := arguments[0]
+
 	databaseConfig, err := config.LoadDatabaseConfig()
 	if err != nil {
 		return err
@@ -51,9 +63,39 @@ func run(levelPackageDirectories []string, appLogger *slog.Logger) error {
 		return err
 	}
 
-	seeder := seeding.NewSeeder(gormDatabase, assetStorage, appLogger)
-	for _, levelPackageDirectory := range levelPackageDirectories {
-		levelPackage, err := seeding.LoadLevelPackage(levelPackageDirectory)
+	if err := seedFighterTemplates(ctx, gormDatabase, filepath.Join(seedsDirectory, fightersDirectoryName), appLogger); err != nil {
+		return err
+	}
+	return seedStoryLevels(ctx, storyseeding.NewSeeder(gormDatabase, assetStorage, appLogger), filepath.Join(seedsDirectory, storyDirectoryName))
+}
+
+func seedFighterTemplates(ctx context.Context, gormDatabase *gorm.DB, fightersDirectory string, appLogger *slog.Logger) error {
+	templateFiles, err := filepath.Glob(filepath.Join(fightersDirectory, "*.json"))
+	if err != nil {
+		return err
+	}
+	sort.Strings(templateFiles)
+	for _, templateFile := range templateFiles {
+		template, err := progressseeding.LoadFighterTemplate(templateFile)
+		if err != nil {
+			return fmt.Errorf("load %s: %w", templateFile, err)
+		}
+		if err := progressseeding.SeedFighterTemplate(ctx, gormDatabase, template, appLogger); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func seedStoryLevels(ctx context.Context, seeder *storyseeding.Seeder, storyDirectory string) error {
+	levelFiles, err := filepath.Glob(filepath.Join(storyDirectory, "*", "level.json"))
+	if err != nil {
+		return err
+	}
+	sort.Strings(levelFiles)
+	for _, levelFile := range levelFiles {
+		levelPackageDirectory := filepath.Dir(levelFile)
+		levelPackage, err := storyseeding.LoadLevelPackage(levelPackageDirectory)
 		if err != nil {
 			return fmt.Errorf("load %s: %w", levelPackageDirectory, err)
 		}
