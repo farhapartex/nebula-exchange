@@ -37,6 +37,8 @@ export type CurrentPlayer = {
   total_lose: number;
   current_level_win: number;
   current_level_lose: number;
+  paid_chapters: number;
+  unpaid_chapters: number;
 };
 
 export type LoginRequest = {

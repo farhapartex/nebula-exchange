@@ -1,12 +1,11 @@
 import type { ReactNode } from "react";
 
-import type { PurchaseChoice } from "@/features/chapter-purchase/chapter-purchase-pricing";
 import { cn } from "@/utils/class-names";
 
 type PurchaseChoiceCardProps = {
-  choice: PurchaseChoice;
-  selectedChoice: PurchaseChoice;
-  onSelect: (choice: PurchaseChoice) => void;
+  planID: string;
+  isSelected: boolean;
+  onSelect: (planID: string) => void;
   title: string;
   detail: string;
   price?: string;
@@ -15,8 +14,8 @@ type PurchaseChoiceCardProps = {
 };
 
 export function PurchaseChoiceCard({
-  choice,
-  selectedChoice,
+  planID,
+  isSelected,
   onSelect,
   title,
   detail,
@@ -24,7 +23,6 @@ export function PurchaseChoiceCard({
   discountPercent,
   children,
 }: PurchaseChoiceCardProps) {
-  const isSelected = choice === selectedChoice;
   return (
     <label
       className={cn(
@@ -35,10 +33,10 @@ export function PurchaseChoiceCard({
       <div className="flex items-start gap-3">
         <input
           type="radio"
-          name="chapter-purchase-choice"
-          value={choice}
+          name="chapter-purchase-plan"
+          value={planID}
           checked={isSelected}
-          onChange={() => onSelect(choice)}
+          onChange={() => onSelect(planID)}
           className="mt-1 size-4 accent-accent"
         />
         <div className="flex-1">
