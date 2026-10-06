@@ -5,8 +5,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/farhapartex/nebula-exchange/backend/internal/billing/models"
-	"github.com/farhapartex/nebula-exchange/backend/internal/billing/service"
+	"github.com/farhapartex/nebula-exchange/backend/internal/payment/models"
+	"github.com/farhapartex/nebula-exchange/backend/internal/payment/service"
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/httpserver/authentication"
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/httpserver/request"
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/httpserver/response"

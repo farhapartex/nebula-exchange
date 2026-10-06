@@ -5,8 +5,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/farhapartex/nebula-exchange/backend/internal/billing/models"
-	"github.com/farhapartex/nebula-exchange/backend/internal/billing/repository"
+	"github.com/farhapartex/nebula-exchange/backend/internal/payment/models"
+	"github.com/farhapartex/nebula-exchange/backend/internal/payment/repository"
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/pagination"
 )
 
@@ -44,17 +44,16 @@ type StoreService interface {
 }
 
 type storeService struct {
-	chapters  ChapterCatalog
-	ownership ChapterOwnership
-	plans     repository.PlanRepository
+	quoter chapterQuoter
+	plans  repository.PlanRepository
 }
 
 func NewStoreService(chapters ChapterCatalog, ownership ChapterOwnership, plans repository.PlanRepository) StoreService {
-	return &storeService{chapters: chapters, ownership: ownership, plans: plans}
+	return &storeService{quoter: chapterQuoter{chapters: chapters, ownership: ownership}, plans: plans}
 }
 
 func (store *storeService) ListChapters(ctx context.Context, userID uuid.UUID, after ChapterCursor, pageRequest pagination.Request) (pagination.Page[ChapterListing], error) {
-	chapterListings, err := store.chapterListings(ctx, userID)
+	chapterListings, err := store.quoter.chapterListings(ctx, userID)
 	if err != nil {
 		return pagination.Page[ChapterListing]{}, err
 	}
@@ -74,7 +73,7 @@ func (store *storeService) ListPlans(ctx context.Context, userID uuid.UUID, afte
 	if err != nil {
 		return pagination.Page[PlanOffer]{}, err
 	}
-	chapterListings, err := store.chapterListings(ctx, userID)
+	chapterListings, err := store.quoter.chapterListings(ctx, userID)
 	if err != nil {
 		return pagination.Page[PlanOffer]{}, err
 	}
@@ -102,12 +101,25 @@ func (store *storeService) ListPlans(ctx context.Context, userID uuid.UUID, afte
 	})
 }
 
-func (store *storeService) chapterListings(ctx context.Context, userID uuid.UUID) ([]ChapterListing, error) {
-	chaptersOnSale, err := store.chapters.ChaptersOnSale(ctx)
+type chapterQuoter struct {
+	chapters  ChapterCatalog
+	ownership ChapterOwnership
+}
+
+func (quoter chapterQuoter) chaptersToBuy(ctx context.Context, userID uuid.UUID) ([]PricedChapter, error) {
+	chapterListings, err := quoter.chapterListings(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	ownedChapterIDs, err := store.ownership.OwnedChapterIDs(ctx, userID)
+	return chaptersStillToBuy(chapterListings), nil
+}
+
+func (quoter chapterQuoter) chapterListings(ctx context.Context, userID uuid.UUID) ([]ChapterListing, error) {
+	chaptersOnSale, err := quoter.chapters.ChaptersOnSale(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ownedChapterIDs, err := quoter.ownership.OwnedChapterIDs(ctx, userID)
 	if err != nil {
 		return nil, err
 	}

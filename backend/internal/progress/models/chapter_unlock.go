@@ -17,6 +17,7 @@ type ChapterUnlock struct {
 	UserID     uuid.UUID           `gorm:"type:uuid;primaryKey"`
 	ChapterID  string              `gorm:"primaryKey"`
 	Source     ChapterUnlockSource `gorm:"type:chapter_unlock_source;not null"`
+	PaymentID  *uuid.UUID          `gorm:"type:uuid"`
 	UnlockedAt time.Time           `gorm:"not null"`
 	CreatedAt  time.Time
 }

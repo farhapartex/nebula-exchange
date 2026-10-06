@@ -13,7 +13,7 @@ import (
 
 	"gorm.io/gorm"
 
-	billingseeding "github.com/farhapartex/nebula-exchange/backend/internal/billing/seeding"
+	paymentseeding "github.com/farhapartex/nebula-exchange/backend/internal/payment/seeding"
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/config"
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/database"
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/logger"
@@ -65,11 +65,11 @@ func run(arguments []string, appLogger *slog.Logger) error {
 		return err
 	}
 
-	plans, err := billingseeding.LoadPlans(filepath.Join(seedsDirectory, plansFileName))
+	plans, err := paymentseeding.LoadPlans(filepath.Join(seedsDirectory, plansFileName))
 	if err != nil {
 		return err
 	}
-	if err := billingseeding.SeedPlans(ctx, gormDatabase, plans, appLogger); err != nil {
+	if err := paymentseeding.SeedPlans(ctx, gormDatabase, plans, appLogger); err != nil {
 		return err
 	}
 	if err := seedFighterTemplates(ctx, gormDatabase, filepath.Join(seedsDirectory, fightersDirectoryName), appLogger); err != nil {

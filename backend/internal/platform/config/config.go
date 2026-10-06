@@ -43,6 +43,15 @@ type StorageConfig struct {
 	PresignLifetime time.Duration
 }
 
+type StripeConfig struct {
+	SecretKey     string
+	WebhookSecret string
+}
+
+func (stripeConfig StripeConfig) IsConfigured() bool {
+	return stripeConfig.SecretKey != "" && stripeConfig.WebhookSecret != ""
+}
+
 type SessionConfig struct {
 	JWTSecret      string
 	IsCookieSecure bool
@@ -61,6 +70,7 @@ type Config struct {
 	Email           EmailConfig
 	Session         SessionConfig
 	Storage         StorageConfig
+	Stripe          StripeConfig
 }
 
 func Load() (Config, error) {
@@ -122,6 +132,10 @@ func Load() (Config, error) {
 		Email:           emailConfig,
 		Session:         sessionConfig,
 		Storage:         storageConfig,
+		Stripe: StripeConfig{
+			SecretKey:     readString("STRIPE_SECRET_KEY", ""),
+			WebhookSecret: readString("STRIPE_WEBHOOK_SECRET", ""),
+		},
 	}, nil
 }
 

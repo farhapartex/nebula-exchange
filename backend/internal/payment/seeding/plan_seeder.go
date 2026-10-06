@@ -10,8 +10,8 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	"github.com/farhapartex/nebula-exchange/backend/internal/billing/models"
-	"github.com/farhapartex/nebula-exchange/backend/internal/billing/service"
+	"github.com/farhapartex/nebula-exchange/backend/internal/payment/models"
+	"github.com/farhapartex/nebula-exchange/backend/internal/payment/service"
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/database"
 )
 

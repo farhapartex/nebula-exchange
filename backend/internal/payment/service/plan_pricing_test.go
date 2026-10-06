@@ -3,7 +3,7 @@ package service
 import (
 	"testing"
 
-	"github.com/farhapartex/nebula-exchange/backend/internal/billing/models"
+	"github.com/farhapartex/nebula-exchange/backend/internal/payment/models"
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/database"
 )
 
