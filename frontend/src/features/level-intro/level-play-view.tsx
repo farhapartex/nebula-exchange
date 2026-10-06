@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Spinner } from "@/components/ui/spinner";
+import { currentPlayerQueryKey } from "@/features/auth/session/use-current-player";
 import { fetchFightSetup, fightSetupQueryKey } from "@/features/fight/api/fight-setup-api";
+import { startFightSession } from "@/features/fight/api/fight-session-api";
 import { FightArena } from "@/features/fight/fight-arena";
 import { fetchLevelStory, levelStoryQueryKey } from "@/features/level-intro/api/level-story-api";
 import { FightArenaPlaceholder } from "@/features/level-intro/fight-arena-placeholder";
@@ -35,6 +37,14 @@ export function LevelPlayView({ levelID }: { levelID: string }) {
     queryFn: () => fetchFightSetup(levelID),
     retry: false,
   });
+  const queryClient = useQueryClient();
+  const startFightMutation = useMutation({
+    mutationFn: () => startFightSession(levelID),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: currentPlayerQueryKey });
+      setPlayPhase("fighting");
+    },
+  });
   const levelStory = storyQuery.data ? arrangeLevelStory(storyQuery.data) : null;
   const hasNoStory =
     (isApiError(storyQuery.error) && storyQuery.error.statusCode === 404) || (storyQuery.isSuccess && !levelStory);
@@ -51,5 +61,19 @@ export function LevelPlayView({ levelID }: { levelID: string }) {
   if (!levelStory) {
     return <FullScreenSpinner />;
   }
-  return <StorySlideshow levelStory={levelStory} onPlay={() => setPlayPhase("fighting")} />;
+  return (
+    <StorySlideshow
+      levelStory={levelStory}
+      onPlay={() => startFightMutation.mutate()}
+      isStartingFight={startFightMutation.isPending}
+      startFightError={startFightErrorMessage(startFightMutation.error)}
+    />
+  );
+}
+
+function startFightErrorMessage(error: unknown): string | null {
+  if (!error) {
+    return null;
+  }
+  return isApiError(error) ? error.message : "Could not start the fight. Try again.";
 }

@@ -16,9 +16,11 @@ import { cn } from "@/utils/class-names";
 type StorySlideshowProps = {
   levelStory: LevelStory;
   onPlay: () => void;
+  isStartingFight: boolean;
+  startFightError: string | null;
 };
 
-export function StorySlideshow({ levelStory, onPlay }: StorySlideshowProps) {
+export function StorySlideshow({ levelStory, onPlay, isStartingFight, startFightError }: StorySlideshowProps) {
   const slideCount = levelStory.slides.length + 1;
   const [slideIndex, setSlideIndex] = useState(0);
   const isShowingCallToAction = isFinalSlide(slideIndex, slideCount);
@@ -121,12 +123,21 @@ export function StorySlideshow({ levelStory, onPlay }: StorySlideshowProps) {
               <Button
                 size="lg"
                 onClick={onPlay}
+                isLoading={isStartingFight}
                 className="mt-8 h-16 px-14 font-display text-3xl tracking-[0.12em]"
                 style={{ backgroundColor: palette.accent, boxShadow: `0 0 48px -6px ${palette.accent}` }}
               >
-                <Play className="size-6 fill-current" aria-hidden="true" />
+                {!isStartingFight && <Play className="size-6 fill-current" aria-hidden="true" />}
                 {callToAction.button_label}
               </Button>
+              {startFightError && (
+                <p
+                  role="alert"
+                  className="mt-4 rounded-lg border border-down/40 bg-background/80 px-4 py-2 text-sm text-foreground"
+                >
+                  {startFightError}
+                </p>
+              )}
             </div>
           )}
         </PageContainer>
