@@ -12,6 +12,7 @@ import (
 
 type LevelRepository interface {
 	FindPublished(ctx context.Context, levelID string) (models.Level, bool, error)
+	ListPublishedStoryLevels(ctx context.Context) ([]models.Level, error)
 }
 
 type GormLevelRepository struct {
@@ -35,4 +36,16 @@ func (repository *GormLevelRepository) FindPublished(ctx context.Context, levelI
 		return models.Level{}, false, err
 	}
 	return level, true, nil
+}
+
+func (repository *GormLevelRepository) ListPublishedStoryLevels(ctx context.Context) ([]models.Level, error) {
+	var levels []models.Level
+	err := database.Session(ctx, repository.database).
+		Joins("Chapter").
+		Where(map[string]any{"levels.is_published": true, "Chapter.is_published": true}).
+		Where("levels.kind <> ?", models.LevelKindTraining).
+		Order("\"Chapter\".number").
+		Order("levels.number").
+		Find(&levels).Error
+	return levels, err
 }

@@ -15,16 +15,17 @@ type ModuleDependencies struct {
 }
 
 type Module struct {
-	registrars []httpserver.RouteRegistrar
+	LevelCatalog service.LevelCatalog
+	registrars   []httpserver.RouteRegistrar
 }
 
 func NewModule(dependencies ModuleDependencies) *Module {
-	storyService := service.NewStoryService(
-		repository.NewLevelRepository(dependencies.Database),
-		repository.NewStorySlideRepository(dependencies.Database),
-		dependencies.ImageSigner,
-	)
-	return &Module{registrars: []httpserver.RouteRegistrar{handler.NewStoryHandler(storyService)}}
+	levels := repository.NewLevelRepository(dependencies.Database)
+	storyService := service.NewStoryService(levels, repository.NewStorySlideRepository(dependencies.Database), dependencies.ImageSigner)
+	return &Module{
+		LevelCatalog: service.NewLevelCatalog(levels),
+		registrars:   []httpserver.RouteRegistrar{handler.NewStoryHandler(storyService)},
+	}
 }
 
 func (module *Module) RouteRegistrars() []httpserver.RouteRegistrar {

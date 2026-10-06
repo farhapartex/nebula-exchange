@@ -10,6 +10,7 @@ const (
 	CodeMethodNotAllowed    Code = "METHOD_NOT_ALLOWED"
 	CodeConflict            Code = "CONFLICT"
 	CodeAccountNotActivated Code = "ACCOUNT_NOT_ACTIVATED"
+	CodeLevelLocked         Code = "LEVEL_LOCKED"
 	CodeInternalError       Code = "INTERNAL_ERROR"
 	CodeServiceUnavailable  Code = "SERVICE_UNAVAILABLE"
 )

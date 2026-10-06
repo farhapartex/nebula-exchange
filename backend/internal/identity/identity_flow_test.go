@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"github.com/farhapartex/nebula-exchange/backend/internal/identity"
@@ -33,6 +34,12 @@ const (
 	playerUsername = "the_boy"
 	playerPassword = "streets-are-cold"
 )
+
+type noStoryProgress struct{}
+
+func (noStoryProgress) FurthestStartedLevel(context.Context, uuid.UUID) (*string, error) {
+	return nil, nil
+}
 
 var activationTokenPattern = regexp.MustCompile(`token=([A-Za-z0-9_-]{43})`)
 
@@ -54,6 +61,7 @@ func newIdentityHarness(t *testing.T) *identityHarness {
 		EmailEnqueuer:   outbox.NewEnqueuer(outbox.NewGormRepository(testDatabase), time.Now),
 		Session:         config.SessionConfig{JWTSecret: strings.Repeat("s", 40)},
 		FrontendBaseURL: "http://localhost:3000",
+		StoryProgress:   noStoryProgress{},
 		Logger:          quietLogger,
 		Now:             time.Now,
 	})
@@ -200,7 +208,7 @@ func TestPlayerSignsUpActivatesLogsInAndReadsProfile(t *testing.T) {
 	harness.requireStatus(harness.send(http.MethodGet, "/me", nil, ""), http.StatusUnauthorized)
 	profileResponse := harness.send(http.MethodGet, "/me", nil, accessToken)
 	harness.requireStatus(profileResponse, http.StatusOK)
-	expectedProfile := map[string]any{"name": playerUsername, "email": playerEmail, "current_level": float64(0), "total_win": float64(0), "total_lose": float64(0)}
+	expectedProfile := map[string]any{"name": playerUsername, "email": playerEmail, "current_level": float64(0), "story_level": nil, "total_win": float64(0), "total_lose": float64(0)}
 	if !maps.Equal(profileResponse.data(), expectedProfile) {
 		t.Fatalf("got profile %v, want exactly %v", profileResponse.data(), expectedProfile)
 	}

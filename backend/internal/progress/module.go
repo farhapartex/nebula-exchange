@@ -1,0 +1,46 @@
+package progress
+
+import (
+	"log/slog"
+	"time"
+
+	"gorm.io/gorm"
+
+	"github.com/farhapartex/nebula-exchange/backend/internal/platform/database"
+	"github.com/farhapartex/nebula-exchange/backend/internal/platform/httpserver"
+	"github.com/farhapartex/nebula-exchange/backend/internal/progress/handler"
+	"github.com/farhapartex/nebula-exchange/backend/internal/progress/repository"
+	"github.com/farhapartex/nebula-exchange/backend/internal/progress/service"
+)
+
+type ModuleDependencies struct {
+	Database *gorm.DB
+	Levels   service.LevelCatalog
+	Logger   *slog.Logger
+	Now      func() time.Time
+}
+
+type Module struct {
+	StoryProgress service.StoryProgressService
+	registrars    []httpserver.RouteRegistrar
+}
+
+func NewModule(dependencies ModuleDependencies) *Module {
+	levelProgress := repository.NewLevelProgressRepository(dependencies.Database)
+	fightSessionService := service.NewFightSessionService(service.FightSessionDependencies{
+		Levels:        dependencies.Levels,
+		LevelProgress: levelProgress,
+		FightSessions: repository.NewFightSessionRepository(dependencies.Database),
+		Transactions:  database.NewTransactionRunner(dependencies.Database),
+		Logger:        dependencies.Logger,
+		Now:           service.Clock(dependencies.Now),
+	})
+	return &Module{
+		StoryProgress: service.NewStoryProgressService(dependencies.Levels, levelProgress),
+		registrars:    []httpserver.RouteRegistrar{handler.NewFightSessionHandler(fightSessionService)},
+	}
+}
+
+func (module *Module) RouteRegistrars() []httpserver.RouteRegistrar {
+	return module.registrars
+}

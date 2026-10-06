@@ -11,11 +11,12 @@ import (
 )
 
 type CurrentPlayerResponse struct {
-	Name         string `json:"name"`
-	Email        string `json:"email"`
-	CurrentLevel int    `json:"current_level"`
-	TotalWin     int    `json:"total_win"`
-	TotalLose    int    `json:"total_lose"`
+	Name         string  `json:"name"`
+	Email        string  `json:"email"`
+	CurrentLevel int     `json:"current_level"`
+	StoryLevel   *string `json:"story_level"`
+	TotalWin     int     `json:"total_win"`
+	TotalLose    int     `json:"total_lose"`
 }
 
 type ProfileHandler struct {
@@ -41,6 +42,7 @@ func (handler *ProfileHandler) getMe(context *gin.Context) {
 		Name:         currentPlayer.Name,
 		Email:        currentPlayer.Email,
 		CurrentLevel: currentPlayer.CurrentLevel,
+		StoryLevel:   currentPlayer.StoryLevel,
 		TotalWin:     currentPlayer.TotalWins,
 		TotalLose:    currentPlayer.TotalLosses,
 	})

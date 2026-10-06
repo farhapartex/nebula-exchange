@@ -22,6 +22,7 @@ type ModuleDependencies struct {
 	EmailEnqueuer   service.EmailEnqueuer
 	Session         config.SessionConfig
 	FrontendBaseURL string
+	StoryProgress   service.StoryProgressReader
 	Logger          *slog.Logger
 	Now             func() time.Time
 }
@@ -83,7 +84,7 @@ func NewModule(ctx context.Context, dependencies ModuleDependencies) (*Module, e
 			handler.NewSignupHandler(signupService),
 			handler.NewActivationHandler(activationService),
 			handler.NewSessionHandler(sessionService, refreshCookie),
-			handler.NewProfileHandler(service.NewProfileService(users)),
+			handler.NewProfileHandler(service.NewProfileService(users, dependencies.StoryProgress)),
 		},
 	}, nil
 }

@@ -13,8 +13,13 @@ type PlayerSummary struct {
 	Name         string
 	Email        string
 	CurrentLevel int
+	StoryLevel   *string
 	TotalWins    int
 	TotalLosses  int
+}
+
+type StoryProgressReader interface {
+	FurthestStartedLevel(ctx context.Context, userID uuid.UUID) (*string, error)
 }
 
 type ProfileService interface {
@@ -22,11 +27,12 @@ type ProfileService interface {
 }
 
 type profileService struct {
-	users repository.UserRepository
+	users         repository.UserRepository
+	storyProgress StoryProgressReader
 }
 
-func NewProfileService(users repository.UserRepository) ProfileService {
-	return &profileService{users: users}
+func NewProfileService(users repository.UserRepository, storyProgress StoryProgressReader) ProfileService {
+	return &profileService{users: users, storyProgress: storyProgress}
 }
 
 func (profile *profileService) CurrentPlayer(ctx context.Context, userID uuid.UUID) (PlayerSummary, error) {
@@ -37,5 +43,9 @@ func (profile *profileService) CurrentPlayer(ctx context.Context, userID uuid.UU
 	if !isFound || currentUser.Status == models.UserStatusBanned {
 		return PlayerSummary{}, ErrNotLoggedIn
 	}
-	return PlayerSummary{Name: currentUser.Username, Email: currentUser.Email}, nil
+	storyLevel, err := profile.storyProgress.FurthestStartedLevel(ctx, userID)
+	if err != nil {
+		return PlayerSummary{}, err
+	}
+	return PlayerSummary{Name: currentUser.Username, Email: currentUser.Email, StoryLevel: storyLevel}, nil
 }

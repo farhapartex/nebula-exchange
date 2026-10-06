@@ -17,6 +17,7 @@ import (
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/httpserver"
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/idempotency"
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/objectstorage"
+	"github.com/farhapartex/nebula-exchange/backend/internal/progress"
 	"github.com/farhapartex/nebula-exchange/backend/internal/story"
 )
 
@@ -35,11 +36,24 @@ func buildApplication(ctx context.Context, appConfig config.Config, appLogger *s
 		From:     email.Address{Name: appConfig.Email.FromName, Email: appConfig.Email.FromAddress},
 	})
 
+	assetStorage, err := objectstorage.NewMinioStorage(appConfig.Storage)
+	if err != nil {
+		return nil, err
+	}
+	storyModule := story.NewModule(story.ModuleDependencies{Database: gormDatabase, ImageSigner: assetStorage})
+	progressModule := progress.NewModule(progress.ModuleDependencies{
+		Database: gormDatabase,
+		Levels:   storyModule.LevelCatalog,
+		Logger:   appLogger,
+		Now:      time.Now,
+	})
+
 	identityModule, err := identity.NewModule(ctx, identity.ModuleDependencies{
 		Database:        gormDatabase,
 		EmailEnqueuer:   outbox.NewEnqueuer(emailOutbox, time.Now),
 		Session:         appConfig.Session,
 		FrontendBaseURL: appConfig.FrontendBaseURL,
+		StoryProgress:   progressModule.StoryProgress,
 		Logger:          appLogger,
 		Now:             time.Now,
 	})
@@ -47,15 +61,10 @@ func buildApplication(ctx context.Context, appConfig config.Config, appLogger *s
 		return nil, err
 	}
 
-	assetStorage, err := objectstorage.NewMinioStorage(appConfig.Storage)
-	if err != nil {
-		return nil, err
-	}
-	storyModule := story.NewModule(story.ModuleDependencies{Database: gormDatabase, ImageSigner: assetStorage})
-
 	routeRegistrars := []httpserver.RouteRegistrar{health.NewHandler(buildHealthService(appLogger, gormDatabase, redisClient))}
 	routeRegistrars = append(routeRegistrars, identityModule.RouteRegistrars()...)
 	routeRegistrars = append(routeRegistrars, storyModule.RouteRegistrars()...)
+	routeRegistrars = append(routeRegistrars, progressModule.RouteRegistrars()...)
 
 	router, err := httpserver.NewRouter(
 		httpserver.RouterOptions{
