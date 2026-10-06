@@ -48,12 +48,14 @@ func NewModule(dependencies ModuleDependencies) *Module {
 		Logger:        dependencies.Logger,
 		Now:           service.Clock(dependencies.Now),
 	})
+	playerProgressService := service.NewPlayerProgressService(dependencies.Levels, levelProgress, fightSessions, fighters)
 	return &Module{
-		PlayerProgress: service.NewPlayerProgressService(dependencies.Levels, levelProgress, fighters),
+		PlayerProgress: playerProgressService,
 		registrars: []httpserver.RouteRegistrar{
 			handler.NewFightSessionHandler(fightSessionService),
 			handler.NewFightSetupHandler(service.NewFightSetupService(dependencies.Levels, fighters)),
 			handler.NewFightResultHandler(fightResultService),
+			handler.NewNextLevelHandler(playerProgressService),
 		},
 	}
 }

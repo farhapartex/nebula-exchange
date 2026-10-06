@@ -31,6 +31,7 @@ type FightSessionRepository interface {
 	FindForUser(ctx context.Context, fightSessionID, userID uuid.UUID) (models.FightSession, bool, error)
 	Finish(ctx context.Context, fightSessionID uuid.UUID, finishedFight FinishedFight) (bool, error)
 	Reject(ctx context.Context, fightSessionID uuid.UUID, reason string, rejectedAt time.Time) (bool, error)
+	CountOutcomes(ctx context.Context, userID uuid.UUID, levelIDs []string) (int, int, error)
 }
 
 type GormFightSessionRepository struct {
@@ -97,4 +98,33 @@ func (repository *GormFightSessionRepository) Reject(ctx context.Context, fightS
 		Where(map[string]any{"id": fightSessionID, "status": models.FightStatusStarted}).
 		Updates(map[string]any{"status": models.FightStatusRejected, "rejection_reason": reason, "finished_at": rejectedAt, "updated_at": rejectedAt})
 	return result.RowsAffected == 1, result.Error
+}
+
+func (repository *GormFightSessionRepository) CountOutcomes(ctx context.Context, userID uuid.UUID, levelIDs []string) (int, int, error) {
+	if len(levelIDs) == 0 {
+		return 0, 0, nil
+	}
+	var outcomeCounts []struct {
+		Outcome models.FightOutcome
+		Total   int
+	}
+	err := database.Session(ctx, repository.database).
+		Model(&models.FightSession{}).
+		Select("outcome, count(*) AS total").
+		Where(map[string]any{"user_id": userID, "status": models.FightStatusFinished, "level_id": levelIDs}).
+		Group("outcome").
+		Scan(&outcomeCounts).Error
+	if err != nil {
+		return 0, 0, err
+	}
+	wins, losses := 0, 0
+	for _, outcomeCount := range outcomeCounts {
+		switch outcomeCount.Outcome {
+		case models.FightOutcomeWon:
+			wins = outcomeCount.Total
+		case models.FightOutcomeLost:
+			losses = outcomeCount.Total
+		}
+	}
+	return wins, losses, nil
 }

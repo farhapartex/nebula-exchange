@@ -2,18 +2,41 @@ package service
 
 import (
 	"context"
-	"errors"
 
 	"github.com/google/uuid"
 
+	"github.com/farhapartex/nebula-exchange/backend/internal/progress/models"
 	"github.com/farhapartex/nebula-exchange/backend/internal/progress/repository"
+	storyservice "github.com/farhapartex/nebula-exchange/backend/internal/story/service"
 )
 
+type NextLevelStatus string
+
+const (
+	NextLevelAvailable  NextLevelStatus = "AVAILABLE"
+	NextLevelLocked     NextLevelStatus = "LOCKED"
+	NextLevelComingSoon NextLevelStatus = "COMING_SOON"
+)
+
+const firstChapterNumber = 1
+
+type NextLevel struct {
+	Status        NextLevelStatus
+	ChapterNumber int
+	ChapterTitle  *string
+	Level         *storyservice.LevelPlacement
+	BestStars     *int
+	Attempts      int
+}
+
 type PlayerProgress struct {
-	FighterLevel int
-	StoryLevel   *string
-	Wins         int
-	Losses       int
+	CurrentLevel       int
+	StoryLevel         int
+	TotalWins          int
+	TotalLosses        int
+	CurrentLevelWins   int
+	CurrentLevelLosses int
+	NextLevel          NextLevel
 }
 
 type PlayerProgressService interface {
@@ -23,46 +46,104 @@ type PlayerProgressService interface {
 type playerProgressService struct {
 	levels        LevelCatalog
 	levelProgress repository.LevelProgressRepository
-	fighters      fighterResolver
+	fightSessions repository.FightSessionRepository
+	fighters      repository.FighterRepository
 }
 
-func NewPlayerProgressService(levels LevelCatalog, levelProgress repository.LevelProgressRepository, fighters repository.FighterRepository) PlayerProgressService {
-	return &playerProgressService{levels: levels, levelProgress: levelProgress, fighters: fighterResolver{fighters: fighters}}
+func NewPlayerProgressService(levels LevelCatalog, levelProgress repository.LevelProgressRepository, fightSessions repository.FightSessionRepository, fighters repository.FighterRepository) PlayerProgressService {
+	return &playerProgressService{levels: levels, levelProgress: levelProgress, fightSessions: fightSessions, fighters: fighters}
 }
 
 func (progress *playerProgressService) PlayerProgress(ctx context.Context, userID uuid.UUID) (PlayerProgress, error) {
-	storyLevel, err := progress.furthestStartedLevel(ctx, userID)
+	orderedPlacements, err := progress.levels.OrderedPlacements(ctx)
 	if err != nil {
 		return PlayerProgress{}, err
 	}
-	fighter, err := progress.fighters.currentFighter(ctx, userID)
-	if errors.Is(err, ErrGameDataMissing) {
-		return PlayerProgress{StoryLevel: storyLevel}, nil
-	}
+	progressByLevel, err := progress.progressByLevel(ctx, userID)
 	if err != nil {
 		return PlayerProgress{}, err
 	}
-	return PlayerProgress{FighterLevel: fighter.Level, StoryLevel: storyLevel, Wins: fighter.Wins, Losses: fighter.Loss}, nil
+
+	nextLevel := findNextLevel(orderedPlacements, progressByLevel)
+	currentChapterLevelIDs, storyLevel := chapterSummary(orderedPlacements, progressByLevel, nextLevel.ChapterNumber)
+	currentLevelWins, currentLevelLosses, err := progress.fightSessions.CountOutcomes(ctx, userID, currentChapterLevelIDs)
+	if err != nil {
+		return PlayerProgress{}, err
+	}
+	totalWins, totalLosses, err := progress.totals(ctx, userID)
+	if err != nil {
+		return PlayerProgress{}, err
+	}
+	return PlayerProgress{
+		CurrentLevel:       nextLevel.ChapterNumber,
+		StoryLevel:         storyLevel,
+		TotalWins:          totalWins,
+		TotalLosses:        totalLosses,
+		CurrentLevelWins:   currentLevelWins,
+		CurrentLevelLosses: currentLevelLosses,
+		NextLevel:          nextLevel,
+	}, nil
 }
 
-func (progress *playerProgressService) furthestStartedLevel(ctx context.Context, userID uuid.UUID) (*string, error) {
-	startedLevelIDs, err := progress.levelProgress.ListStartedLevelIDs(ctx, userID)
-	if err != nil || len(startedLevelIDs) == 0 {
-		return nil, err
-	}
-	placements, err := progress.levels.Placements(ctx)
+func (progress *playerProgressService) progressByLevel(ctx context.Context, userID uuid.UUID) (map[string]models.LevelProgress, error) {
+	levelProgressRows, err := progress.levelProgress.ListForUser(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	var furthestLevelID *string
-	furthestOrder := -1
-	for _, startedLevelID := range startedLevelIDs {
-		placement, isKnown := placements[startedLevelID]
-		if isKnown && placement.Order > furthestOrder {
-			furthestOrder = placement.Order
-			levelID := startedLevelID
-			furthestLevelID = &levelID
+	progressByLevel := make(map[string]models.LevelProgress, len(levelProgressRows))
+	for _, levelProgress := range levelProgressRows {
+		progressByLevel[levelProgress.LevelID] = levelProgress
+	}
+	return progressByLevel, nil
+}
+
+func (progress *playerProgressService) totals(ctx context.Context, userID uuid.UUID) (int, int, error) {
+	profile, hasProfile, err := progress.fighters.FindProfile(ctx, userID)
+	if err != nil || !hasProfile {
+		return 0, 0, err
+	}
+	return profile.Wins, profile.Losses, nil
+}
+
+func findNextLevel(orderedPlacements []storyservice.LevelPlacement, progressByLevel map[string]models.LevelProgress) NextLevel {
+	for placementIndex := range orderedPlacements {
+		placement := orderedPlacements[placementIndex]
+		levelProgress, hasProgress := progressByLevel[placement.LevelID]
+		if hasProgress && levelProgress.Status == models.ProgressStatusCompleted {
+			continue
+		}
+		status := NextLevelAvailable
+		if !placement.IsChapterFree {
+			status = NextLevelLocked
+		}
+		chapterTitle := placement.ChapterTitle
+		return NextLevel{
+			Status:        status,
+			ChapterNumber: placement.ChapterNumber,
+			ChapterTitle:  &chapterTitle,
+			Level:         &placement,
+			BestStars:     levelProgress.BestStars,
+			Attempts:      levelProgress.Attempts,
 		}
 	}
-	return furthestLevelID, nil
+	nextChapterNumber := firstChapterNumber
+	if len(orderedPlacements) > 0 {
+		nextChapterNumber = orderedPlacements[len(orderedPlacements)-1].ChapterNumber + 1
+	}
+	return NextLevel{Status: NextLevelComingSoon, ChapterNumber: nextChapterNumber}
+}
+
+func chapterSummary(orderedPlacements []storyservice.LevelPlacement, progressByLevel map[string]models.LevelProgress, chapterNumber int) ([]string, int) {
+	var chapterLevelIDs []string
+	highestWonLevel := 0
+	for _, placement := range orderedPlacements {
+		if placement.ChapterNumber != chapterNumber {
+			continue
+		}
+		chapterLevelIDs = append(chapterLevelIDs, placement.LevelID)
+		if levelProgress, hasProgress := progressByLevel[placement.LevelID]; hasProgress && levelProgress.Status == models.ProgressStatusCompleted {
+			highestWonLevel = max(highestWonLevel, placement.LevelNumber)
+		}
+	}
+	return chapterLevelIDs, highestWonLevel
 }

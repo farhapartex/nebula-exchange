@@ -98,6 +98,8 @@ func newProgressHarness(t *testing.T) *progressHarness {
 	seedRecords = append(seedRecords,
 		&storymodels.Enemy{ID: "torch-bandit", Name: "Torch bandit", Title: "First of the gang", Stats: database.JSONDocument(torchBanditStats), Brain: database.JSONDocument(`{"aggression":0.5}`), Look: database.JSONDocument(`{"body_color":"#7f1d1d"}`)},
 		&storymodels.LevelEnemy{LevelID: "1-1", Wave: 1, EnemyID: "torch-bandit", Modifiers: database.JSONDocument(`{}`)},
+		&storymodels.LevelEnemy{LevelID: "1-2", Wave: 1, EnemyID: "torch-bandit", Modifiers: database.JSONDocument(`{}`)},
+		&storymodels.LevelEnemy{LevelID: "2-1", Wave: 1, EnemyID: "torch-bandit", Modifiers: database.JSONDocument(`{}`)},
 		&progressmodels.FighterTemplate{ID: "the-boy", Name: "The boy", Title: "Nobody", StartingLevel: 1, Stats: database.JSONDocument(boyStats), Look: database.JSONDocument(`{"body_color":"#e7d3c1"}`), IsDefault: true},
 	)
 	seedRecords = append(seedRecords, &storymodels.Level{ID: "training", Kind: storymodels.LevelKindTraining, Title: "Training", Teaser: "x", ArenaID: "burning-house", TimeLimitSeconds: 90, Difficulty: database.JSONDocument(`{}`), StarRules: database.JSONDocument(`[]`), IsPublished: true})
@@ -126,6 +128,29 @@ func (harness *progressHarness) getFightSetup(levelID string) (int, map[string]a
 	var decodedBody map[string]any
 	_ = json.Unmarshal(recorder.Body.Bytes(), &decodedBody)
 	return recorder.Code, decodedBody
+}
+
+func (harness *progressHarness) getNextLevel() map[string]any {
+	harness.t.Helper()
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/me/next-level", nil)
+	request.Header.Set("Authorization", "Bearer player-token")
+	recorder := httptest.NewRecorder()
+	harness.router.ServeHTTP(recorder, request)
+	var decodedBody map[string]any
+	_ = json.Unmarshal(recorder.Body.Bytes(), &decodedBody)
+	if recorder.Code != http.StatusOK {
+		harness.t.Fatalf("next level: got %d %v", recorder.Code, decodedBody)
+	}
+	return decodedBody["data"].(map[string]any)
+}
+
+func (harness *progressHarness) winWithAResult(levelID string) {
+	harness.t.Helper()
+	fightID := harness.startedFightID(levelID)
+	harness.clock.advance(42 * time.Second)
+	if status, body := harness.submitResult(fightID, `{"outcome":"WON","duration_ms":40000,"damage_dealt":96,"damage_taken":30}`, "player-token"); status != http.StatusCreated {
+		harness.t.Fatalf("win %s: got %d %v", levelID, status, body)
+	}
 }
 
 func (harness *progressHarness) startFight(body string, accessToken string) (int, map[string]any) {
@@ -177,15 +202,6 @@ func (harness *progressHarness) progressOf() progressservice.PlayerProgress {
 	return playerProgress
 }
 
-func (harness *progressHarness) furthestLevel() *string {
-	harness.t.Helper()
-	playerProgress, err := harness.playerProgress.PlayerProgress(context.Background(), harness.playerID)
-	if err != nil {
-		harness.t.Fatalf("player progress: %v", err)
-	}
-	return playerProgress.StoryLevel
-}
-
 func (harness *progressHarness) winLevel(levelID string) {
 	harness.t.Helper()
 	err := harness.database.Model(&progressmodels.LevelProgress{}).
@@ -204,8 +220,8 @@ func (harness *progressHarness) sessionStatuses(levelID string) []string {
 
 func TestStartingTheFirstLevelRecordsAnOpenFightAndTheStoryLevel(t *testing.T) {
 	harness := newProgressHarness(t)
-	if harness.furthestLevel() != nil {
-		t.Fatal("a new player must not have a story level yet")
+	if newPlayer := harness.progressOf(); newPlayer.CurrentLevel != 1 || newPlayer.StoryLevel != 0 || newPlayer.NextLevel.Level.LevelID != "1-1" {
+		t.Fatalf("a new player must start in chapter 1 with no level won, got %+v", newPlayer)
 	}
 
 	startedFight := harness.requireStart("1-1", http.StatusCreated)["data"].(map[string]any)
@@ -218,8 +234,8 @@ func TestStartingTheFirstLevelRecordsAnOpenFightAndTheStoryLevel(t *testing.T) {
 	if levelProgress.Status != progressmodels.ProgressStatusStarted || levelProgress.Attempts != 1 {
 		t.Fatalf("unexpected progress %+v", levelProgress)
 	}
-	if furthestLevel := harness.furthestLevel(); furthestLevel == nil || *furthestLevel != "1-1" {
-		t.Fatalf("got story level %v, want 1-1", furthestLevel)
+	if startedPlayer := harness.progressOf(); startedPlayer.StoryLevel != 0 || startedPlayer.NextLevel.Attempts != 1 {
+		t.Fatalf("starting a level must not count as winning it, got %+v", startedPlayer)
 	}
 }
 
@@ -261,8 +277,8 @@ func TestLevelsUnlockInOrderAcrossChapters(t *testing.T) {
 	harness.requireStart("2-1", http.StatusCreated)
 	harness.requireStart("1-1", http.StatusCreated)
 
-	if furthestLevel := harness.furthestLevel(); furthestLevel == nil || *furthestLevel != "2-1" {
-		t.Fatalf("got story level %v, want 2-1 even after replaying 1-1", furthestLevel)
+	if playerProgress := harness.progressOf(); playerProgress.CurrentLevel != 2 || playerProgress.StoryLevel != 0 || playerProgress.NextLevel.Level.LevelID != "2-1" {
+		t.Fatalf("after chapter 1 the player must be in chapter 2, got %+v", playerProgress)
 	}
 }
 
@@ -312,14 +328,18 @@ func TestFightSetupUsesTheStarterFighterUntilTheFirstFightCreatesAProfile(t *tes
 		t.Fatalf("unexpected profile %+v (stats %s)", profile, profile.Stats)
 	}
 	playerProgress, err := harness.playerProgress.PlayerProgress(context.Background(), harness.playerID)
-	if err != nil || playerProgress.FighterLevel != 1 || playerProgress.Wins != 0 || playerProgress.Losses != 0 {
+	if err != nil || playerProgress.CurrentLevel != 1 || playerProgress.TotalWins != 0 || playerProgress.TotalLosses != 0 {
 		t.Fatalf("unexpected player progress %+v, %v", playerProgress, err)
 	}
 }
 
 func TestFightSetupNeedsAPlayableLevelWithAnEnemy(t *testing.T) {
 	harness := newProgressHarness(t)
-	for _, levelID := range []string{"9-9", "1-3", "training", "1-2"} {
+	enemylessLevel := &storymodels.Level{ID: "2-2", ChapterID: textPointer("2"), Number: numberPointer(2), Kind: storymodels.LevelKindStory, Title: "2-2", Teaser: "x", ArenaID: "burning-house", TimeLimitSeconds: 90, Difficulty: database.JSONDocument(`{}`), StarRules: database.JSONDocument(levelOneStarRules), IsPublished: true}
+	if err := harness.database.Create(enemylessLevel).Error; err != nil {
+		t.Fatalf("create enemy-less level: %v", err)
+	}
+	for _, levelID := range []string{"9-9", "1-3", "training", "2-2"} {
 		if status, _ := harness.getFightSetup(levelID); status != http.StatusNotFound {
 			t.Fatalf("%s: got %d, want 404", levelID, status)
 		}
@@ -355,8 +375,8 @@ func TestAWinCountsStarsCompletesTheLevelAndUnlocksTheNextOne(t *testing.T) {
 	if levelProgress.Status != progressmodels.ProgressStatusCompleted || levelProgress.BestStars == nil || *levelProgress.BestStars != 3 || levelProgress.FirstCompletedAt == nil {
 		t.Fatalf("unexpected progress %+v", levelProgress)
 	}
-	if playerProgress := harness.progressOf(); playerProgress.Wins != 1 || playerProgress.Losses != 0 {
-		t.Fatalf("got %d wins and %d losses, want 1 and 0", playerProgress.Wins, playerProgress.Losses)
+	if playerProgress := harness.progressOf(); playerProgress.TotalWins != 1 || playerProgress.TotalLosses != 0 || playerProgress.StoryLevel != 1 {
+		t.Fatalf("unexpected progress after a win %+v", playerProgress)
 	}
 	harness.requireStart("1-2", http.StatusCreated)
 
@@ -384,8 +404,8 @@ func TestLossesCountAndKeepTheBestStars(t *testing.T) {
 
 	var levelProgress progressmodels.LevelProgress
 	harness.database.Take(&levelProgress, "user_id = ? AND level_id = ?", harness.playerID, "1-1")
-	if playerProgress := harness.progressOf(); playerProgress.Wins != 1 || playerProgress.Losses != 2 {
-		t.Fatalf("got %d wins and %d losses, want 1 and 2", playerProgress.Wins, playerProgress.Losses)
+	if playerProgress := harness.progressOf(); playerProgress.TotalWins != 1 || playerProgress.TotalLosses != 2 || playerProgress.CurrentLevelWins != 1 || playerProgress.CurrentLevelLosses != 2 {
+		t.Fatalf("unexpected win and loss counts %+v", playerProgress)
 	}
 	if levelProgress.Status != progressmodels.ProgressStatusCompleted || *levelProgress.BestStars != 2 || levelProgress.Attempts != 3 {
 		t.Fatalf("losses must not undo the win: %+v", levelProgress)
@@ -407,7 +427,7 @@ func TestImpossibleResultsAreRejectedAndNotCounted(t *testing.T) {
 	if fightSession.Status != progressmodels.FightStatusRejected || fightSession.RejectionReason == nil {
 		t.Fatalf("unexpected rejected session %+v", fightSession)
 	}
-	if playerProgress := harness.progressOf(); playerProgress.Wins != 0 || playerProgress.Losses != 0 {
+	if playerProgress := harness.progressOf(); playerProgress.TotalWins != 0 || playerProgress.TotalLosses != 0 {
 		t.Fatalf("a rejected result must not count, got %+v", playerProgress)
 	}
 	harness.requireStart("1-2", http.StatusForbidden)
@@ -428,5 +448,58 @@ func TestResultsBelongToTheirOwnPlayerAndNeedAValidBody(t *testing.T) {
 		if status, _ := harness.submitResult(fightID, invalidBody, "player-token"); status != http.StatusUnprocessableEntity {
 			t.Fatalf("got %d for %s, want 422", status, invalidBody)
 		}
+	}
+}
+
+func TestNextLevelFollowsTheChapterAndCountsWinsPerChapter(t *testing.T) {
+	harness := newProgressHarness(t)
+
+	firstLevel := harness.getNextLevel()
+	if firstLevel["status"] != "AVAILABLE" || firstLevel["chapter"].(map[string]any)["number"] != float64(1) || firstLevel["chapter"].(map[string]any)["title"] != "The night they came" {
+		t.Fatalf("unexpected first next level %v", firstLevel)
+	}
+	if level := firstLevel["level"].(map[string]any); level["id"] != "1-1" || level["number"] != float64(1) || level["time_limit_seconds"] != float64(90) || level["best_stars"] != nil {
+		t.Fatalf("unexpected first level details %v", level)
+	}
+
+	harness.winWithAResult("1-1")
+	afterFirstWin := harness.progressOf()
+	if afterFirstWin.CurrentLevel != 1 || afterFirstWin.StoryLevel != 1 || afterFirstWin.CurrentLevelWins != 1 || harness.getNextLevel()["level"].(map[string]any)["id"] != "1-2" {
+		t.Fatalf("after winning 1-1 the next level must be 1-2, got %+v", afterFirstWin)
+	}
+
+	harness.winWithAResult("1-2")
+	inChapterTwo := harness.progressOf()
+	if inChapterTwo.CurrentLevel != 2 || inChapterTwo.StoryLevel != 0 || inChapterTwo.CurrentLevelWins != 0 || inChapterTwo.TotalWins != 2 {
+		t.Fatalf("chapter 2 must start with its own win count, got %+v", inChapterTwo)
+	}
+
+	harness.winWithAResult("2-1")
+	comingSoon := harness.getNextLevel()
+	if comingSoon["status"] != "COMING_SOON" || comingSoon["level"] != nil || comingSoon["chapter"].(map[string]any)["number"] != float64(3) || comingSoon["chapter"].(map[string]any)["title"] != nil {
+		t.Fatalf("after the last level the next chapter must be coming soon, got %v", comingSoon)
+	}
+	if harness.progressOf().CurrentLevel != 3 {
+		t.Fatal("finishing every chapter must move the player to the next chapter number")
+	}
+}
+
+func TestAPaidChapterIsShownAsLockedAndCannotBeStarted(t *testing.T) {
+	harness := newProgressHarness(t)
+	err := harness.database.Model(&storymodels.Chapter{}).Where(map[string]any{"id": "2"}).
+		Updates(map[string]any{"is_free": false, "price_coins": int64(50_000_000)}).Error
+	if err != nil {
+		t.Fatalf("make chapter 2 paid: %v", err)
+	}
+	harness.winWithAResult("1-1")
+	harness.winWithAResult("1-2")
+
+	lockedLevel := harness.getNextLevel()
+	if lockedLevel["status"] != "LOCKED" || lockedLevel["level"].(map[string]any)["id"] != "2-1" || harness.progressOf().CurrentLevel != 2 {
+		t.Fatalf("a paid chapter must show its first level as locked, got %v", lockedLevel)
+	}
+	status, body := harness.startFight(`{"level":"2-1"}`, "player-token")
+	if status != http.StatusForbidden || body["error"].(map[string]any)["code"] != "LEVEL_LOCKED" {
+		t.Fatalf("got %d %v for a paid chapter, want 403 LEVEL_LOCKED", status, body)
 	}
 }

@@ -19,6 +19,7 @@ import (
 
 var (
 	ErrLevelLocked          = apierror.New(http.StatusForbidden, apierror.CodeLevelLocked, "Win the previous level to unlock this one")
+	ErrChapterLocked        = apierror.New(http.StatusForbidden, apierror.CodeLevelLocked, "Unlock this chapter to play it")
 	ErrFightAlreadyStarting = apierror.Conflict("This level is already being started. Try again in a moment.")
 )
 
@@ -56,6 +57,9 @@ func (fights *fightSessionService) Start(ctx context.Context, userID uuid.UUID, 
 	placement, err := fights.dependencies.Levels.PlayableLevel(ctx, levelID)
 	if err != nil {
 		return StartedFight{}, err
+	}
+	if !placement.IsChapterFree {
+		return StartedFight{}, ErrChapterLocked
 	}
 	if placement.PreviousLevelID != nil {
 		isPreviousLevelWon, err := fights.dependencies.LevelProgress.IsCompleted(ctx, userID, *placement.PreviousLevelID)

@@ -15,7 +15,7 @@ import (
 type LevelProgressRepository interface {
 	IsCompleted(ctx context.Context, userID uuid.UUID, levelID string) (bool, error)
 	RecordStart(ctx context.Context, userID uuid.UUID, levelID string, startedAt time.Time) error
-	ListStartedLevelIDs(ctx context.Context, userID uuid.UUID) ([]string, error)
+	ListForUser(ctx context.Context, userID uuid.UUID) ([]models.LevelProgress, error)
 	RecordWin(ctx context.Context, userID uuid.UUID, levelID string, stars int, wonAt time.Time) error
 }
 
@@ -56,13 +56,12 @@ func (repository *GormLevelProgressRepository) RecordStart(ctx context.Context, 
 		}).Error
 }
 
-func (repository *GormLevelProgressRepository) ListStartedLevelIDs(ctx context.Context, userID uuid.UUID) ([]string, error) {
-	var levelIDs []string
+func (repository *GormLevelProgressRepository) ListForUser(ctx context.Context, userID uuid.UUID) ([]models.LevelProgress, error) {
+	var levelProgress []models.LevelProgress
 	err := database.Session(ctx, repository.database).
-		Model(&models.LevelProgress{}).
 		Where(map[string]any{"user_id": userID}).
-		Pluck("level_id", &levelIDs).Error
-	return levelIDs, err
+		Find(&levelProgress).Error
+	return levelProgress, err
 }
 
 func (repository *GormLevelProgressRepository) RecordWin(ctx context.Context, userID uuid.UUID, levelID string, stars int, wonAt time.Time) error {

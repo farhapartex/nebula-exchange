@@ -10,19 +10,23 @@ import (
 )
 
 type PlayerSummary struct {
-	Name         string
-	Email        string
-	CurrentLevel int
-	StoryLevel   *string
-	TotalWins    int
-	TotalLosses  int
+	Name               string
+	Email              string
+	CurrentLevel       int
+	StoryLevel         int
+	TotalWins          int
+	TotalLosses        int
+	CurrentLevelWins   int
+	CurrentLevelLosses int
 }
 
 type PlayerProgress struct {
-	FighterLevel int
-	StoryLevel   *string
-	Wins         int
-	Losses       int
+	CurrentLevel       int
+	StoryLevel         int
+	TotalWins          int
+	TotalLosses        int
+	CurrentLevelWins   int
+	CurrentLevelLosses int
 }
 
 type PlayerProgressReader interface {
@@ -55,11 +59,13 @@ func (profile *profileService) CurrentPlayer(ctx context.Context, userID uuid.UU
 		return PlayerSummary{}, err
 	}
 	return PlayerSummary{
-		Name:         currentUser.Username,
-		Email:        currentUser.Email,
-		CurrentLevel: playerProgress.FighterLevel,
-		StoryLevel:   playerProgress.StoryLevel,
-		TotalWins:    playerProgress.Wins,
-		TotalLosses:  playerProgress.Losses,
+		Name:               currentUser.Username,
+		Email:              currentUser.Email,
+		CurrentLevel:       playerProgress.CurrentLevel,
+		StoryLevel:         playerProgress.StoryLevel,
+		TotalWins:          playerProgress.TotalWins,
+		TotalLosses:        playerProgress.TotalLosses,
+		CurrentLevelWins:   playerProgress.CurrentLevelWins,
+		CurrentLevelLosses: playerProgress.CurrentLevelLosses,
 	}, nil
 }

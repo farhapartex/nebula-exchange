@@ -10,16 +10,22 @@ import (
 var ErrLevelNotPlayable = apierror.NotFound("This level does not exist or cannot be played yet")
 
 type LevelPlacement struct {
-	LevelID         string
-	ChapterNumber   int
-	LevelNumber     int
-	Order           int
-	PreviousLevelID *string
+	LevelID          string
+	ChapterNumber    int
+	ChapterTitle     string
+	IsChapterFree    bool
+	LevelNumber      int
+	Title            string
+	Teaser           string
+	TimeLimitSeconds int
+	Order            int
+	PreviousLevelID  *string
 }
 
 type LevelCatalog interface {
 	PlayableLevel(ctx context.Context, levelID string) (LevelPlacement, error)
 	Placements(ctx context.Context) (map[string]LevelPlacement, error)
+	OrderedPlacements(ctx context.Context) ([]LevelPlacement, error)
 	FightContent(ctx context.Context, levelID string) (FightContent, error)
 }
 
@@ -44,22 +50,39 @@ func (catalog *levelCatalog) PlayableLevel(ctx context.Context, levelID string) 
 }
 
 func (catalog *levelCatalog) Placements(ctx context.Context) (map[string]LevelPlacement, error) {
+	orderedPlacements, err := catalog.OrderedPlacements(ctx)
+	if err != nil {
+		return nil, err
+	}
+	placements := make(map[string]LevelPlacement, len(orderedPlacements))
+	for _, placement := range orderedPlacements {
+		placements[placement.LevelID] = placement
+	}
+	return placements, nil
+}
+
+func (catalog *levelCatalog) OrderedPlacements(ctx context.Context) ([]LevelPlacement, error) {
 	orderedLevels, err := catalog.levels.ListPublishedStoryLevels(ctx)
 	if err != nil {
 		return nil, err
 	}
-	placements := make(map[string]LevelPlacement, len(orderedLevels))
+	orderedPlacements := make([]LevelPlacement, 0, len(orderedLevels))
 	var previousLevelID *string
 	for levelOrder, level := range orderedLevels {
-		placements[level.ID] = LevelPlacement{
-			LevelID:         level.ID,
-			ChapterNumber:   level.Chapter.Number,
-			LevelNumber:     *level.Number,
-			Order:           levelOrder,
-			PreviousLevelID: previousLevelID,
-		}
+		orderedPlacements = append(orderedPlacements, LevelPlacement{
+			LevelID:          level.ID,
+			ChapterNumber:    level.Chapter.Number,
+			ChapterTitle:     level.Chapter.Title,
+			IsChapterFree:    level.Chapter.IsFree,
+			LevelNumber:      *level.Number,
+			Title:            level.Title,
+			Teaser:           level.Teaser,
+			TimeLimitSeconds: level.TimeLimitSeconds,
+			Order:            levelOrder,
+			PreviousLevelID:  previousLevelID,
+		})
 		currentLevelID := level.ID
 		previousLevelID = &currentLevelID
 	}
-	return placements, nil
+	return orderedPlacements, nil
 }

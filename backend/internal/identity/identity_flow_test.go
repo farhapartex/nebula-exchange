@@ -39,7 +39,7 @@ const (
 type newPlayerProgress struct{}
 
 func (newPlayerProgress) PlayerProgressOf(context.Context, uuid.UUID) (service.PlayerProgress, error) {
-	return service.PlayerProgress{FighterLevel: 1}, nil
+	return service.PlayerProgress{CurrentLevel: 1}, nil
 }
 
 var activationTokenPattern = regexp.MustCompile(`token=([A-Za-z0-9_-]{43})`)
@@ -209,7 +209,7 @@ func TestPlayerSignsUpActivatesLogsInAndReadsProfile(t *testing.T) {
 	harness.requireStatus(harness.send(http.MethodGet, "/me", nil, ""), http.StatusUnauthorized)
 	profileResponse := harness.send(http.MethodGet, "/me", nil, accessToken)
 	harness.requireStatus(profileResponse, http.StatusOK)
-	expectedProfile := map[string]any{"name": playerUsername, "email": playerEmail, "current_level": float64(1), "story_level": nil, "total_win": float64(0), "total_lose": float64(0)}
+	expectedProfile := map[string]any{"name": playerUsername, "email": playerEmail, "current_level": float64(1), "story_level": float64(0), "total_win": float64(0), "total_lose": float64(0), "current_level_win": float64(0), "current_level_lose": float64(0)}
 	if !maps.Equal(profileResponse.data(), expectedProfile) {
 		t.Fatalf("got profile %v, want exactly %v", profileResponse.data(), expectedProfile)
 	}
