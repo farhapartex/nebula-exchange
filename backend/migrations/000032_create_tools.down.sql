@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS tools;
+DROP TYPE IF EXISTS tool_source;
+DROP TYPE IF EXISTS tool_status;

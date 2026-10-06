@@ -1,0 +1,22 @@
+{
+  "id": "iron-pipe",
+  "name": "Iron pipe",
+  "description": "A bent length of rusted pipe. Heavy, slow to swing, and it hurts.",
+  "category": "WEAPON",
+  "rarity": "COMMON",
+  "base_stats": {
+    "damage_bonus": 4,
+    "reach_bonus": 18,
+    "swing_speed_modifier": -0.05
+  },
+  "mastery_curve": {
+    "points_to_reach_level": [0, 100, 250, 450, 700, 1000, 1400, 1900, 2500, 3200],
+    "stat_gain_per_level": {
+      "damage_bonus": 1
+    }
+  },
+  "shop_price_coins": 300,
+  "is_tradeable": true,
+  "max_supply": null,
+  "introduced_in_level_id": null
+}

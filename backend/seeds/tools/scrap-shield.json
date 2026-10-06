@@ -1,0 +1,21 @@
+{
+  "id": "scrap-shield",
+  "name": "Scrap shield",
+  "description": "A car door hammered flat and strapped to an arm. It takes the worst of a blow.",
+  "category": "GUARD",
+  "rarity": "COMMON",
+  "base_stats": {
+    "block_damage_reduction": 0.25,
+    "block_stamina_cost_reduction": 0.1
+  },
+  "mastery_curve": {
+    "points_to_reach_level": [0, 100, 250, 450, 700, 1000, 1400, 1900, 2500, 3200],
+    "stat_gain_per_level": {
+      "block_damage_reduction": 0.02
+    }
+  },
+  "shop_price_coins": 250,
+  "is_tradeable": true,
+  "max_supply": null,
+  "introduced_in_level_id": null
+}

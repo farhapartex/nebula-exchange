@@ -20,12 +20,14 @@ import (
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/objectstorage"
 	progressseeding "github.com/farhapartex/nebula-exchange/backend/internal/progress/seeding"
 	storyseeding "github.com/farhapartex/nebula-exchange/backend/internal/story/seeding"
+	toolsseeding "github.com/farhapartex/nebula-exchange/backend/internal/tools/seeding"
 )
 
 const (
 	plansFileName         = "plans/plans.json"
 	fightersDirectoryName = "fighters"
 	storyDirectoryName    = "story"
+	toolsDirectoryName    = "tools"
 )
 
 func main() {
@@ -75,7 +77,28 @@ func run(arguments []string, appLogger *slog.Logger) error {
 	if err := seedFighterTemplates(ctx, gormDatabase, filepath.Join(seedsDirectory, fightersDirectoryName), appLogger); err != nil {
 		return err
 	}
-	return seedStoryLevels(ctx, storyseeding.NewSeeder(gormDatabase, assetStorage, appLogger), filepath.Join(seedsDirectory, storyDirectoryName))
+	if err := seedStoryLevels(ctx, storyseeding.NewSeeder(gormDatabase, assetStorage, appLogger), filepath.Join(seedsDirectory, storyDirectoryName)); err != nil {
+		return err
+	}
+	return seedToolTypes(ctx, gormDatabase, filepath.Join(seedsDirectory, toolsDirectoryName), appLogger)
+}
+
+func seedToolTypes(ctx context.Context, gormDatabase *gorm.DB, toolsDirectory string, appLogger *slog.Logger) error {
+	toolFiles, err := filepath.Glob(filepath.Join(toolsDirectory, "*.json"))
+	if err != nil {
+		return err
+	}
+	sort.Strings(toolFiles)
+	for _, toolFile := range toolFiles {
+		toolType, err := toolsseeding.LoadToolType(toolFile)
+		if err != nil {
+			return err
+		}
+		if err := toolsseeding.SeedToolType(ctx, gormDatabase, toolType, appLogger); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func seedFighterTemplates(ctx context.Context, gormDatabase *gorm.DB, fightersDirectory string, appLogger *slog.Logger) error {
