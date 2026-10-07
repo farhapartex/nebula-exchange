@@ -25,6 +25,11 @@ type FinishedFight struct {
 	FinishedAt  time.Time
 }
 
+type WonFightPosition struct {
+	FinishedAt time.Time
+	ID         uuid.UUID
+}
+
 type FightSessionRepository interface {
 	AbandonOpen(ctx context.Context, userID uuid.UUID, levelID string, abandonedAt time.Time) (int64, error)
 	Create(ctx context.Context, fightSession *models.FightSession) error
@@ -32,6 +37,7 @@ type FightSessionRepository interface {
 	Finish(ctx context.Context, fightSessionID uuid.UUID, finishedFight FinishedFight) (bool, error)
 	Reject(ctx context.Context, fightSessionID uuid.UUID, reason string, rejectedAt time.Time) (bool, error)
 	CountOutcomes(ctx context.Context, userID uuid.UUID, levelIDs []string) (int, int, error)
+	ListWonInLevels(ctx context.Context, userID uuid.UUID, levelIDs []string, after *WonFightPosition, limit int) ([]models.FightSession, error)
 }
 
 type GormFightSessionRepository struct {
@@ -127,4 +133,18 @@ func (repository *GormFightSessionRepository) CountOutcomes(ctx context.Context,
 		}
 	}
 	return wins, losses, nil
+}
+
+func (repository *GormFightSessionRepository) ListWonInLevels(ctx context.Context, userID uuid.UUID, levelIDs []string, after *WonFightPosition, limit int) ([]models.FightSession, error) {
+	if len(levelIDs) == 0 || limit < 1 {
+		return nil, nil
+	}
+	query := database.Session(ctx, repository.database).
+		Where(map[string]any{"user_id": userID, "status": models.FightStatusFinished, "outcome": models.FightOutcomeWon, "level_id": levelIDs})
+	if after != nil {
+		query = query.Where("(finished_at, id) < (?, ?)", after.FinishedAt, after.ID)
+	}
+	var wonFights []models.FightSession
+	err := query.Order("finished_at DESC").Order("id DESC").Limit(limit).Find(&wonFights).Error
+	return wonFights, err
 }

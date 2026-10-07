@@ -70,6 +70,7 @@ func NewModule(dependencies ModuleDependencies) *Module {
 			handler.NewFightSetupHandler(service.NewFightSetupService(dependencies.Levels, fighters)),
 			handler.NewFightResultHandler(fightResultService),
 			handler.NewNextLevelHandler(playerProgressService),
+			handler.NewWonFightHandler(service.NewWonFightService(dependencies.Levels, fightSessions)),
 		},
 	}
 }
