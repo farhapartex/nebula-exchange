@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <radialGradient id="iron" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#7d858c"/><stop offset="0.75" stop-color="#4b5258"/><stop offset="1" stop-color="#23282c"/></radialGradient>
+    <radialGradient id="rust" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#b8612a"/><stop offset="1" stop-color="#6e3416" stop-opacity="0"/></radialGradient>
+  </defs>
+  <ellipse cx="64" cy="114" rx="38" ry="5" fill="#000000" opacity="0.35"/>
+  <circle cx="64" cy="62" r="46" fill="url(#iron)" stroke="#16191c" stroke-width="4"/>
+  <circle cx="64" cy="62" r="40" fill="none" stroke="#2e3439" stroke-width="2"/>
+  <rect x="34" y="44" width="8" height="8" rx="1.5" fill="#4a5158" stroke="#22272b" stroke-width="1"/>
+  <rect x="34" y="56" width="8" height="8" rx="1.5" fill="#4a5158" stroke="#22272b" stroke-width="1"/>
+  <rect x="34" y="68" width="8" height="8" rx="1.5" fill="#4a5158" stroke="#22272b" stroke-width="1"/>
+  <rect x="46" y="32" width="8" height="8" rx="1.5" fill="#4a5158" stroke="#22272b" stroke-width="1"/>
+  <rect x="46" y="44" width="8" height="8" rx="1.5" fill="#4a5158" stroke="#22272b" stroke-width="1"/>
+  <rect x="46" y="56" width="8" height="8" rx="1.5" fill="#4a5158" stroke="#22272b" stroke-width="1"/>
+  <rect x="46" y="68" width="8" height="8" rx="1.5" fill="#4a5158" stroke="#22272b" stroke-width="1"/>
+  <rect x="46" y="80" width="8" height="8" rx="1.5" fill="#4a5158" stroke="#22272b" stroke-width="1"/>
+  <rect x="58" y="32" width="8" height="8" rx="1.5" fill="#4a5158" stroke="#22272b" stroke-width="1"/>
+  <rect x="58" y="44" width="8" height="8" rx="1.5" fill="#4a5158" stroke="#22272b" stroke-width="1"/>
+  <rect x="58" y="56" width="8" height="8" rx="1.5" fill="#4a5158" stroke="#22272b" stroke-width="1"/>
+  <rect x="58" y="68" width="8" height="8" rx="1.5" fill="#4a5158" stroke="#22272b" stroke-width="1"/>
+  <rect x="58" y="80" width="8" height="8" rx="1.5" fill="#4a5158" stroke="#22272b" stroke-width="1"/>
+  <rect x="70" y="32" width="8" height="8" rx="1.5" fill="#4a5158" stroke="#22272b" stroke-width="1"/>
+  <rect x="70" y="44" width="8" height="8" rx="1.5" fill="#4a5158" stroke="#22272b" stroke-width="1"/>
+  <rect x="70" y="56" width="8" height="8" rx="1.5" fill="#4a5158" stroke="#22272b" stroke-width="1"/>
+  <rect x="70" y="68" width="8" height="8" rx="1.5" fill="#4a5158" stroke="#22272b" stroke-width="1"/>
+  <rect x="70" y="80" width="8" height="8" rx="1.5" fill="#4a5158" stroke="#22272b" stroke-width="1"/>
+  <rect x="82" y="44" width="8" height="8" rx="1.5" fill="#4a5158" stroke="#22272b" stroke-width="1"/>
+  <rect x="82" y="56" width="8" height="8" rx="1.5" fill="#4a5158" stroke="#22272b" stroke-width="1"/>
+  <rect x="82" y="68" width="8" height="8" rx="1.5" fill="#4a5158" stroke="#22272b" stroke-width="1"/>
+  <ellipse cx="88" cy="84" rx="12" ry="7" fill="url(#rust)"/>
+  <ellipse cx="44" cy="40" rx="8" ry="5" fill="url(#rust)"/>
+  <path d="M30 44 Q40 26 60 20" stroke="#ffffff" stroke-width="2.5" opacity="0.2" fill="none" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="chain" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d4d9de"/><stop offset="1" stop-color="#5a626b"/></linearGradient>
+    <linearGradient id="grip" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a2f2a"/><stop offset="1" stop-color="#161210"/></linearGradient>
+  </defs>
+  <ellipse cx="64" cy="114" rx="38" ry="5" fill="#000000" opacity="0.35"/>
+  <rect x="14.7" y="79.5" width="16" height="8" rx="4.0" transform="rotate(-110.0 22.7 83.5)" fill="none" stroke="url(#chain)" stroke-width="3.2"/>
+  <rect x="14.1" y="70.3" width="12" height="5" rx="2.5" transform="rotate(-94.0 20.1 72.8)" fill="none" stroke="url(#chain)" stroke-width="3.2"/>
+  <rect x="13.0" y="57.8" width="16" height="8" rx="4.0" transform="rotate(-78.0 21.0 61.8)" fill="none" stroke="url(#chain)" stroke-width="3.2"/>
+  <rect x="19.2" y="48.9" width="12" height="5" rx="2.5" transform="rotate(-62.0 25.2 51.4)" fill="none" stroke="url(#chain)" stroke-width="3.2"/>
+  <rect x="24.3" y="38.5" width="16" height="8" rx="4.0" transform="rotate(-46.0 32.3 42.5)" fill="none" stroke="url(#chain)" stroke-width="3.2"/>
+  <rect x="36.0" y="33.2" width="12" height="5" rx="2.5" transform="rotate(-30.0 42.0 35.7)" fill="none" stroke="url(#chain)" stroke-width="3.2"/>
+  <rect x="45.4" y="27.6" width="16" height="8" rx="4.0" transform="rotate(-14.0 53.4 31.6)" fill="none" stroke="url(#chain)" stroke-width="3.2"/>
+  <rect x="59.5" y="27.9" width="12" height="5" rx="2.5" transform="rotate(2.0 65.5 30.4)" fill="none" stroke="url(#chain)" stroke-width="3.2"/>
+  <rect x="69.6" y="28.3" width="16" height="8" rx="4.0" transform="rotate(18.0 77.6 32.3)" fill="none" stroke="url(#chain)" stroke-width="3.2"/>
+  <rect x="82.6" y="34.7" width="12" height="5" rx="2.5" transform="rotate(34.0 88.6 37.2)" fill="none" stroke="url(#chain)" stroke-width="3.2"/>
+  <rect x="89.7" y="40.5" width="16" height="8" rx="4.0" transform="rotate(50.0 97.7 44.5)" fill="none" stroke="url(#chain)" stroke-width="3.2"/>
+  <rect x="10" y="84" width="22" height="14" rx="4" fill="url(#grip)" transform="rotate(-20 21 91)"/>
+  <path d="M12 86 L30 80 M13 91 L31 85 M15 96 L32 90" stroke="#5a4a3f" stroke-width="1.5"/>
+</svg>

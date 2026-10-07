@@ -1,0 +1,34 @@
+{
+  "id": "brass-knuckles",
+  "name": "Brass knuckles",
+  "description": "Small, fast and mean. Every punch lands heavier.",
+  "category": "WEAPON",
+  "rarity": "RARE",
+  "base_stats": {
+    "damage_bonus": 9,
+    "swing_speed_modifier": 0.12
+  },
+  "mastery_curve": {
+    "points_to_reach_level": [
+      0,
+      150,
+      375,
+      675,
+      1050,
+      1500,
+      2100,
+      2850,
+      3750,
+      4800
+    ],
+    "stat_gain_per_level": {
+      "damage_bonus": 1.5
+    }
+  },
+  "shop_price_coins": 1500,
+  "is_tradeable": true,
+  "max_supply": null,
+  "introduced_in_level_id": null,
+  "minimum_fighter_level": 4,
+  "image_svg_file": "brass-knuckles.svg"
+}

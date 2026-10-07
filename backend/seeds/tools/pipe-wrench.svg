@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="steel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c9ced4"/><stop offset="0.5" stop-color="#7b848d"/><stop offset="1" stop-color="#353b41"/></linearGradient>
+    <linearGradient id="red" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d6453a"/><stop offset="1" stop-color="#7a1d17"/></linearGradient>
+    <radialGradient id="rust" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#b8612a"/><stop offset="1" stop-color="#6e3416" stop-opacity="0"/></radialGradient>
+  </defs>
+  <ellipse cx="64" cy="114" rx="38" ry="5" fill="#000000" opacity="0.35"/>
+  <g transform="rotate(-40 64 64)">
+    <rect x="14" y="58" width="74" height="13" rx="4" fill="url(#red)"/>
+    <rect x="18" y="60" width="66" height="2" fill="#ffffff" opacity="0.2"/>
+    <rect x="84" y="40" width="16" height="42" rx="3" fill="url(#steel)"/>
+    <rect x="98" y="40" width="18" height="12" rx="2" fill="url(#steel)"/>
+    <rect x="98" y="60" width="18" height="12" rx="2" fill="url(#steel)"/>
+    <path d="M100 52 l3 3 l3 -3 l3 3 l3 -3 l3 3 M100 60 l3 -3 l3 3 l3 -3 l3 3 l3 -3" stroke="#2a2f34" stroke-width="1.4" fill="none"/>
+    <circle cx="92" cy="74" r="5" fill="#5f676f" stroke="#2a2f34" stroke-width="1.5"/>
+    <path d="M88 74 h8 M92 70 v8" stroke="#2a2f34" stroke-width="1"/>
+    <ellipse cx="44" cy="64" rx="9" ry="5" fill="url(#rust)"/>
+  </g>
+</svg>

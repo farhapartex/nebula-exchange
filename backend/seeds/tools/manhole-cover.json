@@ -1,0 +1,34 @@
+{
+  "id": "manhole-cover",
+  "name": "Manhole cover",
+  "description": "Forty kilos of cast iron. Almost nothing gets through.",
+  "category": "GUARD",
+  "rarity": "EPIC",
+  "base_stats": {
+    "block_damage_reduction": 0.55,
+    "block_stamina_cost_reduction": 0.05
+  },
+  "mastery_curve": {
+    "points_to_reach_level": [
+      0,
+      150,
+      375,
+      675,
+      1050,
+      1500,
+      2100,
+      2850,
+      3750,
+      4800
+    ],
+    "stat_gain_per_level": {
+      "block_damage_reduction": 0.03
+    }
+  },
+  "shop_price_coins": 4000,
+  "is_tradeable": true,
+  "max_supply": null,
+  "introduced_in_level_id": null,
+  "minimum_fighter_level": 6,
+  "image_svg_file": "manhole-cover.svg"
+}

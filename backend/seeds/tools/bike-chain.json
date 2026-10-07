@@ -1,0 +1,35 @@
+{
+  "id": "bike-chain",
+  "name": "Bike chain",
+  "description": "Wrapped twice around the fist, swung like a whip when there is room.",
+  "category": "WEAPON",
+  "rarity": "UNCOMMON",
+  "base_stats": {
+    "damage_bonus": 6,
+    "reach_bonus": 26,
+    "swing_speed_modifier": 0.05
+  },
+  "mastery_curve": {
+    "points_to_reach_level": [
+      0,
+      100,
+      250,
+      450,
+      700,
+      1000,
+      1400,
+      1900,
+      2500,
+      3200
+    ],
+    "stat_gain_per_level": {
+      "damage_bonus": 1
+    }
+  },
+  "shop_price_coins": 650,
+  "is_tradeable": true,
+  "max_supply": null,
+  "introduced_in_level_id": null,
+  "minimum_fighter_level": 2,
+  "image_svg_file": "bike-chain.svg"
+}

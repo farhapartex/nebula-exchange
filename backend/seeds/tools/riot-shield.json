@@ -1,0 +1,34 @@
+{
+  "id": "riot-shield",
+  "name": "Riot shield",
+  "description": "Cracked polycarbonate, still good for one more riot.",
+  "category": "GUARD",
+  "rarity": "RARE",
+  "base_stats": {
+    "block_damage_reduction": 0.4,
+    "block_stamina_cost_reduction": 0.15
+  },
+  "mastery_curve": {
+    "points_to_reach_level": [
+      0,
+      150,
+      375,
+      675,
+      1050,
+      1500,
+      2100,
+      2850,
+      3750,
+      4800
+    ],
+    "stat_gain_per_level": {
+      "block_damage_reduction": 0.025
+    }
+  },
+  "shop_price_coins": 1200,
+  "is_tradeable": true,
+  "max_supply": null,
+  "introduced_in_level_id": null,
+  "minimum_fighter_level": 3,
+  "image_svg_file": "riot-shield.svg"
+}

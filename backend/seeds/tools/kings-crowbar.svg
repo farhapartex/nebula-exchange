@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="darksteel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5d6670"/><stop offset="0.5" stop-color="#2b3138"/><stop offset="1" stop-color="#101317"/></linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff0a8"/><stop offset="0.5" stop-color="#e0b23c"/><stop offset="1" stop-color="#8a5d0c"/></linearGradient>
+  </defs>
+  <ellipse cx="64" cy="114" rx="38" ry="5" fill="#000000" opacity="0.35"/>
+  <g transform="rotate(-40 64 64)">
+    <path d="M16 58 L104 58 Q118 58 120 46 Q121 40 116 38 L112 44 Q110 51 102 51 L16 51 Z" fill="url(#darksteel)" stroke="#07090b" stroke-width="2"/>
+    <path d="M16 51 L8 47 L8 62 L16 58 Z" fill="url(#darksteel)" stroke="#07090b" stroke-width="2"/>
+    <rect x="22" y="51" width="6" height="7" fill="url(#gold)"/>
+    <rect x="94" y="51" width="6" height="7" fill="url(#gold)"/>
+    <path d="M52 50 L56 42 L61 48 L64 40 L67 48 L72 42 L76 50 Z" fill="url(#gold)" stroke="#6b4508" stroke-width="1"/>
+    <path d="M20 52 L100 52" stroke="#ffffff" stroke-width="1.2" opacity="0.3"/>
+  </g>
+</svg>

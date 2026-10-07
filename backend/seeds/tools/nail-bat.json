@@ -1,0 +1,35 @@
+{
+  "id": "nail-bat",
+  "name": "Nail bat",
+  "description": "A baseball bat with a crown of rusty nails. Nobody wants to be near it.",
+  "category": "WEAPON",
+  "rarity": "EPIC",
+  "base_stats": {
+    "damage_bonus": 12,
+    "reach_bonus": 20,
+    "swing_speed_modifier": -0.04
+  },
+  "mastery_curve": {
+    "points_to_reach_level": [
+      0,
+      150,
+      375,
+      675,
+      1050,
+      1500,
+      2100,
+      2850,
+      3750,
+      4800
+    ],
+    "stat_gain_per_level": {
+      "damage_bonus": 2
+    }
+  },
+  "shop_price_coins": 3200,
+  "is_tradeable": true,
+  "max_supply": null,
+  "introduced_in_level_id": null,
+  "minimum_fighter_level": 5,
+  "image_svg_file": "nail-bat.svg"
+}

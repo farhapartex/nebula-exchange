@@ -1,0 +1,35 @@
+{
+  "id": "pipe-wrench",
+  "name": "Pipe wrench",
+  "description": "A plumber's wrench with a heavy jaw. Slow, but every hit counts.",
+  "category": "WEAPON",
+  "rarity": "UNCOMMON",
+  "base_stats": {
+    "damage_bonus": 7,
+    "reach_bonus": 14,
+    "swing_speed_modifier": -0.08
+  },
+  "mastery_curve": {
+    "points_to_reach_level": [
+      0,
+      100,
+      250,
+      450,
+      700,
+      1000,
+      1400,
+      1900,
+      2500,
+      3200
+    ],
+    "stat_gain_per_level": {
+      "damage_bonus": 1
+    }
+  },
+  "shop_price_coins": 800,
+  "is_tradeable": true,
+  "max_supply": null,
+  "introduced_in_level_id": null,
+  "minimum_fighter_level": 3,
+  "image_svg_file": "pipe-wrench.svg"
+}
