@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDown, LogOut, ReceiptText } from "lucide-react";
+import { ChevronDown, History, LogOut, ReceiptText } from "lucide-react";
 import { DropdownMenu } from "radix-ui";
 
 import { ProfileMenuWallet } from "@/components/app-shell/profile-menu-wallet";
@@ -43,6 +43,15 @@ export function ProfileMenu() {
           </div>
           <ProfileMenuWallet />
           <DropdownMenu.Separator className="my-1 h-px bg-border" />
+          <DropdownMenu.Item
+            asChild
+            className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-sm text-muted outline-none data-[highlighted]:bg-border data-[highlighted]:text-foreground"
+          >
+            <Link href="/fight/history">
+              <History className="size-4" aria-hidden="true" />
+              Fight history
+            </Link>
+          </DropdownMenu.Item>
           <DropdownMenu.Item
             asChild
             className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-sm text-muted outline-none data-[highlighted]:bg-border data-[highlighted]:text-foreground"

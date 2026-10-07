@@ -1,7 +1,10 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
+import { History } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentPlayer } from "@/features/auth/session/use-current-player";
 import { rankTitleForLevel } from "@/features/fight-hub/fighter-ranks";
@@ -62,6 +65,12 @@ export function FighterCard() {
             <dd className="font-display text-2xl text-down">{currentPlayer.total_lose}</dd>
           </div>
         </dl>
+        <Button asChild variant="secondary" size="sm" className="w-full">
+          <Link href="/fight/history">
+            <History className="size-4" aria-hidden="true" />
+            Fight history
+          </Link>
+        </Button>
       </div>
     </HubPanel>
   );
