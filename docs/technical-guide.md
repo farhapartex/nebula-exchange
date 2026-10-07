@@ -175,6 +175,18 @@ How a wallet payment works:
 
 To test card payments locally, run `make stripe-listen` in a second terminal. It forwards Stripe test events to the backend; the signing secret it prints must be the `STRIPE_WEBHOOK_SECRET` in `.env`. Pay with the test card `4242 4242 4242 4242`, any future date and any CVC.
 
+### Tool endpoints
+
+| Method and path | Purpose |
+| --- | --- |
+| `GET /shop-items` | The tools the game sells, ordered by minimum fighter level and then id. Optional `q` searches tool names (case does not matter), and `category` (`WEAPON`, `GUARD`) and `rarity` narrow the list. Cursor paginated: 20 items by default, at most 100 |
+
+Each item has `tool_type` (`id`, `name`, `description`, `category`, `rarity`, `base_stats`, `max_mastery_level`, `minimum_fighter_level` and `image_svg`), `price_coins` (a string of whole coins), `is_unlocked` and `unlock_level` (the level that introduces the tool, if any), `is_usable` and `owned_count` for the logged in player. Tools that are not sold in the shop are left out.
+
+- A tool with no introducing level is unlocked for everyone. Otherwise it unlocks once the player has won that level.
+- `is_usable` is true when the player's fighter level (`current_level` in `/me`) is at least the tool's `minimum_fighter_level`. A player may buy and own a tool before that, but cannot equip it.
+- `image_svg` is the tool's picture as SVG markup. The frontend shows it as an image (a data URL in an `img`), never as page markup, so it can never run scripts.
+
 ### Story endpoints
 
 | Method and path | Purpose |
@@ -215,7 +227,7 @@ The player's fighter comes from their `fighter_profiles` row. A player gets that
 
 `backend/seeds/fighters/*.json` holds fighter templates. Exactly one of them is the default for new players.
 
-Tools live in `backend/seeds/tools/*.json`, one file per tool type: its category (`WEAPON` or `GUARD`), rarity, base stats, mastery curve (`points_to_reach_level`, which sets the number of mastery levels, at most 10, and `stat_gain_per_level`), an optional shop price in coins and `introduced_in_level_id`. Winning the introducing level for the first time will give the player one copy, and from then on the tool is also sold in the shop. The first two tools, the iron pipe and the scrap shield, use placeholder stats and prices and are not tied to a level yet. Tools are seeded after the story levels, because a tool can point at a level.
+Tools live in `backend/seeds/tools/*.json`, one file per tool type: its category (`WEAPON` or `GUARD`), rarity, base stats, mastery curve (`points_to_reach_level`, which sets the number of mastery levels, at most 10, and `stat_gain_per_level`), an optional shop price in coins, `introduced_in_level_id`, `minimum_fighter_level` and `image_svg_file`, the name of an SVG file next to the tool file. The seed checks every SVG and refuses one that is not plain SVG: no scripts, styles, embedded images, event attributes, DOCTYPE or links outside the file, and at most 32 KB. Winning the introducing level for the first time will give the player one copy, and from then on the tool is also sold in the shop. The first two tools, the iron pipe and the scrap shield, use placeholder stats and prices and are not tied to a level yet. Tools are seeded after the story levels, because a tool can point at a level.
 
 The purchase plans live in `backend/seeds/plans/plans.json`. The seed checks the plan kinds and discount tiers and updates plans by id.
 
