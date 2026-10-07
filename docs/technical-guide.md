@@ -205,6 +205,7 @@ Images live in a private MinIO bucket. `image` is a presigned link that works fo
 | `GET /levels/{level_id}/fight-setup` | Everything the fight screen needs: time limit, arena and stage, the player's fighter and the enemy of the first wave |
 | `POST /fight-sessions` | Body `{"level": "1-1"}`. Called when the player presses Play on the last story slide. Records that the level was started but not finished |
 | `POST /fight-sessions/{id}/results` | Body `{"outcome": "WON", "duration_ms": 40000, "damage_dealt": 95, "damage_taken": 30}`. Sent once when the fight ends |
+| `GET /fight-sessions?outcome=WON` | Every fight the player has won, replays included, for the fight history page. Grouped by chapter in story order and newest first inside each chapter. Each item has `id`, `level` (`id`, `number`, `title`, `chapter_number`, `chapter_title`), `stars`, `duration_ms`, `damage_dealt`, `damage_taken` and `finished_at`. Cursor paginated, 20 by default. `outcome` is required and only `WON` is supported for now |
 
 The response has the fight `id`, `level`, `status` (`STARTED`), `started_at` and a server `seed` (as a string, because it does not fit in a JavaScript number). Rules:
 
