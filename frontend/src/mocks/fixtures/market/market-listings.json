@@ -15,7 +15,8 @@
           "swing_speed_modifier": -0.05
         },
         "max_mastery_level": 10,
-        "image": null
+        "minimum_fighter_level": 1,
+        "image_svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 128 128\">\n  <defs>\n    <linearGradient id=\"pipe-body\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\">\n      <stop offset=\"0\" stop-color=\"#a4adb7\"/>\n      <stop offset=\"0.45\" stop-color=\"#5c646d\"/>\n      <stop offset=\"1\" stop-color=\"#262a2f\"/>\n    </linearGradient>\n    <linearGradient id=\"pipe-coupling\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\">\n      <stop offset=\"0\" stop-color=\"#c3c9cf\"/>\n      <stop offset=\"1\" stop-color=\"#363c42\"/>\n    </linearGradient>\n    <radialGradient id=\"pipe-rust\" cx=\"0.5\" cy=\"0.5\" r=\"0.5\">\n      <stop offset=\"0\" stop-color=\"#b8612a\"/>\n      <stop offset=\"1\" stop-color=\"#6e3416\" stop-opacity=\"0\"/>\n    </radialGradient>\n  </defs>\n  <ellipse cx=\"64\" cy=\"108\" rx=\"40\" ry=\"6\" fill=\"#000000\" opacity=\"0.35\"/>\n  <g transform=\"rotate(-38 64 64)\">\n    <rect x=\"12\" y=\"55\" width=\"104\" height=\"18\" rx=\"5\" fill=\"url(#pipe-body)\"/>\n    <rect x=\"12\" y=\"57\" width=\"104\" height=\"3\" rx=\"1.5\" fill=\"#ffffff\" opacity=\"0.2\"/>\n    <rect x=\"86\" y=\"49\" width=\"16\" height=\"30\" rx=\"3\" fill=\"url(#pipe-coupling)\"/>\n    <rect x=\"89\" y=\"49\" width=\"2\" height=\"30\" fill=\"#ffffff\" opacity=\"0.25\"/>\n    <rect x=\"96\" y=\"49\" width=\"2\" height=\"30\" fill=\"#000000\" opacity=\"0.25\"/>\n    <rect x=\"12\" y=\"51\" width=\"11\" height=\"26\" rx=\"2\" fill=\"url(#pipe-coupling)\"/>\n    <ellipse cx=\"44\" cy=\"64\" rx=\"11\" ry=\"6\" fill=\"url(#pipe-rust)\"/>\n    <ellipse cx=\"66\" cy=\"69\" rx=\"7\" ry=\"4\" fill=\"url(#pipe-rust)\"/>\n    <circle cx=\"54\" cy=\"61\" r=\"1.5\" fill=\"#6e3416\"/>\n    <circle cx=\"75\" cy=\"66\" r=\"1.2\" fill=\"#6e3416\"/>\n  </g>\n</svg>"
       },
       "mastery_level": 7,
       "fights_used": 98,
@@ -45,7 +46,8 @@
           "swing_speed_modifier": -0.05
         },
         "max_mastery_level": 10,
-        "image": null
+        "minimum_fighter_level": 1,
+        "image_svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 128 128\">\n  <defs>\n    <linearGradient id=\"pipe-body\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\">\n      <stop offset=\"0\" stop-color=\"#a4adb7\"/>\n      <stop offset=\"0.45\" stop-color=\"#5c646d\"/>\n      <stop offset=\"1\" stop-color=\"#262a2f\"/>\n    </linearGradient>\n    <linearGradient id=\"pipe-coupling\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\">\n      <stop offset=\"0\" stop-color=\"#c3c9cf\"/>\n      <stop offset=\"1\" stop-color=\"#363c42\"/>\n    </linearGradient>\n    <radialGradient id=\"pipe-rust\" cx=\"0.5\" cy=\"0.5\" r=\"0.5\">\n      <stop offset=\"0\" stop-color=\"#b8612a\"/>\n      <stop offset=\"1\" stop-color=\"#6e3416\" stop-opacity=\"0\"/>\n    </radialGradient>\n  </defs>\n  <ellipse cx=\"64\" cy=\"108\" rx=\"40\" ry=\"6\" fill=\"#000000\" opacity=\"0.35\"/>\n  <g transform=\"rotate(-38 64 64)\">\n    <rect x=\"12\" y=\"55\" width=\"104\" height=\"18\" rx=\"5\" fill=\"url(#pipe-body)\"/>\n    <rect x=\"12\" y=\"57\" width=\"104\" height=\"3\" rx=\"1.5\" fill=\"#ffffff\" opacity=\"0.2\"/>\n    <rect x=\"86\" y=\"49\" width=\"16\" height=\"30\" rx=\"3\" fill=\"url(#pipe-coupling)\"/>\n    <rect x=\"89\" y=\"49\" width=\"2\" height=\"30\" fill=\"#ffffff\" opacity=\"0.25\"/>\n    <rect x=\"96\" y=\"49\" width=\"2\" height=\"30\" fill=\"#000000\" opacity=\"0.25\"/>\n    <rect x=\"12\" y=\"51\" width=\"11\" height=\"26\" rx=\"2\" fill=\"url(#pipe-coupling)\"/>\n    <ellipse cx=\"44\" cy=\"64\" rx=\"11\" ry=\"6\" fill=\"url(#pipe-rust)\"/>\n    <ellipse cx=\"66\" cy=\"69\" rx=\"7\" ry=\"4\" fill=\"url(#pipe-rust)\"/>\n    <circle cx=\"54\" cy=\"61\" r=\"1.5\" fill=\"#6e3416\"/>\n    <circle cx=\"75\" cy=\"66\" r=\"1.2\" fill=\"#6e3416\"/>\n  </g>\n</svg>"
       },
       "mastery_level": 3,
       "fights_used": 43,
@@ -74,7 +76,8 @@
           "block_stamina_cost_reduction": 0.1
         },
         "max_mastery_level": 10,
-        "image": null
+        "minimum_fighter_level": 2,
+        "image_svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 128 128\">\n  <defs>\n    <linearGradient id=\"shield-panel\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n      <stop offset=\"0\" stop-color=\"#8a96a3\"/>\n      <stop offset=\"0.55\" stop-color=\"#55606b\"/>\n      <stop offset=\"1\" stop-color=\"#2c3238\"/>\n    </linearGradient>\n    <linearGradient id=\"shield-window\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\">\n      <stop offset=\"0\" stop-color=\"#2a3640\"/>\n      <stop offset=\"1\" stop-color=\"#11161b\"/>\n    </linearGradient>\n    <radialGradient id=\"shield-rust\" cx=\"0.5\" cy=\"0.5\" r=\"0.5\">\n      <stop offset=\"0\" stop-color=\"#b8612a\"/>\n      <stop offset=\"1\" stop-color=\"#6e3416\" stop-opacity=\"0\"/>\n    </radialGradient>\n  </defs>\n  <ellipse cx=\"64\" cy=\"118\" rx=\"38\" ry=\"5\" fill=\"#000000\" opacity=\"0.35\"/>\n  <path d=\"M30 14 H98 Q110 14 110 26 V88 Q110 102 64 116 Q18 102 18 88 V26 Q18 14 30 14 Z\" fill=\"url(#shield-panel)\" stroke=\"#1b1f23\" stroke-width=\"3\"/>\n  <path d=\"M33 24 H95 L89 50 H39 Z\" fill=\"url(#shield-window)\" stroke=\"#1b1f23\" stroke-width=\"2\"/>\n  <path d=\"M40 26 H52 L45 48 H41 Z\" fill=\"#ffffff\" opacity=\"0.1\"/>\n  <rect x=\"21\" y=\"60\" width=\"86\" height=\"10\" fill=\"#6b4a2b\"/>\n  <rect x=\"21\" y=\"60\" width=\"86\" height=\"2\" fill=\"#ffffff\" opacity=\"0.12\"/>\n  <rect x=\"58\" y=\"57\" width=\"12\" height=\"16\" rx=\"2\" fill=\"#9aa1a8\" stroke=\"#1b1f23\" stroke-width=\"1.5\"/>\n  <ellipse cx=\"80\" cy=\"90\" rx=\"14\" ry=\"8\" fill=\"url(#shield-rust)\"/>\n  <ellipse cx=\"42\" cy=\"84\" rx=\"9\" ry=\"5\" fill=\"#000000\" opacity=\"0.2\"/>\n  <ellipse cx=\"41\" cy=\"83\" rx=\"9\" ry=\"5\" fill=\"#ffffff\" opacity=\"0.08\"/>\n  <circle cx=\"28\" cy=\"24\" r=\"2.5\" fill=\"#c3c9cf\"/>\n  <circle cx=\"100\" cy=\"24\" r=\"2.5\" fill=\"#c3c9cf\"/>\n  <circle cx=\"28\" cy=\"86\" r=\"2.5\" fill=\"#c3c9cf\"/>\n  <circle cx=\"100\" cy=\"86\" r=\"2.5\" fill=\"#c3c9cf\"/>\n</svg>"
       },
       "mastery_level": 5,
       "fights_used": 72,
@@ -103,7 +106,8 @@
           "block_stamina_cost_reduction": 0.1
         },
         "max_mastery_level": 10,
-        "image": null
+        "minimum_fighter_level": 2,
+        "image_svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 128 128\">\n  <defs>\n    <linearGradient id=\"shield-panel\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n      <stop offset=\"0\" stop-color=\"#8a96a3\"/>\n      <stop offset=\"0.55\" stop-color=\"#55606b\"/>\n      <stop offset=\"1\" stop-color=\"#2c3238\"/>\n    </linearGradient>\n    <linearGradient id=\"shield-window\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\">\n      <stop offset=\"0\" stop-color=\"#2a3640\"/>\n      <stop offset=\"1\" stop-color=\"#11161b\"/>\n    </linearGradient>\n    <radialGradient id=\"shield-rust\" cx=\"0.5\" cy=\"0.5\" r=\"0.5\">\n      <stop offset=\"0\" stop-color=\"#b8612a\"/>\n      <stop offset=\"1\" stop-color=\"#6e3416\" stop-opacity=\"0\"/>\n    </radialGradient>\n  </defs>\n  <ellipse cx=\"64\" cy=\"118\" rx=\"38\" ry=\"5\" fill=\"#000000\" opacity=\"0.35\"/>\n  <path d=\"M30 14 H98 Q110 14 110 26 V88 Q110 102 64 116 Q18 102 18 88 V26 Q18 14 30 14 Z\" fill=\"url(#shield-panel)\" stroke=\"#1b1f23\" stroke-width=\"3\"/>\n  <path d=\"M33 24 H95 L89 50 H39 Z\" fill=\"url(#shield-window)\" stroke=\"#1b1f23\" stroke-width=\"2\"/>\n  <path d=\"M40 26 H52 L45 48 H41 Z\" fill=\"#ffffff\" opacity=\"0.1\"/>\n  <rect x=\"21\" y=\"60\" width=\"86\" height=\"10\" fill=\"#6b4a2b\"/>\n  <rect x=\"21\" y=\"60\" width=\"86\" height=\"2\" fill=\"#ffffff\" opacity=\"0.12\"/>\n  <rect x=\"58\" y=\"57\" width=\"12\" height=\"16\" rx=\"2\" fill=\"#9aa1a8\" stroke=\"#1b1f23\" stroke-width=\"1.5\"/>\n  <ellipse cx=\"80\" cy=\"90\" rx=\"14\" ry=\"8\" fill=\"url(#shield-rust)\"/>\n  <ellipse cx=\"42\" cy=\"84\" rx=\"9\" ry=\"5\" fill=\"#000000\" opacity=\"0.2\"/>\n  <ellipse cx=\"41\" cy=\"83\" rx=\"9\" ry=\"5\" fill=\"#ffffff\" opacity=\"0.08\"/>\n  <circle cx=\"28\" cy=\"24\" r=\"2.5\" fill=\"#c3c9cf\"/>\n  <circle cx=\"100\" cy=\"24\" r=\"2.5\" fill=\"#c3c9cf\"/>\n  <circle cx=\"28\" cy=\"86\" r=\"2.5\" fill=\"#c3c9cf\"/>\n  <circle cx=\"100\" cy=\"86\" r=\"2.5\" fill=\"#c3c9cf\"/>\n</svg>"
       },
       "mastery_level": 2,
       "fights_used": 31,
@@ -133,7 +137,8 @@
           "swing_speed_modifier": -0.05
         },
         "max_mastery_level": 10,
-        "image": null
+        "minimum_fighter_level": 1,
+        "image_svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 128 128\">\n  <defs>\n    <linearGradient id=\"pipe-body\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\">\n      <stop offset=\"0\" stop-color=\"#a4adb7\"/>\n      <stop offset=\"0.45\" stop-color=\"#5c646d\"/>\n      <stop offset=\"1\" stop-color=\"#262a2f\"/>\n    </linearGradient>\n    <linearGradient id=\"pipe-coupling\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\">\n      <stop offset=\"0\" stop-color=\"#c3c9cf\"/>\n      <stop offset=\"1\" stop-color=\"#363c42\"/>\n    </linearGradient>\n    <radialGradient id=\"pipe-rust\" cx=\"0.5\" cy=\"0.5\" r=\"0.5\">\n      <stop offset=\"0\" stop-color=\"#b8612a\"/>\n      <stop offset=\"1\" stop-color=\"#6e3416\" stop-opacity=\"0\"/>\n    </radialGradient>\n  </defs>\n  <ellipse cx=\"64\" cy=\"108\" rx=\"40\" ry=\"6\" fill=\"#000000\" opacity=\"0.35\"/>\n  <g transform=\"rotate(-38 64 64)\">\n    <rect x=\"12\" y=\"55\" width=\"104\" height=\"18\" rx=\"5\" fill=\"url(#pipe-body)\"/>\n    <rect x=\"12\" y=\"57\" width=\"104\" height=\"3\" rx=\"1.5\" fill=\"#ffffff\" opacity=\"0.2\"/>\n    <rect x=\"86\" y=\"49\" width=\"16\" height=\"30\" rx=\"3\" fill=\"url(#pipe-coupling)\"/>\n    <rect x=\"89\" y=\"49\" width=\"2\" height=\"30\" fill=\"#ffffff\" opacity=\"0.25\"/>\n    <rect x=\"96\" y=\"49\" width=\"2\" height=\"30\" fill=\"#000000\" opacity=\"0.25\"/>\n    <rect x=\"12\" y=\"51\" width=\"11\" height=\"26\" rx=\"2\" fill=\"url(#pipe-coupling)\"/>\n    <ellipse cx=\"44\" cy=\"64\" rx=\"11\" ry=\"6\" fill=\"url(#pipe-rust)\"/>\n    <ellipse cx=\"66\" cy=\"69\" rx=\"7\" ry=\"4\" fill=\"url(#pipe-rust)\"/>\n    <circle cx=\"54\" cy=\"61\" r=\"1.5\" fill=\"#6e3416\"/>\n    <circle cx=\"75\" cy=\"66\" r=\"1.2\" fill=\"#6e3416\"/>\n  </g>\n</svg>"
       },
       "mastery_level": 10,
       "fights_used": 144,
@@ -163,7 +168,8 @@
           "swing_speed_modifier": 0.05
         },
         "max_mastery_level": 10,
-        "image": null
+        "minimum_fighter_level": 2,
+        "image_svg": null
       },
       "mastery_level": 6,
       "fights_used": 89,
@@ -193,7 +199,8 @@
           "swing_speed_modifier": 0.05
         },
         "max_mastery_level": 10,
-        "image": null
+        "minimum_fighter_level": 2,
+        "image_svg": null
       },
       "mastery_level": 2,
       "fights_used": 34,
@@ -222,7 +229,8 @@
           "block_stamina_cost_reduction": 0.15
         },
         "max_mastery_level": 10,
-        "image": null
+        "minimum_fighter_level": 3,
+        "image_svg": null
       },
       "mastery_level": 4,
       "fights_used": 63,
@@ -251,7 +259,8 @@
           "block_stamina_cost_reduction": 0.15
         },
         "max_mastery_level": 10,
-        "image": null
+        "minimum_fighter_level": 3,
+        "image_svg": null
       },
       "mastery_level": 8,
       "fights_used": 120,
@@ -280,7 +289,8 @@
           "swing_speed_modifier": 0.12
         },
         "max_mastery_level": 10,
-        "image": null
+        "minimum_fighter_level": 4,
+        "image_svg": null
       },
       "mastery_level": 3,
       "fights_used": 51,
@@ -309,7 +319,8 @@
           "swing_speed_modifier": 0.12
         },
         "max_mastery_level": 10,
-        "image": null
+        "minimum_fighter_level": 4,
+        "image_svg": null
       },
       "mastery_level": 9,
       "fights_used": 136,
@@ -338,7 +349,8 @@
           "reach_bonus": 22
         },
         "max_mastery_level": 10,
-        "image": null
+        "minimum_fighter_level": 5,
+        "image_svg": null
       },
       "mastery_level": 5,
       "fights_used": 81,
@@ -367,7 +379,8 @@
           "block_stamina_cost_reduction": 0.1
         },
         "max_mastery_level": 10,
-        "image": null
+        "minimum_fighter_level": 2,
+        "image_svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 128 128\">\n  <defs>\n    <linearGradient id=\"shield-panel\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n      <stop offset=\"0\" stop-color=\"#8a96a3\"/>\n      <stop offset=\"0.55\" stop-color=\"#55606b\"/>\n      <stop offset=\"1\" stop-color=\"#2c3238\"/>\n    </linearGradient>\n    <linearGradient id=\"shield-window\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\">\n      <stop offset=\"0\" stop-color=\"#2a3640\"/>\n      <stop offset=\"1\" stop-color=\"#11161b\"/>\n    </linearGradient>\n    <radialGradient id=\"shield-rust\" cx=\"0.5\" cy=\"0.5\" r=\"0.5\">\n      <stop offset=\"0\" stop-color=\"#b8612a\"/>\n      <stop offset=\"1\" stop-color=\"#6e3416\" stop-opacity=\"0\"/>\n    </radialGradient>\n  </defs>\n  <ellipse cx=\"64\" cy=\"118\" rx=\"38\" ry=\"5\" fill=\"#000000\" opacity=\"0.35\"/>\n  <path d=\"M30 14 H98 Q110 14 110 26 V88 Q110 102 64 116 Q18 102 18 88 V26 Q18 14 30 14 Z\" fill=\"url(#shield-panel)\" stroke=\"#1b1f23\" stroke-width=\"3\"/>\n  <path d=\"M33 24 H95 L89 50 H39 Z\" fill=\"url(#shield-window)\" stroke=\"#1b1f23\" stroke-width=\"2\"/>\n  <path d=\"M40 26 H52 L45 48 H41 Z\" fill=\"#ffffff\" opacity=\"0.1\"/>\n  <rect x=\"21\" y=\"60\" width=\"86\" height=\"10\" fill=\"#6b4a2b\"/>\n  <rect x=\"21\" y=\"60\" width=\"86\" height=\"2\" fill=\"#ffffff\" opacity=\"0.12\"/>\n  <rect x=\"58\" y=\"57\" width=\"12\" height=\"16\" rx=\"2\" fill=\"#9aa1a8\" stroke=\"#1b1f23\" stroke-width=\"1.5\"/>\n  <ellipse cx=\"80\" cy=\"90\" rx=\"14\" ry=\"8\" fill=\"url(#shield-rust)\"/>\n  <ellipse cx=\"42\" cy=\"84\" rx=\"9\" ry=\"5\" fill=\"#000000\" opacity=\"0.2\"/>\n  <ellipse cx=\"41\" cy=\"83\" rx=\"9\" ry=\"5\" fill=\"#ffffff\" opacity=\"0.08\"/>\n  <circle cx=\"28\" cy=\"24\" r=\"2.5\" fill=\"#c3c9cf\"/>\n  <circle cx=\"100\" cy=\"24\" r=\"2.5\" fill=\"#c3c9cf\"/>\n  <circle cx=\"28\" cy=\"86\" r=\"2.5\" fill=\"#c3c9cf\"/>\n  <circle cx=\"100\" cy=\"86\" r=\"2.5\" fill=\"#c3c9cf\"/>\n</svg>"
       },
       "mastery_level": 9,
       "fights_used": 138,
@@ -397,7 +410,8 @@
           "swing_speed_modifier": -0.05
         },
         "max_mastery_level": 10,
-        "image": null
+        "minimum_fighter_level": 1,
+        "image_svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 128 128\">\n  <defs>\n    <linearGradient id=\"pipe-body\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\">\n      <stop offset=\"0\" stop-color=\"#a4adb7\"/>\n      <stop offset=\"0.45\" stop-color=\"#5c646d\"/>\n      <stop offset=\"1\" stop-color=\"#262a2f\"/>\n    </linearGradient>\n    <linearGradient id=\"pipe-coupling\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\">\n      <stop offset=\"0\" stop-color=\"#c3c9cf\"/>\n      <stop offset=\"1\" stop-color=\"#363c42\"/>\n    </linearGradient>\n    <radialGradient id=\"pipe-rust\" cx=\"0.5\" cy=\"0.5\" r=\"0.5\">\n      <stop offset=\"0\" stop-color=\"#b8612a\"/>\n      <stop offset=\"1\" stop-color=\"#6e3416\" stop-opacity=\"0\"/>\n    </radialGradient>\n  </defs>\n  <ellipse cx=\"64\" cy=\"108\" rx=\"40\" ry=\"6\" fill=\"#000000\" opacity=\"0.35\"/>\n  <g transform=\"rotate(-38 64 64)\">\n    <rect x=\"12\" y=\"55\" width=\"104\" height=\"18\" rx=\"5\" fill=\"url(#pipe-body)\"/>\n    <rect x=\"12\" y=\"57\" width=\"104\" height=\"3\" rx=\"1.5\" fill=\"#ffffff\" opacity=\"0.2\"/>\n    <rect x=\"86\" y=\"49\" width=\"16\" height=\"30\" rx=\"3\" fill=\"url(#pipe-coupling)\"/>\n    <rect x=\"89\" y=\"49\" width=\"2\" height=\"30\" fill=\"#ffffff\" opacity=\"0.25\"/>\n    <rect x=\"96\" y=\"49\" width=\"2\" height=\"30\" fill=\"#000000\" opacity=\"0.25\"/>\n    <rect x=\"12\" y=\"51\" width=\"11\" height=\"26\" rx=\"2\" fill=\"url(#pipe-coupling)\"/>\n    <ellipse cx=\"44\" cy=\"64\" rx=\"11\" ry=\"6\" fill=\"url(#pipe-rust)\"/>\n    <ellipse cx=\"66\" cy=\"69\" rx=\"7\" ry=\"4\" fill=\"url(#pipe-rust)\"/>\n    <circle cx=\"54\" cy=\"61\" r=\"1.5\" fill=\"#6e3416\"/>\n    <circle cx=\"75\" cy=\"66\" r=\"1.2\" fill=\"#6e3416\"/>\n  </g>\n</svg>"
       },
       "mastery_level": 1,
       "fights_used": 27,

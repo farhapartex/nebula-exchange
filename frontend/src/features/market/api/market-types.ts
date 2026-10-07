@@ -10,7 +10,8 @@ export type ToolTypeSummary = {
   rarity: ToolRarity;
   base_stats: Record<string, number>;
   max_mastery_level: number;
-  image: string | null;
+  minimum_fighter_level: number;
+  image_svg: string | null;
 };
 
 export type UnlockLevel = {
@@ -25,6 +26,7 @@ export type ShopItem = {
   price_coins: string;
   is_unlocked: boolean;
   unlock_level: UnlockLevel | null;
+  is_usable: boolean;
   owned_count: number;
 };
 

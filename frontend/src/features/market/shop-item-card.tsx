@@ -1,4 +1,4 @@
-import { Lock } from "lucide-react";
+import { Lock, ShieldAlert } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { ShopItem } from "@/features/market/api/market-types";
@@ -29,13 +29,20 @@ export function ShopItemCard({ shopItem, onBuy }: ShopItemCardProps) {
         <div>
           <h3 className="font-display text-xl leading-tight tracking-[0.04em] text-foreground">{toolType.name}</h3>
           <p className="text-xs text-subtle">
-            {categoryLabels[toolType.category]} · Mastery up to {toolType.max_mastery_level}
+            {categoryLabels[toolType.category]} · Level {toolType.minimum_fighter_level}+ · Mastery up to{" "}
+            {toolType.max_mastery_level}
           </p>
         </div>
         <RarityBadge rarity={toolType.rarity} />
       </div>
       <p className="text-sm text-muted">{toolType.description}</p>
       <ToolStatList baseStats={toolType.base_stats} />
+      {!shopItem.is_usable && (
+        <p className="flex items-center gap-1.5 text-xs text-amber-300">
+          <ShieldAlert className="size-3.5" aria-hidden="true" />
+          Usable from fighter level {toolType.minimum_fighter_level}
+        </p>
+      )}
       <div className="mt-auto flex items-center justify-between gap-3 border-t border-border pt-3">
         <CoinPrice coins={shopItem.price_coins} />
         {shopItem.is_unlocked ? (

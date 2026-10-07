@@ -3,6 +3,7 @@ import { Lock, Shield, Swords } from "lucide-react";
 
 import type { ToolTypeSummary } from "@/features/market/api/market-types";
 import { rarityArtworkClassNames } from "@/features/market/tool-rarity";
+import { toolSvgSource } from "@/features/market/tool-svg-source";
 import { cn } from "@/utils/class-names";
 
 type ToolArtworkProps = {
@@ -21,8 +22,8 @@ export function ToolArtwork({ toolType, isLocked = false, className }: ToolArtwo
         className,
       )}
     >
-      {toolType.image ? (
-        <Image src={toolType.image} alt="" fill unoptimized className="object-contain p-4" />
+      {toolType.image_svg ? (
+        <Image src={toolSvgSource(toolType.image_svg)} alt="" fill unoptimized className="object-contain p-4" />
       ) : (
         <CategoryIcon className="size-12 opacity-80" aria-hidden="true" />
       )}

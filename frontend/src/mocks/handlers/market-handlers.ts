@@ -1,17 +1,14 @@
-import { http } from "msw";
+import { bypass, http } from "msw";
 
 import type { ListingSort, MarketListing, ShopItem } from "@/features/market/api/market-types";
 import { buildApiUrl } from "@/lib/api/api-config";
+import type { ListEnvelope } from "@/lib/api/api-types";
 import marketListingsFixture from "@/mocks/fixtures/market/market-listings.json";
-import shopItemsFixture from "@/mocks/fixtures/market/shop-items.json";
 import { spendMockCoins } from "@/mocks/utils/mock-coin-balance";
 import { mockDataResponse, mockErrorResponse, mockListResponse, simulateLatency } from "@/mocks/utils/mock-responses";
 import { readSessionMockState, writeSessionMockState } from "@/mocks/utils/session-mock-store";
 
-const mockShopItems = shopItemsFixture as unknown as ShopItem[];
 const mockMarketListings = marketListingsFixture as unknown as MarketListing[];
-
-const boughtShopItemsStorageKey = "street-born-mock-bought-shop-items";
 const boughtListingsStorageKey = "street-born-mock-bought-listings";
 
 const listingComparators: Record<ListingSort, (first: MarketListing, second: MarketListing) => number> = {
@@ -21,12 +18,11 @@ const listingComparators: Record<ListingSort, (first: MarketListing, second: Mar
   NEWEST: (first, second) => second.listed_at.localeCompare(first.listed_at),
 };
 
-type ToolTypeFilterSubject = { category: string; rarity: string; name: string };
-
-function matchesFilters(toolType: ToolTypeFilterSubject, searchParameters: URLSearchParams): boolean {
+function matchesFilters(listing: MarketListing, searchParameters: URLSearchParams): boolean {
+  const toolType = listing.tool.tool_type;
   const category = searchParameters.get("category");
   const rarity = searchParameters.get("rarity");
-  const search = searchParameters.get("search")?.toLowerCase();
+  const search = searchParameters.get("q")?.toLowerCase();
   return (
     (!category || toolType.category === category) &&
     (!rarity || toolType.rarity === rarity) &&
@@ -34,28 +30,23 @@ function matchesFilters(toolType: ToolTypeFilterSubject, searchParameters: URLSe
   );
 }
 
-function readBoughtShopItems(): Record<string, number> {
-  return readSessionMockState<Record<string, number>>(boughtShopItemsStorageKey, {});
-}
-
 function readBoughtListings(): string[] {
   return readSessionMockState<string[]>(boughtListingsStorageKey, []);
 }
 
-export const marketHandlers = [
-  http.get(buildApiUrl("/shop-items"), async ({ request }) => {
-    await simulateLatency();
-    const requestUrl = new URL(request.url);
-    const boughtShopItems = readBoughtShopItems();
-    const shopItems = mockShopItems
-      .filter((shopItem) => matchesFilters(shopItem.tool_type, requestUrl.searchParams))
-      .map((shopItem) => ({
-        ...shopItem,
-        owned_count: shopItem.owned_count + (boughtShopItems[shopItem.tool_type.id] ?? 0),
-      }));
-    return mockListResponse(shopItems, requestUrl, 100);
-  }),
+async function findRealShopItem(request: Request, toolTypeID: string): Promise<ShopItem | null> {
+  const shopRequest = new Request(buildApiUrl("/shop-items?limit=100"), {
+    headers: { Authorization: request.headers.get("Authorization") ?? "" },
+  });
+  const shopResponse = await fetch(bypass(shopRequest));
+  if (!shopResponse.ok) {
+    return null;
+  }
+  const shopItems = ((await shopResponse.json()) as ListEnvelope<ShopItem>).data;
+  return shopItems.find((shopItem) => shopItem.tool_type.id === toolTypeID) ?? null;
+}
 
+export const marketHandlers = [
   http.get(buildApiUrl("/market-listings"), async ({ request }) => {
     await simulateLatency();
     const requestUrl = new URL(request.url);
@@ -63,14 +54,14 @@ export const marketHandlers = [
     const sort = (requestUrl.searchParams.get("sort") as ListingSort | null) ?? "PRICE_LOW";
     const listings = mockMarketListings
       .filter((listing) => !boughtListings.has(listing.id))
-      .filter((listing) => matchesFilters(listing.tool.tool_type, requestUrl.searchParams))
+      .filter((listing) => matchesFilters(listing, requestUrl.searchParams))
       .sort(listingComparators[sort] ?? listingComparators.PRICE_LOW);
     return mockListResponse(listings, requestUrl, 12);
   }),
 
-  http.post(buildApiUrl("/shop-items/:toolTypeID/purchases"), async ({ params }) => {
+  http.post(buildApiUrl("/shop-items/:toolTypeID/purchases"), async ({ params, request }) => {
     await simulateLatency();
-    const shopItem = mockShopItems.find((candidate) => candidate.tool_type.id === String(params.toolTypeID));
+    const shopItem = await findRealShopItem(request, String(params.toolTypeID));
     if (!shopItem) {
       return mockErrorResponse(404, "NOT_FOUND", "This tool is not in the shop");
     }
@@ -80,9 +71,6 @@ export const marketHandlers = [
     if (!spendMockCoins(Number(shopItem.price_coins))) {
       return mockErrorResponse(422, "INSUFFICIENT_FUNDS", "You do not have enough coins");
     }
-    const boughtShopItems = readBoughtShopItems();
-    boughtShopItems[shopItem.tool_type.id] = (boughtShopItems[shopItem.tool_type.id] ?? 0) + 1;
-    writeSessionMockState(boughtShopItemsStorageKey, boughtShopItems);
     return mockDataResponse({ tool_id: crypto.randomUUID() }, 201);
   }),
 
