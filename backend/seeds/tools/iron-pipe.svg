@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="pipe-body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a4adb7"/>
+      <stop offset="0.45" stop-color="#5c646d"/>
+      <stop offset="1" stop-color="#262a2f"/>
+    </linearGradient>
+    <linearGradient id="pipe-coupling" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c3c9cf"/>
+      <stop offset="1" stop-color="#363c42"/>
+    </linearGradient>
+    <radialGradient id="pipe-rust" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#b8612a"/>
+      <stop offset="1" stop-color="#6e3416" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <ellipse cx="64" cy="108" rx="40" ry="6" fill="#000000" opacity="0.35"/>
+  <g transform="rotate(-38 64 64)">
+    <rect x="12" y="55" width="104" height="18" rx="5" fill="url(#pipe-body)"/>
+    <rect x="12" y="57" width="104" height="3" rx="1.5" fill="#ffffff" opacity="0.2"/>
+    <rect x="86" y="49" width="16" height="30" rx="3" fill="url(#pipe-coupling)"/>
+    <rect x="89" y="49" width="2" height="30" fill="#ffffff" opacity="0.25"/>
+    <rect x="96" y="49" width="2" height="30" fill="#000000" opacity="0.25"/>
+    <rect x="12" y="51" width="11" height="26" rx="2" fill="url(#pipe-coupling)"/>
+    <ellipse cx="44" cy="64" rx="11" ry="6" fill="url(#pipe-rust)"/>
+    <ellipse cx="66" cy="69" rx="7" ry="4" fill="url(#pipe-rust)"/>
+    <circle cx="54" cy="61" r="1.5" fill="#6e3416"/>
+    <circle cx="75" cy="66" r="1.2" fill="#6e3416"/>
+  </g>
+</svg>

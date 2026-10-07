@@ -35,8 +35,8 @@ func newToolFixture(t *testing.T) toolFixture {
 		&storymodels.Chapter{ID: "1", Number: 1, Title: "The night they came", Summary: "x", IsFree: true, IsPublished: true},
 		&storymodels.Arena{ID: "burning-house", Name: "The burning house", Width: 960, FloorY: 470, Stage: database.JSONDocument(`{}`)},
 		&storymodels.Level{ID: levelID, ChapterID: &[]string{"1"}[0], Number: &[]int{1}[0], Kind: storymodels.LevelKindStory, Title: "x", Teaser: "x", ArenaID: "burning-house", TimeLimitSeconds: 90, Difficulty: database.JSONDocument(`{}`), StarRules: database.JSONDocument(`[]`), IsPublished: true},
-		&models.ToolType{ID: "iron-pipe", Name: "Iron pipe", Description: "x", Category: models.ToolCategoryWeapon, Rarity: models.ToolRarityCommon, BaseStats: database.JSONDocument(`{"damage_bonus":4}`), MasteryCurve: database.JSONDocument(`{"points_to_reach_level":[0,100]}`), MaxMasteryLevel: 2, ShopPriceCoins: &shopPrice, IsTradeable: true, IntroducedInLevelID: &levelID},
-		&models.ToolType{ID: "scrap-shield", Name: "Scrap shield", Description: "x", Category: models.ToolCategoryGuard, Rarity: models.ToolRarityCommon, BaseStats: database.JSONDocument(`{"block_damage_reduction":0.25}`), MasteryCurve: database.JSONDocument(`{"points_to_reach_level":[0,100]}`), MaxMasteryLevel: 2, IsTradeable: true},
+		&models.ToolType{ID: "iron-pipe", Name: "Iron pipe", Description: "x", Category: models.ToolCategoryWeapon, Rarity: models.ToolRarityCommon, BaseStats: database.JSONDocument(`{"damage_bonus":4}`), MasteryCurve: database.JSONDocument(`{"points_to_reach_level":[0,100]}`), MaxMasteryLevel: 2, MinimumFighterLevel: 1, ShopPriceCoins: &shopPrice, IsTradeable: true, IntroducedInLevelID: &levelID},
+		&models.ToolType{ID: "scrap-shield", Name: "Scrap shield", Description: "x", Category: models.ToolCategoryGuard, Rarity: models.ToolRarityCommon, BaseStats: database.JSONDocument(`{"block_damage_reduction":0.25}`), MasteryCurve: database.JSONDocument(`{"points_to_reach_level":[0,100]}`), MaxMasteryLevel: 2, MinimumFighterLevel: 2, IsTradeable: true},
 		&ironPipe,
 		&progressmodels.FightSession{ID: fightSessionID, UserID: ownerID, LevelID: levelID, Status: progressmodels.FightStatusStarted, Seed: 1, Loadout: database.JSONDocument(`{}`), StartedAt: activatedAt},
 	}
@@ -94,9 +94,10 @@ func TestToolTypeRulesAreEnforced(t *testing.T) {
 	fixture := newToolFixture(t)
 	freePrice := int64(0)
 	brokenToolTypes := map[string]models.ToolType{
-		"zero shop price":    {ID: "free-pipe", Name: "x", Description: "x", Category: models.ToolCategoryWeapon, Rarity: models.ToolRarityCommon, BaseStats: database.JSONDocument(`{"a":1}`), MasteryCurve: database.JSONDocument(`{}`), MaxMasteryLevel: 1, ShopPriceCoins: &freePrice},
-		"mastery above ten":  {ID: "legend-pipe", Name: "x", Description: "x", Category: models.ToolCategoryWeapon, Rarity: models.ToolRarityLegendary, BaseStats: database.JSONDocument(`{"a":1}`), MasteryCurve: database.JSONDocument(`{}`), MaxMasteryLevel: 11},
-		"stats are an array": {ID: "array-pipe", Name: "x", Description: "x", Category: models.ToolCategoryWeapon, Rarity: models.ToolRarityCommon, BaseStats: database.JSONDocument(`[1]`), MasteryCurve: database.JSONDocument(`{}`), MaxMasteryLevel: 1},
+		"zero shop price":    {ID: "free-pipe", Name: "x", Description: "x", Category: models.ToolCategoryWeapon, Rarity: models.ToolRarityCommon, BaseStats: database.JSONDocument(`{"a":1}`), MasteryCurve: database.JSONDocument(`{}`), MaxMasteryLevel: 1, MinimumFighterLevel: 1, ShopPriceCoins: &freePrice},
+		"mastery above ten":  {ID: "legend-pipe", Name: "x", Description: "x", Category: models.ToolCategoryWeapon, Rarity: models.ToolRarityLegendary, BaseStats: database.JSONDocument(`{"a":1}`), MasteryCurve: database.JSONDocument(`{}`), MaxMasteryLevel: 11, MinimumFighterLevel: 1},
+		"minimum level zero": {ID: "early-pipe", Name: "x", Description: "x", Category: models.ToolCategoryWeapon, Rarity: models.ToolRarityCommon, BaseStats: database.JSONDocument(`{"a":1}`), MasteryCurve: database.JSONDocument(`{}`), MaxMasteryLevel: 1, MinimumFighterLevel: 0},
+		"stats are an array": {ID: "array-pipe", Name: "x", Description: "x", Category: models.ToolCategoryWeapon, Rarity: models.ToolRarityCommon, BaseStats: database.JSONDocument(`[1]`), MasteryCurve: database.JSONDocument(`{}`), MaxMasteryLevel: 1, MinimumFighterLevel: 1},
 	}
 	for caseName, brokenToolType := range brokenToolTypes {
 		if err := fixture.database.Create(&brokenToolType).Error; err == nil {

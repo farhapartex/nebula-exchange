@@ -22,6 +22,7 @@ import (
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/objectstorage"
 	"github.com/farhapartex/nebula-exchange/backend/internal/progress"
 	"github.com/farhapartex/nebula-exchange/backend/internal/story"
+	"github.com/farhapartex/nebula-exchange/backend/internal/tools"
 	"github.com/farhapartex/nebula-exchange/backend/internal/wallet"
 )
 
@@ -88,6 +89,11 @@ func buildApplication(ctx context.Context, appConfig config.Config, appLogger *s
 	routeRegistrars = append(routeRegistrars, progressModule.RouteRegistrars()...)
 	routeRegistrars = append(routeRegistrars, paymentModule.RouteRegistrars()...)
 	routeRegistrars = append(routeRegistrars, walletModule.RouteRegistrars()...)
+	routeRegistrars = append(routeRegistrars, tools.NewModule(tools.ModuleDependencies{
+		Database:       gormDatabase,
+		PlayerStanding: progressModule.PlayerStanding,
+		Levels:         storyModule.LevelCatalog,
+	}).RouteRegistrars()...)
 
 	router, err := httpserver.NewRouter(
 		httpserver.RouterOptions{

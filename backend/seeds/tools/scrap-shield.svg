@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="shield-panel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8a96a3"/>
+      <stop offset="0.55" stop-color="#55606b"/>
+      <stop offset="1" stop-color="#2c3238"/>
+    </linearGradient>
+    <linearGradient id="shield-window" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2a3640"/>
+      <stop offset="1" stop-color="#11161b"/>
+    </linearGradient>
+    <radialGradient id="shield-rust" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#b8612a"/>
+      <stop offset="1" stop-color="#6e3416" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <ellipse cx="64" cy="118" rx="38" ry="5" fill="#000000" opacity="0.35"/>
+  <path d="M30 14 H98 Q110 14 110 26 V88 Q110 102 64 116 Q18 102 18 88 V26 Q18 14 30 14 Z" fill="url(#shield-panel)" stroke="#1b1f23" stroke-width="3"/>
+  <path d="M33 24 H95 L89 50 H39 Z" fill="url(#shield-window)" stroke="#1b1f23" stroke-width="2"/>
+  <path d="M40 26 H52 L45 48 H41 Z" fill="#ffffff" opacity="0.1"/>
+  <rect x="21" y="60" width="86" height="10" fill="#6b4a2b"/>
+  <rect x="21" y="60" width="86" height="2" fill="#ffffff" opacity="0.12"/>
+  <rect x="58" y="57" width="12" height="16" rx="2" fill="#9aa1a8" stroke="#1b1f23" stroke-width="1.5"/>
+  <ellipse cx="80" cy="90" rx="14" ry="8" fill="url(#shield-rust)"/>
+  <ellipse cx="42" cy="84" rx="9" ry="5" fill="#000000" opacity="0.2"/>
+  <ellipse cx="41" cy="83" rx="9" ry="5" fill="#ffffff" opacity="0.08"/>
+  <circle cx="28" cy="24" r="2.5" fill="#c3c9cf"/>
+  <circle cx="100" cy="24" r="2.5" fill="#c3c9cf"/>
+  <circle cx="28" cy="86" r="2.5" fill="#c3c9cf"/>
+  <circle cx="100" cy="86" r="2.5" fill="#c3c9cf"/>
+</svg>

@@ -10,7 +10,18 @@
     "swing_speed_modifier": -0.05
   },
   "mastery_curve": {
-    "points_to_reach_level": [0, 100, 250, 450, 700, 1000, 1400, 1900, 2500, 3200],
+    "points_to_reach_level": [
+      0,
+      100,
+      250,
+      450,
+      700,
+      1000,
+      1400,
+      1900,
+      2500,
+      3200
+    ],
     "stat_gain_per_level": {
       "damage_bonus": 1
     }
@@ -18,5 +29,7 @@
   "shop_price_coins": 300,
   "is_tradeable": true,
   "max_supply": null,
-  "introduced_in_level_id": null
+  "introduced_in_level_id": null,
+  "minimum_fighter_level": 1,
+  "image_svg_file": "iron-pipe.svg"
 }

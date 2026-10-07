@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -27,6 +28,9 @@ type ToolTypeContent struct {
 	IsTradeable         bool                  `json:"is_tradeable"`
 	MaxSupply           *int32                `json:"max_supply"`
 	IntroducedInLevelID *string               `json:"introduced_in_level_id"`
+	MinimumFighterLevel int16                 `json:"minimum_fighter_level"`
+	ImageSVGFile        string                `json:"image_svg_file"`
+	ImageSVG            string                `json:"-"`
 }
 
 type masteryCurve struct {
@@ -53,6 +57,14 @@ func LoadToolType(filePath string) (ToolTypeContent, error) {
 	if err := json.Unmarshal(toolTypeFile, &content); err != nil {
 		return ToolTypeContent{}, fmt.Errorf("parse %s: %w", filePath, err)
 	}
+	if content.ImageSVGFile == "" || filepath.Base(content.ImageSVGFile) != content.ImageSVGFile {
+		return ToolTypeContent{}, fmt.Errorf("%s: image_svg_file must name an SVG file next to the tool file", filePath)
+	}
+	svgMarkup, err := os.ReadFile(filepath.Join(filepath.Dir(filePath), content.ImageSVGFile))
+	if err != nil {
+		return ToolTypeContent{}, fmt.Errorf("%s: read image: %w", filePath, err)
+	}
+	content.ImageSVG = string(svgMarkup)
 	if err := validateToolType(content); err != nil {
 		return ToolTypeContent{}, fmt.Errorf("%s: %w", filePath, err)
 	}
@@ -78,6 +90,12 @@ func validateToolType(content ToolTypeContent) error {
 	}
 	if content.MaxSupply != nil && *content.MaxSupply <= 0 {
 		return errors.New("max_supply must be above zero or left out")
+	}
+	if content.MinimumFighterLevel < 1 {
+		return errors.New("minimum_fighter_level must be 1 or more")
+	}
+	if err := validateSVGImage(content.ImageSVG); err != nil {
+		return err
 	}
 	_, err := masteryLevelsOf(content.MasteryCurve)
 	return err
@@ -121,13 +139,15 @@ func SeedToolType(ctx context.Context, gormDatabase *gorm.DB, content ToolTypeCo
 		IsTradeable:         content.IsTradeable,
 		MaxSupply:           content.MaxSupply,
 		IntroducedInLevelID: content.IntroducedInLevelID,
+		MinimumFighterLevel: content.MinimumFighterLevel,
+		ImageSVG:            &content.ImageSVG,
 	}
 	err = gormDatabase.WithContext(ctx).
 		Clauses(clause.OnConflict{
 			Columns: []clause.Column{{Name: "id"}},
 			DoUpdates: clause.AssignmentColumns([]string{
 				"name", "description", "category", "rarity", "base_stats", "mastery_curve", "max_mastery_level",
-				"shop_price_coins", "is_tradeable", "max_supply", "introduced_in_level_id", "updated_at",
+				"shop_price_coins", "is_tradeable", "max_supply", "introduced_in_level_id", "minimum_fighter_level", "image_svg", "updated_at",
 			}),
 		}).
 		Create(&toolType).Error

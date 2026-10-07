@@ -9,7 +9,18 @@
     "block_stamina_cost_reduction": 0.1
   },
   "mastery_curve": {
-    "points_to_reach_level": [0, 100, 250, 450, 700, 1000, 1400, 1900, 2500, 3200],
+    "points_to_reach_level": [
+      0,
+      100,
+      250,
+      450,
+      700,
+      1000,
+      1400,
+      1900,
+      2500,
+      3200
+    ],
     "stat_gain_per_level": {
       "block_damage_reduction": 0.02
     }
@@ -17,5 +28,7 @@
   "shop_price_coins": 250,
   "is_tradeable": true,
   "max_supply": null,
-  "introduced_in_level_id": null
+  "introduced_in_level_id": null,
+  "minimum_fighter_level": 2,
+  "image_svg_file": "scrap-shield.svg"
 }

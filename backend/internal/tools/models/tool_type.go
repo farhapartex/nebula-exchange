@@ -35,7 +35,8 @@ type ToolType struct {
 	ShopPriceCoins      *int64
 	IsTradeable         bool `gorm:"not null"`
 	MaxSupply           *int32
-	ImageKey            *string
+	ImageSVG            *string
+	MinimumFighterLevel int16 `gorm:"not null"`
 	IntroducedInLevelID *string
 	CreatedAt           time.Time
 	UpdatedAt           time.Time

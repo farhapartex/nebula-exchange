@@ -7,11 +7,17 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/database/databasetest"
 	"github.com/farhapartex/nebula-exchange/backend/internal/tools/models"
 	"github.com/farhapartex/nebula-exchange/backend/internal/tools/seeding"
+)
+
+const (
+	validSVG        = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><defs><linearGradient id="g"><stop offset="0" stop-color="#fff"/></linearGradient></defs><rect width="10" height="10" fill="url(#g)"/></svg>`
+	validToolFields = `"id":"x","name":"x","description":"x","category":"WEAPON","rarity":"COMMON","base_stats":{"a":1},"minimum_fighter_level":1,"image_svg_file":"tool.svg","mastery_curve":{"points_to_reach_level":[0,100],"stat_gain_per_level":{"a":1}}`
 )
 
 func toolSeedFiles(t *testing.T) []string {
@@ -24,11 +30,15 @@ func toolSeedFiles(t *testing.T) []string {
 	return toolFiles
 }
 
-func writeToolFile(t *testing.T, content string) string {
+func writeTool(t *testing.T, toolJSON string, svgMarkup string) string {
 	t.Helper()
-	toolFile := filepath.Join(t.TempDir(), "tool.json")
-	if err := os.WriteFile(toolFile, []byte(content), 0o600); err != nil {
-		t.Fatalf("write tool file: %v", err)
+	toolDirectory := t.TempDir()
+	if err := os.WriteFile(filepath.Join(toolDirectory, "tool.svg"), []byte(svgMarkup), 0o600); err != nil {
+		t.Fatalf("write svg: %v", err)
+	}
+	toolFile := filepath.Join(toolDirectory, "tool.json")
+	if err := os.WriteFile(toolFile, []byte(toolJSON), 0o600); err != nil {
+		t.Fatalf("write tool: %v", err)
 	}
 	return toolFile
 }
@@ -52,19 +62,50 @@ func TestTheToolSeedFilesAreValidAndSeedTwice(t *testing.T) {
 	if len(seededTools) != 2 || seededTools[0].ID != "iron-pipe" || seededTools[0].MaxMasteryLevel != 10 || seededTools[1].Category != models.ToolCategoryGuard {
 		t.Fatalf("unexpected seeded tools %+v", seededTools)
 	}
+	for _, seededTool := range seededTools {
+		if seededTool.ImageSVG == nil || !strings.HasPrefix(*seededTool.ImageSVG, "<svg") || seededTool.MinimumFighterLevel < 1 {
+			t.Fatalf("tool %s is missing its SVG or minimum level", seededTool.ID)
+		}
+	}
+}
+
+func TestAValidToolFileLoads(t *testing.T) {
+	toolType, err := seeding.LoadToolType(writeTool(t, "{"+validToolFields+"}", validSVG))
+	if err != nil || toolType.ImageSVG != validSVG {
+		t.Fatalf("got %v", err)
+	}
 }
 
 func TestBrokenToolFilesAreRejected(t *testing.T) {
-	brokenFiles := map[string]string{
-		"unknown category": `{"id":"x","name":"x","description":"x","category":"HAT","rarity":"COMMON","base_stats":{"a":1},"mastery_curve":{"points_to_reach_level":[0],"stat_gain_per_level":{"a":1}}}`,
-		"curve not rising": `{"id":"x","name":"x","description":"x","category":"WEAPON","rarity":"COMMON","base_stats":{"a":1},"mastery_curve":{"points_to_reach_level":[0,100,100],"stat_gain_per_level":{"a":1}}}`,
-		"curve too long":   `{"id":"x","name":"x","description":"x","category":"WEAPON","rarity":"COMMON","base_stats":{"a":1},"mastery_curve":{"points_to_reach_level":[0,1,2,3,4,5,6,7,8,9,10],"stat_gain_per_level":{"a":1}}}`,
-		"no base stats":    `{"id":"x","name":"x","description":"x","category":"GUARD","rarity":"COMMON","base_stats":{},"mastery_curve":{"points_to_reach_level":[0],"stat_gain_per_level":{"a":1}}}`,
-		"free in the shop": `{"id":"x","name":"x","description":"x","category":"GUARD","rarity":"COMMON","base_stats":{"a":1},"shop_price_coins":0,"mastery_curve":{"points_to_reach_level":[0],"stat_gain_per_level":{"a":1}}}`,
+	brokenTools := map[string]string{
+		"unknown category":   strings.Replace(validToolFields, `"WEAPON"`, `"HAT"`, 1),
+		"curve not rising":   strings.Replace(validToolFields, `[0,100]`, `[0,100,100]`, 1),
+		"curve too long":     strings.Replace(validToolFields, `[0,100]`, `[0,1,2,3,4,5,6,7,8,9,10]`, 1),
+		"no base stats":      strings.Replace(validToolFields, `{"a":1},"minimum`, `{},"minimum`, 1),
+		"minimum level zero": strings.Replace(validToolFields, `"minimum_fighter_level":1`, `"minimum_fighter_level":0`, 1),
+		"image outside":      strings.Replace(validToolFields, `"tool.svg"`, `"../tool.svg"`, 1),
 	}
-	for caseName, brokenContent := range brokenFiles {
-		if _, err := seeding.LoadToolType(writeToolFile(t, brokenContent)); err == nil {
+	for caseName, brokenFields := range brokenTools {
+		if _, err := seeding.LoadToolType(writeTool(t, "{"+brokenFields+"}", validSVG)); err == nil {
 			t.Errorf("%s: expected an error", caseName)
+		}
+	}
+}
+
+func TestUnsafeSVGImagesAreRejected(t *testing.T) {
+	unsafeSVGs := map[string]string{
+		"script element":  `<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>`,
+		"event attribute": `<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"><rect width="1" height="1"/></svg>`,
+		"outside link":    `<svg xmlns="http://www.w3.org/2000/svg"><use href="https://evil.test/a.svg#x"/></svg>`,
+		"outside image":   `<svg xmlns="http://www.w3.org/2000/svg"><image href="#x"/></svg>`,
+		"outside url":     `<svg xmlns="http://www.w3.org/2000/svg"><rect fill="url(https://evil.test/x)"/></svg>`,
+		"doctype":         `<!DOCTYPE svg [<!ENTITY x "y">]><svg xmlns="http://www.w3.org/2000/svg"/>`,
+		"not an svg":      `<html><body/></html>`,
+		"broken xml":      `<svg xmlns="http://www.w3.org/2000/svg"><rect></svg>`,
+	}
+	for caseName, unsafeSVG := range unsafeSVGs {
+		if _, err := seeding.LoadToolType(writeTool(t, "{"+validToolFields+"}", unsafeSVG)); err == nil {
+			t.Errorf("%s: expected the SVG to be rejected", caseName)
 		}
 	}
 }
