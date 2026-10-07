@@ -4,9 +4,11 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/error-state";
+import { useCurrentPlayer } from "@/features/auth/session/use-current-player";
 import { fetchShopItemsPage, marketQueryKeys } from "@/features/market/api/market-api";
 import type { MarketFilters, ShopItem } from "@/features/market/api/market-types";
 import { MarketEmptyState, MarketGridSkeleton } from "@/features/market/market-grid-states";
+import { levelsStillNeeded } from "@/features/market/fighter-level-requirement";
 import { ShopItemCard } from "@/features/market/shop-item-card";
 
 type ShopTabProps = {
@@ -15,6 +17,7 @@ type ShopTabProps = {
 };
 
 export function ShopTab({ filters, onBuy }: ShopTabProps) {
+  const currentFighterLevel = useCurrentPlayer().data?.current_level;
   const shopQuery = useInfiniteQuery({
     queryKey: marketQueryKeys.shopItems(filters),
     queryFn: ({ pageParam }) => fetchShopItemsPage(filters, pageParam),
@@ -42,7 +45,16 @@ export function ShopTab({ filters, onBuy }: ShopTabProps) {
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {shopItems.map((shopItem) => (
-          <ShopItemCard key={shopItem.tool_type.id} shopItem={shopItem} onBuy={onBuy} />
+          <ShopItemCard
+            key={shopItem.tool_type.id}
+            shopItem={shopItem}
+            levelsNeeded={
+              shopItem.is_usable
+                ? 0
+                : Math.max(levelsStillNeeded(shopItem.tool_type.minimum_fighter_level, currentFighterLevel), 1)
+            }
+            onBuy={onBuy}
+          />
         ))}
       </div>
       {shopQuery.hasNextPage && (

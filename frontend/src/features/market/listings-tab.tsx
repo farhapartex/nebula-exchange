@@ -4,8 +4,10 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/error-state";
+import { useCurrentPlayer } from "@/features/auth/session/use-current-player";
 import { fetchMarketListingsPage, marketQueryKeys } from "@/features/market/api/market-api";
 import type { MarketFilters, MarketListing } from "@/features/market/api/market-types";
+import { levelsStillNeeded } from "@/features/market/fighter-level-requirement";
 import { ListingCard } from "@/features/market/listing-card";
 import { MarketEmptyState, MarketGridSkeleton } from "@/features/market/market-grid-states";
 
@@ -15,6 +17,7 @@ type ListingsTabProps = {
 };
 
 export function ListingsTab({ filters, onBuy }: ListingsTabProps) {
+  const currentFighterLevel = useCurrentPlayer().data?.current_level;
   const listingsQuery = useInfiniteQuery({
     queryKey: marketQueryKeys.listings(filters),
     queryFn: ({ pageParam }) => fetchMarketListingsPage(filters, pageParam),
@@ -42,7 +45,12 @@ export function ListingsTab({ filters, onBuy }: ListingsTabProps) {
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {listings.map((listing) => (
-          <ListingCard key={listing.id} listing={listing} onBuy={onBuy} />
+          <ListingCard
+            key={listing.id}
+            listing={listing}
+            levelsNeeded={levelsStillNeeded(listing.tool.tool_type.minimum_fighter_level, currentFighterLevel)}
+            onBuy={onBuy}
+          />
         ))}
       </div>
       {listingsQuery.hasNextPage && (

@@ -1,8 +1,9 @@
-import { Lock, ShieldAlert } from "lucide-react";
+import { Lock } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { ShopItem } from "@/features/market/api/market-types";
 import { CoinPrice } from "@/features/market/coin-price";
+import { LevelRequirementNote } from "@/features/market/level-requirement-note";
 import { RarityBadge } from "@/features/market/rarity-badge";
 import { ToolArtwork } from "@/features/market/tool-artwork";
 import { categoryLabels } from "@/features/market/tool-rarity";
@@ -11,10 +12,11 @@ import { cn } from "@/utils/class-names";
 
 type ShopItemCardProps = {
   shopItem: ShopItem;
+  levelsNeeded: number;
   onBuy: (shopItem: ShopItem) => void;
 };
 
-export function ShopItemCard({ shopItem, onBuy }: ShopItemCardProps) {
+export function ShopItemCard({ shopItem, levelsNeeded, onBuy }: ShopItemCardProps) {
   const toolType = shopItem.tool_type;
   const unlockLevel = shopItem.unlock_level;
   return (
@@ -37,23 +39,19 @@ export function ShopItemCard({ shopItem, onBuy }: ShopItemCardProps) {
       </div>
       <p className="text-sm text-muted">{toolType.description}</p>
       <ToolStatList baseStats={toolType.base_stats} />
-      {!shopItem.is_usable && (
-        <p className="flex items-center gap-1.5 text-xs text-amber-300">
-          <ShieldAlert className="size-3.5" aria-hidden="true" />
-          Usable from fighter level {toolType.minimum_fighter_level}
-        </p>
-      )}
       <div className="mt-auto flex items-center justify-between gap-3 border-t border-border pt-3">
         <CoinPrice coins={shopItem.price_coins} />
-        {shopItem.is_unlocked ? (
-          <Button size="sm" onClick={() => onBuy(shopItem)}>
-            Buy
-          </Button>
-        ) : (
+        {!shopItem.is_unlocked ? (
           <span className="flex items-center gap-1.5 text-xs text-muted">
             <Lock className="size-3.5" aria-hidden="true" />
             Locked
           </span>
+        ) : levelsNeeded > 0 ? (
+          <LevelRequirementNote minimumFighterLevel={toolType.minimum_fighter_level} levelsNeeded={levelsNeeded} />
+        ) : (
+          <Button size="sm" onClick={() => onBuy(shopItem)}>
+            Buy
+          </Button>
         )}
       </div>
       {!shopItem.is_unlocked && unlockLevel && (

@@ -90,12 +90,6 @@ export function PurchaseToolDialog({ purchaseTarget, onClose }: PurchaseToolDial
             )}
           </div>
         </div>
-        {purchaseTarget.kind === "SHOP" && !purchaseTarget.shopItem.is_usable && (
-          <p className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-sm text-amber-200">
-            You can buy it now and keep it in your Arsenal, but you can only use it from fighter level{" "}
-            {toolType.minimum_fighter_level}.
-          </p>
-        )}
         <dl className="space-y-1.5 rounded-xl border border-border bg-background/60 p-4 text-sm">
           <div className="flex justify-between">
             <dt className="text-muted">Price</dt>
