@@ -43,9 +43,11 @@ func (status PaymentStatus) WasPaid() bool {
 }
 
 type Payment struct {
-	ID                      uuid.UUID     `gorm:"type:uuid;primaryKey"`
-	UserID                  uuid.UUID     `gorm:"type:uuid;not null"`
-	PlanID                  string        `gorm:"not null"`
+	ID                      uuid.UUID `gorm:"type:uuid;primaryKey"`
+	UserID                  uuid.UUID `gorm:"type:uuid;not null"`
+	PlanID                  *string
+	CoinPackID              *string
+	Coins                   *int64
 	Status                  PaymentStatus `gorm:"type:payment_status;not null"`
 	PaymentMethod           PaymentMethod `gorm:"type:payment_method;not null"`
 	Currency                string        `gorm:"not null"`
@@ -75,6 +77,10 @@ type Payment struct {
 
 func (Payment) TableName() string {
 	return "payments"
+}
+
+func (payment Payment) IsCoinPack() bool {
+	return payment.CoinPackID != nil
 }
 
 func (payment Payment) ChapterIDs() []string {

@@ -15,6 +15,7 @@ import (
 type paymentSettlement struct {
 	payments     repository.PaymentRepository
 	unlocker     ChapterUnlocker
+	coins        CoinAccounts
 	transactions TransactionRunner
 	logger       *slog.Logger
 	now          Clock
@@ -43,6 +44,10 @@ func (settlement paymentSettlement) markPaid(ctx context.Context, paymentID uuid
 		}
 		if err := settlement.payments.Update(ctx, &payment, changes); err != nil {
 			return err
+		}
+		if payment.IsCoinPack() {
+			settlement.logger.InfoContext(ctx, "coin pack payment paid", slog.String("payment_id", payment.ID.String()))
+			return settlement.coins.CreditCoinPack(ctx, payment.UserID, payment.ID, *payment.Coins)
 		}
 		settlement.logger.InfoContext(ctx, "chapter payment paid", slog.String("payment_id", payment.ID.String()), slog.Int("chapters", len(payment.Chapters)))
 		return settlement.unlocker.UnlockPurchasedChapters(ctx, payment.UserID, payment.ID, payment.ChapterIDs(), paidAt)
@@ -89,6 +94,10 @@ func (settlement paymentSettlement) reverse(ctx context.Context, paymentIntentID
 		}
 		if err := settlement.payments.Update(ctx, &payment, map[string]any{"status": reversedStatus, "refunded_at": settlement.now().UTC()}); err != nil {
 			return err
+		}
+		if payment.IsCoinPack() {
+			settlement.logger.InfoContext(ctx, "coin pack payment reversed", slog.String("payment_id", payment.ID.String()), slog.String("status", string(reversedStatus)))
+			return settlement.coins.ClawBackCoinPack(ctx, payment.UserID, payment.ID, *payment.Coins)
 		}
 		if err := settlement.unlocker.LockPurchasedChapters(ctx, payment.ID); err != nil {
 			return err
