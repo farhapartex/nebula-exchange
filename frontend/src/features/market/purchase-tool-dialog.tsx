@@ -4,13 +4,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { useCoinPackDialog } from "@/features/coin-packs/coin-pack-dialog-context";
 import { buyMarketListing, buyShopItem, marketQueryKeys } from "@/features/market/api/market-api";
 import type { MarketListing, ShopItem } from "@/features/market/api/market-types";
 import { MasteryMeter } from "@/features/market/mastery-meter";
 import { RarityBadge } from "@/features/market/rarity-badge";
 import { ToolArtwork } from "@/features/market/tool-artwork";
-import { fightHubQueryKeys } from "@/features/fight-hub/api/fight-hub-api";
-import { useFighterProfile } from "@/features/fight-hub/use-fight-hub";
+import { currentPlayerQueryKey, useCurrentPlayer } from "@/features/auth/session/use-current-player";
 import { isApiError } from "@/lib/api/api-error";
 import { publishToastEvent } from "@/lib/notifications/toast-events";
 import { formatCoinAmount } from "@/utils/money/format-coin-amount";
@@ -39,14 +39,15 @@ function purchaseDetails(purchaseTarget: PurchaseTarget) {
 
 export function PurchaseToolDialog({ purchaseTarget, onClose }: PurchaseToolDialogProps) {
   const queryClient = useQueryClient();
-  const fighterQuery = useFighterProfile();
+  const currentPlayerQuery = useCurrentPlayer();
+  const { openCoinPackDialog } = useCoinPackDialog();
   const purchaseMutation = useMutation({
     mutationFn: (target: PurchaseTarget) =>
       target.kind === "SHOP" ? buyShopItem(target.shopItem.tool_type.id) : buyMarketListing(target.listing.id),
     onSuccess: (_, target) => {
       const toolName = purchaseDetails(target).toolType.name;
       publishToastEvent({ tone: "success", title: `${toolName} is yours`, description: "Find it in your Arsenal." });
-      void queryClient.invalidateQueries({ queryKey: fightHubQueryKeys.fighter });
+      void queryClient.invalidateQueries({ queryKey: currentPlayerQueryKey });
       void queryClient.invalidateQueries({ queryKey: marketQueryKeys.allShopItems });
       void queryClient.invalidateQueries({ queryKey: marketQueryKeys.allListings });
       onClose();
@@ -63,10 +64,15 @@ export function PurchaseToolDialog({ purchaseTarget, onClose }: PurchaseToolDial
     return null;
   }
   const { toolType, priceCoins, listing } = purchaseDetails(purchaseTarget);
-  const balanceCoins = BigInt(fighterQuery.data?.coins ?? 0);
+  const balanceCoins = BigInt(currentPlayerQuery.data?.coins ?? "0");
   const price = BigInt(priceCoins);
   const missingCoins = price - balanceCoins;
   const hasEnoughCoins = missingCoins <= 0n;
+
+  function getMissingCoins() {
+    onClose();
+    openCoinPackDialog(missingCoins);
+  }
 
   return (
     <Dialog
@@ -112,17 +118,20 @@ export function PurchaseToolDialog({ purchaseTarget, onClose }: PurchaseToolDial
           <Button type="button" variant="secondary" onClick={onClose} disabled={purchaseMutation.isPending}>
             Cancel
           </Button>
-          <Button
-            type="button"
-            onClick={() => purchaseMutation.mutate(purchaseTarget)}
-            isLoading={purchaseMutation.isPending}
-            disabled={!hasEnoughCoins}
-            className="sm:min-w-44"
-          >
-            {hasEnoughCoins
-              ? `Buy for ${formatCoinAmount(price)} coins`
-              : `Need ${formatCoinAmount(missingCoins)} more coins`}
-          </Button>
+          {hasEnoughCoins ? (
+            <Button
+              type="button"
+              onClick={() => purchaseMutation.mutate(purchaseTarget)}
+              isLoading={purchaseMutation.isPending}
+              className="sm:min-w-44"
+            >
+              Buy for {formatCoinAmount(price)} coins
+            </Button>
+          ) : (
+            <Button type="button" onClick={getMissingCoins} className="sm:min-w-44">
+              Get {formatCoinAmount(missingCoins)} more coins
+            </Button>
+          )}
         </div>
       </div>
     </Dialog>
