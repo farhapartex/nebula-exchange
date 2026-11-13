@@ -22,6 +22,7 @@ type PlayerSummary struct {
 	CurrentLevelLosses int
 	PaidChapters       int
 	UnpaidChapters     int
+	Coins              int64
 }
 
 type PlayerProgress struct {
@@ -48,10 +49,11 @@ type ProfileService interface {
 type profileService struct {
 	users          repository.UserRepository
 	playerProgress PlayerProgressReader
+	coinBalances   CoinBalanceReader
 }
 
-func NewProfileService(users repository.UserRepository, playerProgress PlayerProgressReader) ProfileService {
-	return &profileService{users: users, playerProgress: playerProgress}
+func NewProfileService(users repository.UserRepository, playerProgress PlayerProgressReader, coinBalances CoinBalanceReader) ProfileService {
+	return &profileService{users: users, playerProgress: playerProgress, coinBalances: coinBalances}
 }
 
 func (profile *profileService) CurrentPlayer(ctx context.Context, userID uuid.UUID) (PlayerSummary, error) {
@@ -63,6 +65,10 @@ func (profile *profileService) CurrentPlayer(ctx context.Context, userID uuid.UU
 		return PlayerSummary{}, ErrNotLoggedIn
 	}
 	playerProgress, err := profile.playerProgress.PlayerProgressOf(ctx, userID)
+	if err != nil {
+		return PlayerSummary{}, err
+	}
+	coins, err := profile.coinBalances.Balance(ctx, userID)
 	if err != nil {
 		return PlayerSummary{}, err
 	}
@@ -79,5 +85,6 @@ func (profile *profileService) CurrentPlayer(ctx context.Context, userID uuid.UU
 		CurrentLevelLosses: playerProgress.CurrentLevelLosses,
 		PaidChapters:       playerProgress.PaidChapters,
 		UnpaidChapters:     playerProgress.UnpaidChapters,
+		Coins:              coins,
 	}, nil
 }

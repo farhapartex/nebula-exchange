@@ -22,6 +22,7 @@ type StripeWebhookDependencies struct {
 	Events       repository.StripeWebhookEventRepository
 	Payments     repository.PaymentRepository
 	Unlocker     ChapterUnlocker
+	Coins        CoinAccounts
 	Transactions TransactionRunner
 	Logger       *slog.Logger
 	Now          Clock
@@ -38,6 +39,7 @@ func NewStripeWebhookService(dependencies StripeWebhookDependencies) StripeWebho
 		settlement: paymentSettlement{
 			payments:     dependencies.Payments,
 			unlocker:     dependencies.Unlocker,
+			coins:        dependencies.Coins,
 			transactions: dependencies.Transactions,
 			logger:       dependencies.Logger,
 			now:          dependencies.Now,

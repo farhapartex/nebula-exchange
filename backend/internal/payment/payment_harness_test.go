@@ -21,6 +21,7 @@ import (
 	"github.com/stripe/stripe-go/v87/webhook"
 	"gorm.io/gorm"
 
+	"github.com/farhapartex/nebula-exchange/backend/internal/economy"
 	identitymodels "github.com/farhapartex/nebula-exchange/backend/internal/identity/models"
 	"github.com/farhapartex/nebula-exchange/backend/internal/payment"
 	paymentgateway "github.com/farhapartex/nebula-exchange/backend/internal/payment/gateway"
@@ -134,6 +135,11 @@ func plansSeedFile() string {
 	return filepath.Join(filepath.Dir(currentFile), "..", "..", "seeds", "plans", "plans.json")
 }
 
+func coinPacksSeedFile() string {
+	_, currentFile, _, _ := runtime.Caller(0)
+	return filepath.Join(filepath.Dir(currentFile), "..", "..", "seeds", "coin-packs", "coin-packs.json")
+}
+
 func newPaymentHarness(t *testing.T, options ...harnessOptions) *paymentHarness {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
@@ -172,6 +178,14 @@ func newPaymentHarness(t *testing.T, options ...harnessOptions) *paymentHarness 
 		t.Fatalf("seed plans: %v", err)
 	}
 
+	coinPacks, err := paymentseeding.LoadCoinPacks(coinPacksSeedFile())
+	if err != nil {
+		t.Fatalf("load coin packs: %v", err)
+	}
+	if err := paymentseeding.SeedCoinPacks(context.Background(), testDatabase, coinPacks, quietLogger); err != nil {
+		t.Fatalf("seed coin packs: %v", err)
+	}
+
 	storyModule := story.NewModule(story.ModuleDependencies{Database: testDatabase})
 	progressModule := progress.NewModule(progress.ModuleDependencies{Database: testDatabase, Levels: storyModule.LevelCatalog, Logger: quietLogger, Now: time.Now})
 	fakeGateway := newFakeCheckoutGateway()
@@ -180,6 +194,7 @@ func newPaymentHarness(t *testing.T, options ...harnessOptions) *paymentHarness 
 		Chapters:         storyModule.LevelCatalog,
 		ChapterOwnership: progressModule.ChapterOwnership,
 		ChapterUnlocker:  progressModule.ChapterUnlocks,
+		CoinAccounts:     economy.NewModule(economy.ModuleDependencies{Database: testDatabase, Logger: quietLogger, Now: time.Now}).CoinAccounts,
 		FrontendBaseURL:  testFrontendURL,
 		Logger:           quietLogger,
 		Now:              time.Now,
@@ -332,4 +347,38 @@ func (harness *paymentHarness) paymentStatus(paymentID string) string {
 		harness.t.Fatalf("read payment status: %v", err)
 	}
 	return status
+}
+
+func (harness *paymentHarness) startCoinCheckout(accessToken string, requestFields map[string]any) (int, dataBody) {
+	harness.t.Helper()
+	requestBody, _ := json.Marshal(requestFields)
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/checkout-sessions", bytes.NewReader(requestBody))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-Nebula-Client", "web")
+	request.Header.Set("Authorization", "Bearer "+accessToken)
+	recorder := harness.serve(request)
+	var body dataBody
+	_ = json.Unmarshal(recorder.Body.Bytes(), &body)
+	return recorder.Code, body
+}
+
+func (harness *paymentHarness) coinBalance(userID uuid.UUID) int64 {
+	harness.t.Helper()
+	var coins []int64
+	if err := harness.database.Table("coin_balances").Where("user_id = ?", userID).Pluck("coins", &coins).Error; err != nil {
+		harness.t.Fatalf("read coin balance: %v", err)
+	}
+	if len(coins) == 0 {
+		return 0
+	}
+	return coins[0]
+}
+
+func (harness *paymentHarness) coinLedgerAmounts(userID uuid.UUID) []int64 {
+	harness.t.Helper()
+	var amounts []int64
+	if err := harness.database.Table("coin_ledger_entries").Where("user_id = ?", userID).Order("created_at, id").Pluck("amount", &amounts).Error; err != nil {
+		harness.t.Fatalf("read coin ledger: %v", err)
+	}
+	return amounts
 }
