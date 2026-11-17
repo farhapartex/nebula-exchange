@@ -39,7 +39,7 @@ func (repository *GormCoinPackRepository) ListActive(ctx context.Context, afterS
 func (repository *GormCoinPackRepository) FindActive(ctx context.Context, coinPackID string) (models.CoinPack, error) {
 	var coinPack models.CoinPack
 	err := database.Session(ctx, repository.database).
-		Where(map[string]any{"id": coinPackID, "is_active": true}).
+		Where(map[string]any{"id": coinPackID}).
 		Take(&coinPack).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return models.CoinPack{}, ErrCoinPackNotFound

@@ -120,8 +120,7 @@ func (repository *GormPaymentRepository) ListSettledForUser(ctx context.Context,
 	query := database.Session(ctx, repository.database).
 		Preload("Plan").
 		Preload("Chapters", func(chapters *gorm.DB) *gorm.DB { return chapters.Order("chapter_number") }).
-		Where(map[string]any{"user_id": userID, "status": models.SettledPaymentStatuses}).
-		Not(map[string]any{"plan_id": nil})
+		Where(map[string]any{"user_id": userID, "status": models.SettledPaymentStatuses})
 	if after != nil {
 		query = query.Where("(paid_at, id) < (?, ?)", after.PaidAt, after.ID)
 	}
