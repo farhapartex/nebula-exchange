@@ -31,13 +31,16 @@ func (checkout *checkoutService) StartCoinPack(ctx context.Context, userID uuid.
 	if err != nil {
 		return StartedCheckout{}, err
 	}
+	if err := checkout.expireOpenCheckouts(ctx, userID); err != nil {
+		return StartedCheckout{}, err
+	}
 	payment, err := checkout.newCoinPackPayment(userID, coinPack)
 	if err != nil {
 		return StartedCheckout{}, err
 	}
 	safeReturnPath := coinCheckoutReturnPath(returnPath)
 	return checkout.openStripeCheckout(ctx, &payment, stripeProduct{
-		name:        fmt.Sprintf("%s: %d coins", checkoutProductNamePrefix, coinPack.PriceCents),
+		name:        fmt.Sprintf("%s: %d coins", checkoutProductNamePrefix, coinPack.Coins),
 		description: coinPack.Name + ". Coins buy tools in the game and cannot be turned back into money.",
 		successURL:  checkout.returnURL(safeReturnPath, coinCheckoutReturnParameter, payment.ID.String()),
 		cancelURL:   checkout.returnURL(safeReturnPath, coinCheckoutReturnParameter, checkoutCancelledValue),

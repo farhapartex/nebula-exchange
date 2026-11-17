@@ -41,9 +41,8 @@ type stripeCheckoutSessionObject struct {
 }
 
 type stripeChargeObject struct {
-	PaymentIntent  string `json:"payment_intent"`
-	Refunded       bool   `json:"refunded"`
-	AmountRefunded int64  `json:"amount_refunded"`
+	PaymentIntent string `json:"payment_intent"`
+	Refunded      bool   `json:"refunded"`
 }
 
 type stripeDisputeObject struct {
@@ -101,7 +100,7 @@ func readEventObject(paymentEvent *service.PaymentEvent, object json.RawMessage)
 			return fmt.Errorf("stripe charge: %w", err)
 		}
 		paymentEvent.PaymentIntentID = charge.PaymentIntent
-		paymentEvent.IsFullRefund = charge.Refunded || charge.AmountRefunded > 0
+		paymentEvent.IsFullRefund = charge.Refunded
 	case service.PaymentEventDisputeOpened:
 		var dispute stripeDisputeObject
 		if err := json.Unmarshal(object, &dispute); err != nil {

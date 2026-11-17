@@ -66,7 +66,7 @@ func (repository *GormPaymentRepository) FindForUser(ctx context.Context, paymen
 	var payment models.Payment
 	err := database.Session(ctx, repository.database).
 		Preload("Chapters").
-		Where(map[string]any{"id": paymentID}).
+		Where(map[string]any{"id": paymentID, "user_id": userID}).
 		Take(&payment).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return models.Payment{}, ErrPaymentNotFound
@@ -120,7 +120,8 @@ func (repository *GormPaymentRepository) ListSettledForUser(ctx context.Context,
 	query := database.Session(ctx, repository.database).
 		Preload("Plan").
 		Preload("Chapters", func(chapters *gorm.DB) *gorm.DB { return chapters.Order("chapter_number") }).
-		Where(map[string]any{"user_id": userID, "status": models.SettledPaymentStatuses})
+		Where(map[string]any{"user_id": userID, "status": models.SettledPaymentStatuses}).
+		Not(map[string]any{"plan_id": nil})
 	if after != nil {
 		query = query.Where("(paid_at, id) < (?, ?)", after.PaidAt, after.ID)
 	}

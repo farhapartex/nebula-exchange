@@ -45,6 +45,7 @@ func (repository *GormCoinBalanceRepository) LockOrCreate(ctx context.Context, u
 	}
 	var balance models.CoinBalance
 	err = database.Session(ctx, repository.database).
+		Clauses(clause.Locking{Strength: clause.LockingStrengthUpdate}).
 		Where(map[string]any{"user_id": userID}).
 		Take(&balance).Error
 	return balance, err

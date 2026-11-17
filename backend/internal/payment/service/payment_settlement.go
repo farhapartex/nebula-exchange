@@ -34,23 +34,20 @@ func (settlement paymentSettlement) markPaid(ctx context.Context, paymentID uuid
 		if payment.Status.WasPaid() {
 			return nil
 		}
-		paidAt := settlement.now().UTC()
-		if payment.IsCoinPack() {
-			if err := settlement.payments.Update(ctx, &payment, map[string]any{"status": models.PaymentStatusPaid, "paid_at": paidAt, "stripe_payment_intent_id": checkout.PaymentIntentID}); err != nil {
-				return err
-			}
-			settlement.logger.InfoContext(ctx, "coin pack payment paid", slog.String("payment_id", payment.ID.String()))
-			return settlement.coins.CreditCoinPack(ctx, payment.UserID, payment.ID, *payment.Coins)
-		}
 		if !settlement.matchesPayment(ctx, payment, checkout) {
 			return nil
 		}
+		paidAt := settlement.now().UTC()
 		changes := map[string]any{"status": models.PaymentStatusPaid, "paid_at": paidAt}
 		if checkout.PaymentIntentID != "" {
 			changes["stripe_payment_intent_id"] = checkout.PaymentIntentID
 		}
 		if err := settlement.payments.Update(ctx, &payment, changes); err != nil {
 			return err
+		}
+		if payment.IsCoinPack() {
+			settlement.logger.InfoContext(ctx, "coin pack payment paid", slog.String("payment_id", payment.ID.String()))
+			return settlement.coins.CreditCoinPack(ctx, payment.UserID, payment.ID, *payment.Coins)
 		}
 		settlement.logger.InfoContext(ctx, "chapter payment paid", slog.String("payment_id", payment.ID.String()), slog.Int("chapters", len(payment.Chapters)))
 		return settlement.unlocker.UnlockPurchasedChapters(ctx, payment.UserID, payment.ID, payment.ChapterIDs(), paidAt)
