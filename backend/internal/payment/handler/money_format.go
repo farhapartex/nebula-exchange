@@ -13,3 +13,10 @@ func formatOptionalCents(cents *int64) *string {
 	formattedCents := formatCents(*cents)
 	return &formattedCents
 }
+
+func valueOrEmpty(text *string) string {
+	if text == nil {
+		return ""
+	}
+	return *text
+}

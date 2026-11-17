@@ -2,19 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Coins } from "lucide-react";
 
+import { CoinBalanceButton } from "@/components/app-shell/coin-balance-button";
 import { ConnectedWalletBadge } from "@/components/app-shell/connected-wallet-badge";
 import { ProfileMenu } from "@/components/app-shell/profile-menu";
 import { gameNavigationLinks } from "@/components/app-shell/game-navigation";
 import { GameLogo } from "@/components/brand/game-logo";
 import { PageContainer } from "@/components/layout/page-container";
-import { useFighterProfile } from "@/features/fight-hub/use-fight-hub";
 import { cn } from "@/utils/class-names";
 
 export function GameTopBar() {
   const pathname = usePathname();
-  const fighterQuery = useFighterProfile();
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-md">
@@ -52,11 +50,7 @@ export function GameTopBar() {
         </nav>
         <div className="ml-auto flex items-center gap-3">
           <ConnectedWalletBadge />
-          <span className="flex h-9 items-center gap-2 rounded-lg border border-border-strong bg-surface-raised px-3 text-sm">
-            <Coins className="size-4 text-amber-400" aria-hidden="true" />
-            <span className="font-mono text-foreground tabular-nums">{fighterQuery.data?.coins ?? "—"}</span>
-            <span className="text-xs text-subtle">coins</span>
-          </span>
+          <CoinBalanceButton />
           <ProfileMenu />
         </div>
       </PageContainer>

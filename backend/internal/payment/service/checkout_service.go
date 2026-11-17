@@ -58,6 +58,7 @@ type CheckoutState struct {
 type CheckoutService interface {
 	Start(ctx context.Context, userID uuid.UUID, planID string, chapterCount int) (StartedCheckout, error)
 	State(ctx context.Context, userID uuid.UUID, paymentID uuid.UUID) (CheckoutState, error)
+	StartCoinPack(ctx context.Context, userID uuid.UUID, coinPackID string, returnPath string) (StartedCheckout, error)
 	StartWallet(ctx context.Context, userID uuid.UUID, planID string, chapterCount int) (StartedWalletCheckout, error)
 	ReportWalletTransaction(ctx context.Context, userID uuid.UUID, paymentID uuid.UUID, transactionHash string) (CheckoutState, error)
 }
@@ -68,6 +69,8 @@ type CheckoutDependencies struct {
 	Chapters        ChapterCatalog
 	Ownership       ChapterOwnership
 	Unlocker        ChapterUnlocker
+	Coins           CoinAccounts
+	CoinPacks       repository.CoinPackRepository
 	Gateway         CheckoutGateway
 	WalletPayments  *WalletPaymentDependencies
 	Transactions    TransactionRunner
@@ -90,6 +93,7 @@ func NewCheckoutService(dependencies CheckoutDependencies) CheckoutService {
 		settlement: paymentSettlement{
 			payments:     dependencies.Payments,
 			unlocker:     dependencies.Unlocker,
+			coins:        dependencies.Coins,
 			transactions: dependencies.Transactions,
 			logger:       dependencies.Logger,
 			now:          dependencies.Now,
@@ -128,7 +132,23 @@ func (checkout *checkoutService) Start(ctx context.Context, userID uuid.UUID, pl
 	if err != nil {
 		return StartedCheckout{}, err
 	}
-	if err := checkout.dependencies.Payments.CreateWithChapters(ctx, &payment); err != nil {
+	return checkout.openStripeCheckout(ctx, &payment, stripeProduct{
+		name:        checkoutProductName(option),
+		description: checkoutProductDescription(plan, option),
+		successURL:  checkout.returnURL(checkoutSuccessPath, checkoutReturnParameter, payment.ID.String()),
+		cancelURL:   checkout.returnURL(checkoutCancelPath, checkoutReturnParameter, checkoutCancelledValue),
+	})
+}
+
+type stripeProduct struct {
+	name        string
+	description string
+	successURL  string
+	cancelURL   string
+}
+
+func (checkout *checkoutService) openStripeCheckout(ctx context.Context, payment *models.Payment, product stripeProduct) (StartedCheckout, error) {
+	if err := checkout.dependencies.Payments.CreateWithChapters(ctx, payment); err != nil {
 		if errors.Is(err, repository.ErrOpenCheckoutExists) {
 			return StartedCheckout{}, ErrCheckoutAlreadyStarting
 		}
@@ -137,22 +157,22 @@ func (checkout *checkoutService) Start(ctx context.Context, userID uuid.UUID, pl
 
 	createdCheckout, err := checkout.dependencies.Gateway.CreateCheckout(ctx, CheckoutRequest{
 		PaymentID:          payment.ID,
-		ProductName:        checkoutProductName(option),
-		ProductDescription: checkoutProductDescription(plan, option),
+		ProductName:        product.name,
+		ProductDescription: product.description,
 		AmountCents:        payment.TotalCents,
 		Currency:           payment.Currency,
-		SuccessURL:         checkout.returnURL(checkoutSuccessPath, payment.ID.String()),
-		CancelURL:          checkout.returnURL(checkoutCancelPath, checkoutCancelledValue),
+		SuccessURL:         product.successURL,
+		CancelURL:          product.cancelURL,
 		ExpiresAt:          payment.CheckoutExpiresAt,
 	})
 	if err != nil {
 		checkout.dependencies.Logger.ErrorContext(ctx, "stripe checkout could not be created", slog.String("payment_id", payment.ID.String()), slog.Any("error", err))
-		if updateErr := checkout.dependencies.Payments.Update(ctx, &payment, map[string]any{"status": models.PaymentStatusFailed}); updateErr != nil {
+		if updateErr := checkout.dependencies.Payments.Update(ctx, payment, map[string]any{"status": models.PaymentStatusFailed}); updateErr != nil {
 			return StartedCheckout{}, updateErr
 		}
 		return StartedCheckout{}, ErrPaymentsUnavailable
 	}
-	if err := checkout.dependencies.Payments.Update(ctx, &payment, map[string]any{
+	if err := checkout.dependencies.Payments.Update(ctx, payment, map[string]any{
 		"stripe_checkout_session_id": createdCheckout.SessionID,
 		"checkout_url":               createdCheckout.URL,
 	}); err != nil {
@@ -250,7 +270,7 @@ func (checkout *checkoutService) newPayment(userID uuid.UUID, plan models.Plan, 
 	return models.Payment{
 		ID:                paymentID,
 		UserID:            userID,
-		PlanID:            plan.ID,
+		PlanID:            &plan.ID,
 		Status:            models.PaymentStatusOpen,
 		PaymentMethod:     models.PaymentMethodCard,
 		Currency:          checkoutCurrency,
@@ -265,8 +285,8 @@ func (checkout *checkoutService) newPayment(userID uuid.UUID, plan models.Plan, 
 	}, nil
 }
 
-func (checkout *checkoutService) returnURL(path string, checkoutValue string) string {
-	query := url.Values{checkoutReturnParameter: []string{checkoutValue}}
+func (checkout *checkoutService) returnURL(path string, parameter string, value string) string {
+	query := url.Values{parameter: []string{value}}
 	return strings.TrimRight(checkout.dependencies.FrontendBaseURL, "/") + path + "?" + query.Encode()
 }
 

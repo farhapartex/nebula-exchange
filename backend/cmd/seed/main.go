@@ -25,6 +25,7 @@ import (
 
 const (
 	plansFileName         = "plans/plans.json"
+	coinPacksFileName     = "coin-packs/coin-packs.json"
 	fightersDirectoryName = "fighters"
 	storyDirectoryName    = "story"
 	toolsDirectoryName    = "tools"
@@ -72,6 +73,13 @@ func run(arguments []string, appLogger *slog.Logger) error {
 		return err
 	}
 	if err := paymentseeding.SeedPlans(ctx, gormDatabase, plans, appLogger); err != nil {
+		return err
+	}
+	coinPacks, err := paymentseeding.LoadCoinPacks(filepath.Join(seedsDirectory, coinPacksFileName))
+	if err != nil {
+		return err
+	}
+	if err := paymentseeding.SeedCoinPacks(ctx, gormDatabase, coinPacks, appLogger); err != nil {
 		return err
 	}
 	if err := seedFighterTemplates(ctx, gormDatabase, filepath.Join(seedsDirectory, fightersDirectoryName), appLogger); err != nil {

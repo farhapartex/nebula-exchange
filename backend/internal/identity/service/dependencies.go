@@ -32,3 +32,11 @@ type TransactionRunner interface {
 }
 
 type Clock func() time.Time
+
+type CoinBalanceReader interface {
+	Balance(ctx context.Context, userID uuid.UUID) (int64, error)
+}
+
+type WelcomeGiftGranter interface {
+	GrantWelcomeGift(ctx context.Context, userID uuid.UUID) error
+}

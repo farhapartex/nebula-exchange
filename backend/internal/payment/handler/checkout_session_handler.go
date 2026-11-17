@@ -10,14 +10,17 @@ import (
 
 	"github.com/farhapartex/nebula-exchange/backend/internal/payment/models"
 	"github.com/farhapartex/nebula-exchange/backend/internal/payment/service"
+	"github.com/farhapartex/nebula-exchange/backend/internal/platform/apierror"
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/httpserver/authentication"
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/httpserver/request"
 	"github.com/farhapartex/nebula-exchange/backend/internal/platform/httpserver/response"
 )
 
 type startCheckoutRequest struct {
-	PlanID        string               `json:"plan_id" binding:"required,max=64"`
-	ChapterCount  int                  `json:"chapter_count" binding:"required,min=1,max=1000"`
+	PlanID        string               `json:"plan_id" binding:"omitempty,max=64"`
+	ChapterCount  int                  `json:"chapter_count" binding:"omitempty,min=1,max=1000"`
+	CoinPackID    string               `json:"coin_pack_id" binding:"omitempty,max=64"`
+	ReturnPath    string               `json:"return_path" binding:"omitempty,max=200"`
 	PaymentMethod models.PaymentMethod `json:"payment_method" binding:"omitempty,oneof=CARD WALLET"`
 }
 
@@ -69,21 +72,54 @@ func (handler *CheckoutSessionHandler) postCheckoutSession(context *gin.Context)
 		response.WriteError(context, err)
 		return
 	}
+	if fieldErrors := checkoutRequestFieldErrors(body); len(fieldErrors) > 0 {
+		response.WriteError(context, apierror.ValidationFailed(fieldErrors))
+		return
+	}
 	userID, _ := authentication.UserIDFrom(context)
+	if body.CoinPackID != "" {
+		handler.writeStartedCheckout(context)(handler.checkoutService.StartCoinPack(context.Request.Context(), userID, body.CoinPackID, body.ReturnPath))
+		return
+	}
 	if body.PaymentMethod == models.PaymentMethodWallet {
 		handler.startWalletCheckout(context, userID, body)
 		return
 	}
-	startedCheckout, err := handler.checkoutService.Start(context.Request.Context(), userID, body.PlanID, body.ChapterCount)
-	if err != nil {
-		response.WriteError(context, err)
-		return
+	handler.writeStartedCheckout(context)(handler.checkoutService.Start(context.Request.Context(), userID, body.PlanID, body.ChapterCount))
+}
+
+func checkoutRequestFieldErrors(body startCheckoutRequest) map[string]string {
+	fieldErrors := map[string]string{}
+	if body.CoinPackID != "" {
+		if body.PlanID != "" {
+			fieldErrors["plan_id"] = "cannot be combined with coin_pack_id"
+		}
+		if body.PaymentMethod == models.PaymentMethodWallet {
+			fieldErrors["payment_method"] = "coin packs are paid by card"
+		}
+		return fieldErrors
 	}
-	response.WriteData(context, http.StatusCreated, CreatedCheckoutSessionResponse{
-		ID:          startedCheckout.ID,
-		CheckoutURL: startedCheckout.CheckoutURL,
-		ExpiresAt:   startedCheckout.ExpiresAt,
-	})
+	if body.PlanID == "" {
+		fieldErrors["plan_id"] = "is required"
+	}
+	if body.ChapterCount == 0 {
+		fieldErrors["chapter_count"] = "is required"
+	}
+	return fieldErrors
+}
+
+func (handler *CheckoutSessionHandler) writeStartedCheckout(context *gin.Context) func(service.StartedCheckout, error) {
+	return func(startedCheckout service.StartedCheckout, err error) {
+		if err != nil {
+			response.WriteError(context, err)
+			return
+		}
+		response.WriteData(context, http.StatusCreated, CreatedCheckoutSessionResponse{
+			ID:          startedCheckout.ID,
+			CheckoutURL: startedCheckout.CheckoutURL,
+			ExpiresAt:   startedCheckout.ExpiresAt,
+		})
+	}
 }
 
 func (handler *CheckoutSessionHandler) getCheckoutSession(context *gin.Context) {

@@ -9,6 +9,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
+	"github.com/farhapartex/nebula-exchange/backend/internal/economy"
 	"github.com/farhapartex/nebula-exchange/backend/internal/health"
 	"github.com/farhapartex/nebula-exchange/backend/internal/identity"
 	"github.com/farhapartex/nebula-exchange/backend/internal/payment"
@@ -54,6 +55,8 @@ func buildApplication(ctx context.Context, appConfig config.Config, appLogger *s
 		Now:      time.Now,
 	})
 
+	economyModule := economy.NewModule(economy.ModuleDependencies{Database: gormDatabase, Logger: appLogger, Now: time.Now})
+
 	walletModule, err := wallet.NewModule(wallet.ModuleDependencies{
 		Database:        gormDatabase,
 		ChainID:         appConfig.ChainID,
@@ -64,7 +67,7 @@ func buildApplication(ctx context.Context, appConfig config.Config, appLogger *s
 		return nil, err
 	}
 
-	paymentDependencies, err := buildPaymentDependencies(ctx, appConfig, appLogger, gormDatabase, storyModule, progressModule, walletModule)
+	paymentDependencies, err := buildPaymentDependencies(ctx, appConfig, appLogger, gormDatabase, storyModule, progressModule, walletModule, economyModule)
 	if err != nil {
 		return nil, err
 	}
@@ -76,6 +79,8 @@ func buildApplication(ctx context.Context, appConfig config.Config, appLogger *s
 		Session:         appConfig.Session,
 		FrontendBaseURL: appConfig.FrontendBaseURL,
 		PlayerProgress:  playerProgressAdapter{playerProgress: progressModule.PlayerProgress},
+		CoinBalances:    economyModule.CoinAccounts,
+		WelcomeGifts:    economyModule.CoinAccounts,
 		Logger:          appLogger,
 		Now:             time.Now,
 	})
@@ -133,12 +138,13 @@ func buildHealthService(appLogger *slog.Logger, gormDatabase *gorm.DB, redisClie
 	)
 }
 
-func buildPaymentDependencies(ctx context.Context, appConfig config.Config, appLogger *slog.Logger, gormDatabase *gorm.DB, storyModule *story.Module, progressModule *progress.Module, walletModule *wallet.Module) (payment.ModuleDependencies, error) {
+func buildPaymentDependencies(ctx context.Context, appConfig config.Config, appLogger *slog.Logger, gormDatabase *gorm.DB, storyModule *story.Module, progressModule *progress.Module, walletModule *wallet.Module, economyModule *economy.Module) (payment.ModuleDependencies, error) {
 	paymentDependencies := payment.ModuleDependencies{
 		Database:          gormDatabase,
 		Chapters:          storyModule.LevelCatalog,
 		ChapterOwnership:  progressModule.ChapterOwnership,
 		ChapterUnlocker:   progressModule.ChapterUnlocks,
+		CoinAccounts:      economyModule.CoinAccounts,
 		FrontendBaseURL:   appConfig.FrontendBaseURL,
 		Logger:            appLogger,
 		Now:               time.Now,

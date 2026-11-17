@@ -19,6 +19,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/farhapartex/nebula-exchange/backend/internal/economy"
 	"github.com/farhapartex/nebula-exchange/backend/internal/identity"
 	"github.com/farhapartex/nebula-exchange/backend/internal/identity/handler"
 	"github.com/farhapartex/nebula-exchange/backend/internal/identity/models"
@@ -57,12 +58,15 @@ func newIdentityHarness(t *testing.T) *identityHarness {
 	testDatabase := databasetest.Open(t)
 	quietLogger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
+	coinAccounts := economy.NewModule(economy.ModuleDependencies{Database: testDatabase, Logger: quietLogger, Now: time.Now}).CoinAccounts
 	identityModule, err := identity.NewModule(context.Background(), identity.ModuleDependencies{
 		Database:        testDatabase,
 		EmailEnqueuer:   outbox.NewEnqueuer(outbox.NewGormRepository(testDatabase), time.Now),
 		Session:         config.SessionConfig{JWTSecret: strings.Repeat("s", 40)},
 		FrontendBaseURL: "http://localhost:3000",
 		PlayerProgress:  newPlayerProgress{},
+		CoinBalances:    coinAccounts,
+		WelcomeGifts:    coinAccounts,
 		Logger:          quietLogger,
 		Now:             time.Now,
 	})
@@ -209,7 +213,7 @@ func TestPlayerSignsUpActivatesLogsInAndReadsProfile(t *testing.T) {
 	harness.requireStatus(harness.send(http.MethodGet, "/me", nil, ""), http.StatusUnauthorized)
 	profileResponse := harness.send(http.MethodGet, "/me", nil, accessToken)
 	harness.requireStatus(profileResponse, http.StatusOK)
-	expectedProfile := map[string]any{"name": playerUsername, "email": playerEmail, "current_level": float64(1), "current_level_price": nil, "is_current_level_paid": false, "story_level": float64(0), "total_win": float64(0), "total_lose": float64(0), "current_level_win": float64(0), "current_level_lose": float64(0), "paid_chapters": float64(0), "unpaid_chapters": float64(0)}
+	expectedProfile := map[string]any{"name": playerUsername, "email": playerEmail, "current_level": float64(1), "current_level_price": nil, "is_current_level_paid": false, "story_level": float64(0), "total_win": float64(0), "total_lose": float64(0), "current_level_win": float64(0), "current_level_lose": float64(0), "paid_chapters": float64(0), "unpaid_chapters": float64(0), "coins": "100"}
 	if !maps.Equal(profileResponse.data(), expectedProfile) {
 		t.Fatalf("got profile %v, want exactly %v", profileResponse.data(), expectedProfile)
 	}

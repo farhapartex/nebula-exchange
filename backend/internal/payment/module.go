@@ -18,6 +18,7 @@ type ModuleDependencies struct {
 	Chapters          service.ChapterCatalog
 	ChapterOwnership  service.ChapterOwnership
 	ChapterUnlocker   service.ChapterUnlocker
+	CoinAccounts      service.CoinAccounts
 	CheckoutGateway   service.CheckoutGateway
 	EventVerifier     service.PaymentEventVerifier
 	WalletPayments    *service.WalletPaymentDependencies
@@ -35,6 +36,7 @@ type Module struct {
 func NewModule(dependencies ModuleDependencies) *Module {
 	plans := repository.NewPlanRepository(dependencies.Database)
 	payments := repository.NewPaymentRepository(dependencies.Database)
+	coinPacks := repository.NewCoinPackRepository(dependencies.Database)
 	transactions := database.NewTransactionRunner(dependencies.Database)
 	checkoutService := service.NewCheckoutService(service.CheckoutDependencies{
 		Plans:           plans,
@@ -42,6 +44,8 @@ func NewModule(dependencies ModuleDependencies) *Module {
 		Chapters:        dependencies.Chapters,
 		Ownership:       dependencies.ChapterOwnership,
 		Unlocker:        dependencies.ChapterUnlocker,
+		Coins:           dependencies.CoinAccounts,
+		CoinPacks:       coinPacks,
 		Gateway:         dependencies.CheckoutGateway,
 		WalletPayments:  dependencies.WalletPayments,
 		Transactions:    transactions,
@@ -54,12 +58,14 @@ func NewModule(dependencies ModuleDependencies) *Module {
 		Events:       repository.NewStripeWebhookEventRepository(dependencies.Database),
 		Payments:     payments,
 		Unlocker:     dependencies.ChapterUnlocker,
+		Coins:        dependencies.CoinAccounts,
 		Transactions: transactions,
 		Logger:       dependencies.Logger,
 		Now:          service.Clock(dependencies.Now),
 	})
 	return &Module{VaultPaymentWatcher: newVaultPaymentWatcher(dependencies, payments, transactions), registrars: []httpserver.RouteRegistrar{
 		handler.NewStoreHandler(service.NewStoreService(dependencies.Chapters, dependencies.ChapterOwnership, plans)),
+		handler.NewCoinPackHandler(service.NewCoinPackCatalogService(coinPacks)),
 		handler.NewCheckoutSessionHandler(checkoutService),
 		handler.NewSubscriptionHandler(service.NewSubscriptionService(payments)),
 		handler.NewStripeWebhookHandler(webhookService),

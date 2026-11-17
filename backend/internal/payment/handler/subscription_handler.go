@@ -92,7 +92,7 @@ func toSubscriptionResponse(payment models.Payment) SubscriptionResponse {
 	}
 	return SubscriptionResponse{
 		ID:              payment.ID,
-		PlanID:          payment.PlanID,
+		PlanID:          valueOrEmpty(payment.PlanID),
 		PlanName:        payment.Plan.Name,
 		PlanKind:        payment.Plan.Kind,
 		Status:          payment.Status,

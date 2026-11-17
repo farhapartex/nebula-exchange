@@ -50,10 +50,10 @@ The backend is a single Go service split by domain (a modular monolith). Each do
 | `story` | Chapters, levels, story slides, arenas, enemies, waves and difficulty |
 | `combat` | Moves, special moves, which moves fighters and enemies can use |
 | `progress` | Fighter profile, level progress, stars, fight sessions, chapter unlocks |
-| `payment` | Purchase plans, chapter payments, Stripe checkout and webhooks |
+| `payment` | Purchase plans, coin packs, chapter and coin pack payments, Stripe checkout and webhooks |
 | `wallet` | Linking a crypto wallet to an account with a signed message |
 | `tools` | Tool catalogue, owned tools, mastery, loadout |
-| `economy` | Coin wallet, ledger, coin packs, player market |
+| `economy` | Coin balances, the coin ledger, clawback flags, later the player market |
 
 Every domain uses the same folders:
 
@@ -103,7 +103,7 @@ make migrate-version
 | `POST /auth/login` | Return an access token and set the refresh cookie |
 | `POST /auth/refresh` | Rotate the refresh cookie and return a new access token |
 | `POST /auth/logout` | End the current session |
-| `GET /me` | The logged in player: `name`, `email`, `current_level`, `story_level`, `total_win`, `total_lose`, `current_level_win`, `current_level_lose`, `paid_chapters`, `unpaid_chapters` (see below) |
+| `GET /me` | The logged in player: `name`, `email`, `current_level`, `story_level`, `total_win`, `total_lose`, `current_level_win`, `current_level_lose`, `paid_chapters`, `unpaid_chapters` and `coins` (see below) |
 
 Access tokens last 15 minutes and are sent as `Authorization: Bearer`. The refresh token lives in an httpOnly cookie for 30 days and is replaced on every refresh. If an old refresh token is ever used again, every session in that login chain is ended.
 
@@ -117,6 +117,7 @@ What the `/me` progress fields mean:
 - `current_level_price` is what the current chapter costs, as a string of US cents (`"499"` is USD 4.99), or null for a free chapter.
 - `is_current_level_paid` is true when the player owns the current chapter (or it costs nothing), so every level in it can be played.
 - `paid_chapters` is how many paid chapters the player owns. `unpaid_chapters` is how many published paid chapters they do not own yet. Free chapters are in neither count.
+- `coins` is the player's coin balance as a string of whole coins, for example `"600"`.
 
 ### Wallet endpoints
 
@@ -144,6 +145,7 @@ A wallet can belong to one account only (422 on `address`), and an account has o
 | `GET /checkout-sessions/{id}` | The checkout `status`: `OPEN`, `PAID` or `EXPIRED`, plus `confirmations` and `required_confirmations` for wallet payments. The subscription page checks it after the payment |
 | `POST /checkout-sessions/{id}/transactions` | Body `{"transaction_hash": "0x..."}`. The frontend reports the wallet transaction it sent, so the payment is confirmed without waiting for the chain watcher |
 | `GET /subscriptions` | The player's chapter purchases, newest first: plan, chapters, amounts, `status` (`PAID`, `REFUNDED` or `DISPUTED`), `paid_at`, `refunded_at`, `payment_method`, and for wallet payments `wallet_payment` with the `asset`, `amount_units`, `payer_address` and `transaction_hash` |
+| `GET /coin-packs` | The coin packs on sale, in order: `id`, `name`, `coins` and `price_cents`, both as strings. Cursor paginated |
 | `POST /webhooks/stripe` | Stripe events, checked against `STRIPE_WEBHOOK_SECRET`. Not for the frontend |
 
 There are three plans, seeded from `backend/seeds/plans/plans.json`:
@@ -174,6 +176,19 @@ How a wallet payment works:
 - Wallet payments are off (503) unless `CHAIN_RPC_URL`, `CHAPTER_PAYMENT_VAULT_ADDRESS` and `PAYMENT_SIGNER_PRIVATE_KEY` are set. Crypto payments are not refundable.
 
 To test card payments locally, run `make stripe-listen` in a second terminal. It forwards Stripe test events to the backend; the signing secret it prints must be the `STRIPE_WEBHOOK_SECRET` in `.env`. Pay with the test card `4242 4242 4242 4242`, any future date and any CVC.
+
+### Coins
+
+Coins are the in-game money for tools. 1 coin is worth 1 US cent and coins can never be turned back into money.
+
+- A player gets a welcome gift of 100 coins when their account is activated, once. Accounts activated before coins existed did not get it.
+- Coin packs are seeded from `backend/seeds/coin-packs/coin-packs.json`: 500 coins for USD 4.99, 1,100 for USD 9.99 and 2,400 for USD 19.99. They are paid by card only.
+- `POST /checkout-sessions` with body `{"coin_pack_id": "coins-500", "return_path": "/market"}` starts a Stripe Checkout for a pack, priced on the server from `coin_packs`. Stripe sends the player back to `return_path` with `?coin_checkout={id}`, or `?coin_checkout=cancelled`. Only `/fight`, `/fight/history`, `/market` and `/subscription` are accepted; anything else returns to `/fight`. A coin pack cannot be paid from a wallet (422 on `payment_method`) or combined with `plan_id` (422).
+- Coin pack checkouts share the rules of chapter checkouts: one open checkout per player, the same webhook, and `GET /checkout-sessions/{id}` for the status. They do not appear in `/subscriptions`.
+- When a coin pack is paid, its coins are added once, however many times Stripe sends the event.
+- A full refund or a dispute takes the pack's coins back, but never below 0. If the player already spent some of them, the rest is recorded in `coin_clawback_flags` for review.
+
+Every change to a balance is one row in `coin_ledger_entries` (`amount`, `balance_after`, `reason` and the `payment_id` when there is one), written in the same transaction as the new balance in `coin_balances`. Ledger rows can never be changed or deleted; the database rejects it. A balance can never go below 0.
 
 ### Tool endpoints
 
@@ -270,7 +285,7 @@ The table design is in `backend/docs/database-design.drawio`. Open it with draw.
 
 These were agreed before the backend was started. Anything not listed here is still open and gets decided before it is built.
 
-**Currency.** There is one in-game currency, coins, used for tools and the market. 1 coin is worth 1 US cent. Players buy coins with Stripe in fixed coin packs: 500 coins for USD 4.99, 1,100 for USD 9.99 and 2,400 for USD 19.99. Coins can never be turned back into money. Chapters are paid with a card directly, not with coins. A level pays coins only the first time it is cleared; replays give experience but no coins, so coins cannot be farmed.
+**Currency.** There is one in-game currency, coins, used for tools and the market. 1 coin is worth 1 US cent. Players buy coins with Stripe in fixed coin packs: 500 coins for USD 4.99, 1,100 for USD 9.99 and 2,400 for USD 19.99. Coins can never be turned back into money. New players get 100 coins when they activate their account. Coin packs are paid by card only. A refunded or disputed pack takes its coins back without going below 0, and any coins already spent are flagged for review. Chapters are paid with a card directly, not with coins. A level pays coins only the first time it is cleared; replays give experience but no coins, so coins cannot be farmed.
 
 **Chapters.** Only chapter 1 level 1 is free. Every other level needs its whole chapter, bought once with a card through Stripe (chapter 1 costs USD 4.99). A player can buy the next chapter, a number of chapters or all of them at once: 2 chapters get 5 percent off, 3 or more get 10 percent off and all remaining chapters get 20 percent off. A refunded or disputed chapter payment locks those chapters again; wins and stars stay. In development `make dev-unlock-chapter` also gives a chapter to a player without paying. Coins (1 coin is 1 US cent, sold in packs) stay for tools and the market.
 

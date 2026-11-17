@@ -1,0 +1,5 @@
+[
+  { "id": "coins-500", "name": "Pocket change", "coins": 500, "price_cents": 499, "sort_order": 1, "is_active": true },
+  { "id": "coins-1100", "name": "Street stash", "coins": 1100, "price_cents": 999, "sort_order": 2, "is_active": true },
+  { "id": "coins-2400", "name": "Boss bag", "coins": 2400, "price_cents": 1999, "sort_order": 3, "is_active": true }
+]

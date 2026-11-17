@@ -108,7 +108,7 @@ func (checkout *checkoutService) findReusableWalletCheckout(ctx context.Context,
 	minimumDeadline := checkout.dependencies.Now().Add(reusableAuthorizationLifetime)
 	for _, openPayment := range openPayments {
 		isSameWalletCheckout := openPayment.PaymentMethod == models.PaymentMethodWallet &&
-			openPayment.PlanID == planID &&
+			openPayment.PlanID != nil && *openPayment.PlanID == planID &&
 			openPayment.TotalCents == option.TotalCents &&
 			openPayment.PayerAddress != nil && *openPayment.PayerAddress == payerAddress &&
 			openPayment.CheckoutExpiresAt.After(minimumDeadline) &&

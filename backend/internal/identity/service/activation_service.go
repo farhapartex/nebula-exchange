@@ -23,6 +23,7 @@ type ActivationService interface {
 type ActivationDependencies struct {
 	Users            repository.UserRepository
 	ActivationTokens repository.ActivationTokenRepository
+	WelcomeGifts     WelcomeGiftGranter
 	Transactions     TransactionRunner
 	Now              Clock
 }
@@ -67,8 +68,11 @@ func (activation *activationService) Activate(ctx context.Context, plaintextToke
 		}
 		var wasActivated bool
 		activatedUser, wasActivated, err = activation.dependencies.Users.Activate(ctx, consumedToken.UserID, activatedAt)
-		if err != nil || wasActivated {
+		if err != nil {
 			return err
+		}
+		if wasActivated {
+			return activation.dependencies.WelcomeGifts.GrantWelcomeGift(ctx, activatedUser.ID)
 		}
 		activatedUser, _, err = activation.dependencies.Users.FindByID(ctx, consumedToken.UserID)
 		return err

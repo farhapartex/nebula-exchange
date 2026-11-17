@@ -5,7 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Coins } from "lucide-react";
 import { Tabs } from "radix-ui";
 
-import { useFighterProfile } from "@/features/fight-hub/use-fight-hub";
+import { useCurrentPlayer } from "@/features/auth/session/use-current-player";
 import { ListingsTab } from "@/features/market/listings-tab";
 import { MarketFiltersBar } from "@/features/market/market-filters";
 import { PurchaseToolDialog, type PurchaseTarget } from "@/features/market/purchase-tool-dialog";
@@ -30,7 +30,7 @@ export function MarketView() {
   const activeTab = readMarketTab(useSearchParams().get(marketTabQueryParameter));
   const { filters, appliedFilters, changeFilters } = useMarketFilters();
   const [purchaseTarget, setPurchaseTarget] = useState<PurchaseTarget | null>(null);
-  const fighterQuery = useFighterProfile();
+  const currentPlayerQuery = useCurrentPlayer();
 
   function selectTab(tabValue: string) {
     const query = new URLSearchParams({ [marketTabQueryParameter]: readMarketTab(tabValue) });
@@ -47,7 +47,7 @@ export function MarketView() {
         <span className="flex items-center gap-2 rounded-lg border border-border-strong bg-surface-raised px-3 py-2 text-sm">
           <Coins className="size-4 text-amber-400" aria-hidden="true" />
           <span className="font-mono text-foreground tabular-nums">
-            {formatCoinAmount(fighterQuery.data?.coins ?? 0)}
+            {formatCoinAmount(currentPlayerQuery.data?.coins ?? "0")}
           </span>
           <span className="text-xs text-subtle">coins to spend</span>
         </span>

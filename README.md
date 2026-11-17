@@ -16,7 +16,8 @@ A thin, hungry boy lives alone in a broken village house. One night bandits burn
 - If you lose, you can try again straight away.
 - The first fight of chapter 1 is free. To keep playing, you unlock whole chapters, either one at a time or several at once for a discount.
 - You can pay by card, or in ETH or USDC from a crypto wallet such as MetaMask.
-- Coming later: buy tools like an iron pipe or a scrap shield, make them stronger by fighting with them, and sell them to other players.
+- New players get 100 coins. More coins come in packs bought by card: press the coin balance at the top of the game.
+- Coming later: buy tools like an iron pipe or a scrap shield with coins, make them stronger by fighting with them, and sell them to other players.
 
 ## Fight controls
 

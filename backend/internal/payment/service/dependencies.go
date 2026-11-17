@@ -27,3 +27,8 @@ type TransactionRunner interface {
 }
 
 type Clock func() time.Time
+
+type CoinAccounts interface {
+	CreditCoinPack(ctx context.Context, userID uuid.UUID, paymentID uuid.UUID, coins int64) error
+	ClawBackCoinPack(ctx context.Context, userID uuid.UUID, paymentID uuid.UUID, coins int64) error
+}

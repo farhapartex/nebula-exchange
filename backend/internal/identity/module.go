@@ -23,6 +23,8 @@ type ModuleDependencies struct {
 	Session         config.SessionConfig
 	FrontendBaseURL string
 	PlayerProgress  service.PlayerProgressReader
+	CoinBalances    service.CoinBalanceReader
+	WelcomeGifts    service.WelcomeGiftGranter
 	Logger          *slog.Logger
 	Now             func() time.Time
 }
@@ -61,6 +63,7 @@ func NewModule(ctx context.Context, dependencies ModuleDependencies) (*Module, e
 	activationService := service.NewActivationService(service.ActivationDependencies{
 		Users:            users,
 		ActivationTokens: activationTokens,
+		WelcomeGifts:     dependencies.WelcomeGifts,
 		Transactions:     transactions,
 		Now:              clock,
 	})
@@ -84,7 +87,7 @@ func NewModule(ctx context.Context, dependencies ModuleDependencies) (*Module, e
 			handler.NewSignupHandler(signupService),
 			handler.NewActivationHandler(activationService),
 			handler.NewSessionHandler(sessionService, refreshCookie),
-			handler.NewProfileHandler(service.NewProfileService(users, dependencies.PlayerProgress)),
+			handler.NewProfileHandler(service.NewProfileService(users, dependencies.PlayerProgress, dependencies.CoinBalances)),
 		},
 	}, nil
 }

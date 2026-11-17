@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 
@@ -23,6 +24,7 @@ type CurrentPlayerResponse struct {
 	CurrentLevelLose   int     `json:"current_level_lose"`
 	PaidChapters       int     `json:"paid_chapters"`
 	UnpaidChapters     int     `json:"unpaid_chapters"`
+	Coins              string  `json:"coins"`
 }
 
 type ProfileHandler struct {
@@ -57,5 +59,6 @@ func (handler *ProfileHandler) getMe(context *gin.Context) {
 		CurrentLevelLose:   currentPlayer.CurrentLevelLosses,
 		PaidChapters:       currentPlayer.PaidChapters,
 		UnpaidChapters:     currentPlayer.UnpaidChapters,
+		Coins:              strconv.FormatInt(currentPlayer.Coins, 10),
 	})
 }
