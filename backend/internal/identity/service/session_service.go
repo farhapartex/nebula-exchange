@@ -78,15 +78,14 @@ func (sessions *sessionService) LogIn(ctx context.Context, input LoginInput, met
 		return EstablishedSession{}, err
 	}
 
-	passwordHash := sessions.timingEqualizerHash
-	if isFound {
-		passwordHash = accountUser.PasswordHash
+	if !isFound {
+		return EstablishedSession{}, ErrInvalidCredentials
 	}
-	isPasswordCorrect, err := sessions.dependencies.PasswordHasher.Verify(ctx, input.Password, passwordHash)
+	isPasswordCorrect, err := sessions.dependencies.PasswordHasher.Verify(ctx, input.Password, accountUser.PasswordHash)
 	if err != nil {
 		return EstablishedSession{}, err
 	}
-	if !isFound || !isPasswordCorrect {
+	if !isPasswordCorrect {
 		return EstablishedSession{}, ErrInvalidCredentials
 	}
 	if err := ensureAccountMayLogIn(accountUser); err != nil {
@@ -135,7 +134,7 @@ func (sessions *sessionService) Refresh(ctx context.Context, plaintextRefreshTok
 		if err != nil {
 			return err
 		}
-		if !isFound || !sessionUser.IsActive || sessionUser.Status == models.UserStatusBanned {
+		if !isFound || !sessionUser.IsActive {
 			return ErrSessionExpired
 		}
 		replacementID, err := uuid.NewV7()
@@ -202,7 +201,7 @@ func (sessions *sessionService) revokeFamilyIfTokenWasReused(ctx context.Context
 	if err != nil || !isFound || storedSession.RevokedAt == nil {
 		return
 	}
-	isConcurrentRefresh := storedSession.ReplacedByID != nil && now.Sub(*storedSession.RevokedAt) <= concurrentRefreshGrace
+	isConcurrentRefresh := storedSession.ReplacedByID != nil || now.Sub(*storedSession.RevokedAt) <= concurrentRefreshGrace
 	if isConcurrentRefresh {
 		return
 	}
@@ -231,7 +230,7 @@ func ensureAccountMayLogIn(accountUser models.User) error {
 
 func truncateUserAgent(userAgent string) string {
 	if len(userAgent) > maximumUserAgentLength {
-		return userAgent[:maximumUserAgentLength]
+		return userAgent[:maximumUserAgentLength-1]
 	}
 	return userAgent
 }
