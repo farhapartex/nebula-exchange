@@ -58,7 +58,7 @@ export function LoginForm() {
     meta: { showsThrottlingInline: true },
     onSuccess: (establishedSession) => {
       startSession(establishedSession);
-      router.replace(safeInternalPath(searchParameters.get("next")) ?? defaultPathAfterLogin);
+      router.push(safeInternalPath(searchParameters.get("next")) ?? defaultPathAfterLogin);
     },
     onError: (error, formValues) => {
       if (isApiError(error) && (error.code === "LOGIN_LOCKED" || error.code === "RATE_LIMITED")) {
