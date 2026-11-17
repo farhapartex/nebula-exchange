@@ -66,7 +66,7 @@ func (repository *GormPaymentRepository) FindForUser(ctx context.Context, paymen
 	var payment models.Payment
 	err := database.Session(ctx, repository.database).
 		Preload("Chapters").
-		Where(map[string]any{"id": paymentID, "user_id": userID}).
+		Where(map[string]any{"id": paymentID}).
 		Take(&payment).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return models.Payment{}, ErrPaymentNotFound
