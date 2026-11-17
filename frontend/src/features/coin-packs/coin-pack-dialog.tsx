@@ -53,9 +53,6 @@ export function CoinPackDialog({ isOpen, missingCoins, onOpenChange }: CoinPackD
     if (isPaying) {
       return;
     }
-    if (!nextIsOpen) {
-      setChosenCoinPackID(null);
-    }
     onOpenChange(nextIsOpen);
   }
 

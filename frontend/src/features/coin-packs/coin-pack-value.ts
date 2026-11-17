@@ -20,7 +20,7 @@ export function cheapestCoinPack(coinPacks: CoinPack[]): CoinPack | undefined {
 }
 
 export function smallestCoinPackCovering(coinPacks: CoinPack[], neededCoins: bigint): CoinPack | undefined {
-  const coveringPacks = coinPacks.filter((coinPack) => BigInt(coinPack.coins) >= neededCoins);
+  const coveringPacks = coinPacks.filter((coinPack) => BigInt(coinPack.coins) > neededCoins);
   if (coveringPacks.length > 0) {
     return cheapestCoinPack(coveringPacks);
   }
