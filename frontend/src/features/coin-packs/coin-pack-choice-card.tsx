@@ -40,7 +40,7 @@ export function CoinPackChoiceCard({ coinPack, extraPercent, isSelected, onSelec
         <span className="flex flex-wrap items-center gap-2">
           <span className="font-mono text-lg text-foreground tabular-nums">{formatCoinAmount(coinPack.coins)}</span>
           <span className="text-sm text-muted">coins</span>
-          {extraPercent >= 0 && (
+          {extraPercent > 0 && (
             <span className="rounded-md bg-up/15 px-2 py-0.5 text-xs font-semibold text-up">
               +{extraPercent}% extra
             </span>

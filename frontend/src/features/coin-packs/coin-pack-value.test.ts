@@ -35,6 +35,11 @@ describe("smallestCoinPackCovering", () => {
     expect(smallestCoinPackCovering(coinPacks, 900n)).toBe(streetPack);
   });
 
+  it("picks the pack that covers the missing coins exactly", () => {
+    expect(smallestCoinPackCovering(coinPacks, 500n)).toBe(starterPack);
+    expect(smallestCoinPackCovering(coinPacks, 1100n)).toBe(streetPack);
+  });
+
   it("falls back to the biggest pack when none covers it", () => {
     expect(smallestCoinPackCovering(coinPacks, 9000n)).toBe(bossPack);
   });
